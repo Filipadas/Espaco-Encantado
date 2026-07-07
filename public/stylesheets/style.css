@@ -1,0 +1,387 @@
+/* ===== Reset ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f0f0f0;
+  padding: 20px;
+}
+
+:root{
+  --navbar-height: 72px; /* adjust if your navbar height changes */
+}
+
+/* ===== Navbar Principal ===== */
+.navbar-encantado {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.795);
+  transition: box-shadow 0.3s ease;
+  border-radius: 16px;
+  overflow: visible;
+  background: transparent;
+}
+
+.navbar-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 16px;
+  overflow: visible;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  position: relative;
+  background: linear-gradient(90deg, #c62828 0%, #b71c1c 45%, #2f6ec1 100%);
+  padding: 0 16px;
+  z-index: 10;
+}
+
+/* ===== Seção Vermelha (Brand) ===== */
+.navbar-brand-section {
+  flex: 1;
+  padding: 20px 32px;
+  position: relative;
+}
+
+.navbar-brand {
+  color: #ffffff;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+  position: relative;
+  z-index: 2;
+}
+
+/* ===== Seção Azul (Actions) ===== */
+.navbar-actions-section {
+  background: transparent;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  border-radius: 0;
+  margin-left: auto;
+  position: relative;
+  z-index: 2;
+}
+
+/* ===== Navbar Search (center) ===== */
+.navbar-search{
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 520px;
+  max-width: 55%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index: 3;
+  pointer-events: auto;
+}
+
+.navbar-search .form-control{
+  width:100%;
+  max-width:520px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 999px;
+}
+
+.navbar-search .form-control::placeholder{ color: rgba(255,255,255,0.85); }
+
+@media (max-width: 992px) {
+  .navbar-search { width: 420px; max-width: 60%; }
+}
+
+@media (max-width: 768px){
+  /* move search into flow on smaller screens */
+  .navbar-search{ position: static; transform:none; width:100%; max-width:none; padding:8px 16px; order:3; }
+  .navbar-search .form-control{ max-width:100%; }
+}
+
+@media (max-width: 480px){
+  .navbar-search{ display:none; }
+}
+
+.navbar-login {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 1.05rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  padding: 8px 16px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar-login:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Light-blue filled style for Login button */
+.navbar-login {
+  background: rgba(77, 163, 255, 0.16); /* light blue */
+  color: #fff;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.55); /* softer white */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  transition: background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.navbar-login:focus,
+.navbar-login:active {
+  outline: none;
+  box-shadow: 0 2px 8px rgba(77,163,255,0.18);
+}
+
+.navbar-login:hover {
+  background: rgba(77, 163, 255, 0.26);
+}
+
+/* ===== Hamburger Menu ===== */
+.navbar-toggler {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.navbar-toggler:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Light-blue background for hamburger with rounded corners */
+.navbar-toggler {
+  background: rgba(77, 163, 255, 0.16);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.55);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  transition: background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.navbar-toggler:hover {
+  background: rgba(77, 163, 255, 0.28);
+}
+
+.hamburger-line {
+  display: block;
+  width: 24px;
+  height: 3px;
+  background-color: #ffffff;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+/* Make the inline SVG icon larger and aligned with the Login text */
+.navbar-login svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: block;
+}
+
+/* Animação do hamburger quando ativo */
+.navbar-toggler.active .hamburger-line:nth-child(1) {
+  transform: rotate(45deg) translate(6px, 6px);
+}
+
+.navbar-toggler.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.navbar-toggler.active .hamburger-line:nth-child(3) {
+  transform: rotate(-45deg) translate(6px, -6px);
+}
+
+/* ===== RESPONSIVIDADE ===== */
+@media (max-width: 768px) {
+  .navbar-wrapper {
+    flex-direction: column;
+    border-radius: 16px;
+  }
+
+  .navbar-brand-section {
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    padding: 18px 24px;
+  }
+
+  .navbar-brand-section::after {
+    display: none;
+  }
+
+  .navbar-actions-section {
+    width: 100%;
+    border-radius: 0 0 16px 16px;
+    justify-content: space-between;
+    padding: 16px 24px;
+  }
+
+  .navbar-brand {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 12px;
+  }
+
+  .navbar-brand-section {
+    padding: 16px 20px;
+  }
+
+  .navbar-actions-section {
+    padding: 14px 20px;
+    gap: 16px;
+  }
+
+  .navbar-brand {
+    font-size: 1.2rem;
+  }
+
+  .navbar-login {
+    font-size: 0.95rem;
+    padding: 6px 12px;
+  }
+
+  .hamburger-line {
+    width: 20px;
+  }
+}
+
+/* ===== Efeito de hover suave ===== */
+.navbar-wrapper {
+  transition: box-shadow 0.3s ease;
+}
+
+.navbar-encantado:hover {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.795);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.795) !important;
+}
+
+/* ===== Landing Section ===== */
+.landing-section{
+  width: 100%;
+  max-width: 1100px;
+  margin: 8px auto 0;
+  padding: 0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.600);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.landing-card{
+  background: #f6f6f6;
+  padding: 36px 28px;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
+  text-align: center;
+}
+
+.landing-title{
+  color: #b30000;
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+}
+
+.landing-subtitle{
+  color: #b30000;
+  font-size: 1.75rem;
+  margin: 0 0 12px 0;
+  font-weight: 700;
+}
+
+.landing-text{
+  color: #333;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px){
+  .landing-card{ padding: 26px 18px; }
+  .landing-title{ font-size: 1.6rem; }
+  .landing-subtitle{ font-size: 1.15rem; }
+}
+
+/* ===== Cards Section ===== */
+.cards-section {
+  padding: 60px 20px;
+  background: transparent;
+}
+
+.cards-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.card-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #2f6ec1;
+  margin: 0 0 15px 0;
+  text-align: center;
+}
+
+.card-item {
+  background: #fff;
+  border-radius: 15px;
+  padding: 55px 40px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+}
+
+.card-text {
+  font-size: 1.25rem;
+  color: #333;
+  line-height: 1.7;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .cards-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .card-item {
+    padding: 28px 20px;
+  }
+  
+  .card-title {
+    font-size: 1.2rem;
+  }
+}
