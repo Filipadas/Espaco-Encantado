@@ -37,4 +37,15 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
+if (require.main === module) {
+  var http = require('http');
+  var port = process.env.PORT || '3000';
+  app.set('port', port);
+
+  var server = http.createServer(app);
+  server.listen(port, function() {
+    console.log('Server running on http://localhost:' + port);
+  });
+}
+
 module.exports = app;

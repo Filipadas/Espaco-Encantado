@@ -9,25 +9,39 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #f0f0f0;
   padding: 20px;
+  padding-top: calc(20px + var(--navbar-height));
 }
 
 :root{
-  --navbar-height: 72px; /* adjust if your navbar height changes */
+  --navbar-height: 90px; /* adjust if your navbar height changes */
 }
 
 /* ===== Navbar Principal ===== */
 .navbar-encantado {
-  width: 100%;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 40px);
   max-width: 1200px;
-  margin: 0 auto;
+  z-index: 999;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.795);
-  transition: box-shadow 0.3s ease;
+  transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease;
   border-radius: 16px;
   overflow: visible;
   background: transparent;
 }
 
+.navbar-encantado.navbar-hidden {
+  transform: translate(-50%, -140%);
+  opacity: 0;
+  box-shadow: none;
+}
+
 .navbar-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -325,8 +339,26 @@ body {
 
 /* ===== Cards Section ===== */
 .cards-section {
-  padding: 60px 20px;
+  position: relative;
+  padding: 100px 20px 60px;
   background: transparent;
+}
+
+.balloons-intro {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 103.15%;
+  max-width: 103.15%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.balloons-intro img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .cards-container {
@@ -335,6 +367,8 @@ body {
   gap: 30px;
   max-width: 1100px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .card-wrapper {
