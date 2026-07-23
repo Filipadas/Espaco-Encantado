@@ -26,4 +26,61 @@ block content
           p.card-text Nossa loja oferece tudo para a sua comemoração: decorações, brinquedos e artigos de festa para tornar cada momento inesquecível!
     .balloons-intro
         img(src='./images/baloes_intro.png', alt='Balões introdutórios')
+        .balloons-overlay
+          .balloon-card
+            .balloon-icon
+              i.bi.bi-clock
+            h3.balloon-title HORÁRIOS
+            p.balloon-text
+              | Horário de funcionamento:
+              br
+              | Segunda: 13h30 – 18h00
+              br
+              | Terça a Sexta: 08h00 – 18h00
+              br
+              | Sábado: 08h00 – 12h00
+              br
+              | Domingo: Fechado
+
+          .balloon-card
+            .balloon-icon
+              i.bi.bi-geo-alt-fill
+            h3.balloon-title LOCALIZAÇÃO
+            p.balloon-text
+              | Estamos localizados na R. Ricardo Inácio,
+              br
+              | em Praia Grande – SC.
+              br
+              | Venha nos visitar e encantar-se com nossas decorações
+              br
+              | e serviços — esperamos por você!
+
+  h3.carousel-title Conheça nossas decorações, clique para saber mais
+  #carouselExampleCaptions.carousel.slide(style='margin-top: 24px;')
+    .carousel-indicators
+      button.active(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide-to='0' aria-current='true' aria-label='Slide 1')
+      button(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide-to='1' aria-label='Slide 2')
+      button(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide-to='2' aria-label='Slide 3')
+    .carousel-inner
+      .carousel-item.active
+        img(src='...' class='d-block w-100' alt='...')
+        .carousel-caption.d-none.d-md-block
+          h5 First slide label
+          p Some representative placeholder content for the first slide.
+      .carousel-item
+        img(src='...' class='d-block w-100' alt='...')
+        .carousel-caption.d-none.d-md-block
+          h5 Second slide label
+          p Some representative placeholder content for the second slide.
+      .carousel-item
+        img(src='...' class='d-block w-100' alt='...')
+        .carousel-caption.d-none.d-md-block
+          h5 Third slide label
+          p Some representative placeholder content for the third slide.
+    button.carousel-control-prev(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide='prev')
+      span.carousel-control-prev-icon(aria-hidden='true')
+      span.visually-hidden Previous
+    button.carousel-control-next(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide='next')
+      span.carousel-control-next-icon(aria-hidden='true')
+      span.visually-hidden Next
 
