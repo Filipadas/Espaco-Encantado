@@ -23,41 +23,41 @@ html
                         span.hamburger-line
                         span.hamburger-line
                         span.hamburger-line
-            .offcanvas.offcanvas-start(tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel")
-                .offcanvas-header
-                    h5.offcanvas-title#offcanvasNavbarLabel Espaço Encantado
-                    button.btn-close(type="button" data-bs-dismiss="offcanvas" aria-label="Close")
-                .offcanvas-body
-                    ul.navbar-nav.justify-content-start.flex-grow-1.pe-3
-                        form.d-flex.mt-3(role="search")
-                            input.form-control.me-2(type="search" placeholder="Search" aria-label="Search")
-                            button.btn.btn-outline-success(type="submit") Search    
-                        li.nav-item
-                            a.nav-link.active(aria-current="page" href="#") Início
-                        li.nav-item.dropdown
-                            a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false") Nossas redes sociais
-                            ul.dropdown-menu
-                                li
-                                    a.dropdown-item(href="#") Instagram
-                                li
-                                    hr.dropdown-divider
-                                li
-                                    a.dropdown-item(href="#") Facebook 
-                                li
-                                    hr.dropdown-divider
-                                li
-                                    a.dropdown-item(href="#") Whatsapp
-                        li.nav-item.dropdown
-                            a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false") Login
-                            ul.dropdown-menu
-                                li
-                                    a.dropdown-item(href="#") Inscrever-se
-                                li
-                                    a.dropdown-item(href="#") Entrar
-                                li
-                                    hr.dropdown-divider
-                                li
-                                    a.dropdown-item.text-danger(href="#") Desconectar
+        .offcanvas.offcanvas-start(tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel")
+            .offcanvas-header
+                h5.offcanvas-title#offcanvasNavbarLabel Espaço Encantado
+                button.btn-close(type="button" data-bs-dismiss="offcanvas" aria-label="Close")
+            .offcanvas-body
+                ul.navbar-nav.justify-content-start.flex-grow-1.pe-3
+                    form.d-flex.mt-3(role="search")
+                        input.form-control.me-2(type="search" placeholder="Search" aria-label="Search")
+                        button.btn.btn-outline-success(type="submit") Search    
+                    li.nav-item
+                        a.nav-link.active(aria-current="page" href="#") Início
+                    li.nav-item.dropdown
+                        a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false") Nossas redes sociais
+                        ul.dropdown-menu
+                            li
+                                a.dropdown-item(href="#") Instagram
+                            li
+                                hr.dropdown-divider
+                            li
+                                a.dropdown-item(href="#") Facebook 
+                            li
+                                hr.dropdown-divider
+                            li
+                                a.dropdown-item(href="#") Whatsapp
+                    li.nav-item.dropdown
+                        a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false") Login
+                        ul.dropdown-menu
+                            li
+                                a.dropdown-item(href="#") Inscrever-se
+                            li
+                                a.dropdown-item(href="#") Entrar
+                            li
+                                hr.dropdown-divider
+                            li
+                                a.dropdown-item.text-danger(href="#") Desconectar
         
         main.container.mt-5
         block content
