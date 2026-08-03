@@ -84,3 +84,31 @@ block content
       span.carousel-control-next-icon(aria-hidden='true')
       span.visually-hidden Next
 
+  .agenda-section
+    .agenda-visual
+      img(src='./images/baloes_agenda.png' alt='Balões com agenda')
+      .agenda-overlay
+        .agenda-left-block
+          h3.agenda-card-title Precisa marcar uma reuinão para alinhar seus objetivos?
+          .agenda-card.agenda-card-left
+            p.agenda-card-text
+              | A reunião é importante para entendermos suas ideias, alinhar os detalhes da festa e criar uma decoração personalizada do jeito que você imaginou.
+        .agenda-card.agenda-card-right
+          h3.agenda-card-title Faça seu agendamento:
+          a.btn.btn-agenda(href='#') Agendar
+
+  .catalog-section
+    h3.catalog-title Deseja acessar nossos catálogos?
+    form.catalog-search(role='search')
+      input.form-control(type='search' placeholder='Pesquisar' aria-label='Pesquisar catálogo')
+
+    .catalog-grid
+      .catalog-card
+        h4.catalog-card-title Brinquedos
+      .catalog-card
+        h4.catalog-card-title Decorações
+      .catalog-card
+        h4.catalog-card-title Kit de montagem
+      .catalog-card
+        h4.catalog-card-title Festa infantil
+
