@@ -64,19 +64,10 @@ block content
     .carousel-inner
       .carousel-item.active
         img(src='...' class='d-block w-100' alt='...')
-        .carousel-caption.d-none.d-md-block
-          h5 First slide label
-          p Some representative placeholder content for the first slide.
       .carousel-item
         img(src='...' class='d-block w-100' alt='...')
-        .carousel-caption.d-none.d-md-block
-          h5 Second slide label
-          p Some representative placeholder content for the second slide.
       .carousel-item
         img(src='...' class='d-block w-100' alt='...')
-        .carousel-caption.d-none.d-md-block
-          h5 Third slide label
-          p Some representative placeholder content for the third slide.
     button.carousel-control-prev(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide='prev')
       span.carousel-control-prev-icon(aria-hidden='true')
       span.visually-hidden Previous
@@ -95,7 +86,26 @@ block content
               | A reunião é importante para entendermos suas ideias, alinhar os detalhes da festa e criar uma decoração personalizada do jeito que você imaginou.
         .agenda-card.agenda-card-right
           h3.agenda-card-title Faça seu agendamento:
-          a.btn.btn-agenda(href='#') Agendar
+          button.btn.btn-agenda(type='button' data-open-scheduler) Agendar
+
+  .scheduler-modal(aria-hidden='true' data-scheduler-modal)
+    .scheduler-dialog(role='dialog' aria-modal='true' aria-label='Agendamento')
+      button.scheduler-close(type='button' aria-label='Fechar calendário' data-close-scheduler)
+        i.bi.bi-x-lg
+      p.scheduler-eyebrow AGENDAMENTO
+      .scheduler-week-header
+        button.scheduler-week-button(type='button' aria-label='Semana anterior' data-previous-week)
+          i.bi.bi-chevron-left
+        strong.scheduler-week-label(data-week-label)
+        button.scheduler-week-button(type='button' aria-label='Próxima semana' data-next-week)
+          i.bi.bi-chevron-right
+      .scheduler-days(data-scheduler-days)
+      .scheduler-times(data-scheduler-times)
+      form.scheduler-form(data-scheduler-form)
+        input#scheduler-date(type='hidden' required)
+        input#scheduler-time(type='hidden' required)
+        button.btn.scheduler-submit(type='submit') Confirmar horário
+      p.scheduler-feedback(role='status' data-scheduler-feedback)
 
   .catalog-section
     h3.catalog-title Deseja acessar nossos catálogos?
@@ -111,4 +121,39 @@ block content
         h4.catalog-card-title Kit de montagem
       .catalog-card
         h4.catalog-card-title Festa infantil
+
+    .history-top-image
+      img(src='./images/baloes_hist_topo.png' alt='Balões decorativos')
+      h2.history-top-title Conheça um pouco da nossa história
+
+    .history-story-band
+      .history-story-card
+        p O ponto de partida da loja espaço encantado ocorreu em 2005, um período marcado por desafios e recursos limitados. A proprietária Elisabete, com poucos meios para investir, começou utilizando materiais simples como folhas de E.V.A., TNT e isopor em suas primeiras decorações.
+        p Com o tempo, iniciou sua caminhada como empreendedora, investindo em artigos para festas e montando sua primeira loja na sala de casa. A partir daí, o negócio evoluiu gradualmente até se consolidar e se tornar a grande realizadora de sonhos que é hoje.
+
+    .history-bottom-image
+      img(src='./images/baloes_hist_inf.png' alt='Balões decorativos inferiores')
+
+  .login-section
+    .login-prompt
+      .login-prompt-link
+        span Faça seu login para desfrutar dos nossos serviços
+        i.bi.bi-arrow-right(aria-hidden='true')
+      .login-prompt-line
+    .login-image
+      img(src='./images/baloes_login.png' alt='Balões decorativos para login')
+      a.login-image-button(href='#login') Login
+
+  .products-section
+    h2.products-title Conheça um pouco dos nossos produtos:
+    .products-grid
+      - var products = Array.from({ length: 20 }, function(_, index) { return 'Produto ' + String(index + 1).padStart(2, '0'); })
+      each product, index in products
+        article.product-card(data-product-id=index + 1)
+          .product-photo(aria-label='Espaço reservado para foto de ' + product)
+            span Foto
+          h3.product-name= product
+          p.product-price R$
+          p.product-description Aqui poderá ser encontrada a descrição do produto referente ao nome.
+    button.products-more-button(type='button') Ver mais
 

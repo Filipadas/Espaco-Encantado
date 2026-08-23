@@ -62,6 +62,10 @@ html
         main.container.mt-5
         block content
         
+        footer.site-footer
+
+        a.whatsapp-float(href='#' aria-label='WhatsApp' title='WhatsApp')
+            i.bi.bi-whatsapp(aria-hidden='true')
         
             
         
@@ -87,3 +91,160 @@ html
               window.addEventListener('resize', updateNavbarVisibility);
               updateNavbarVisibility();
             })();
+                        (function() {
+                            var modal = document.querySelector('[data-scheduler-modal]');
+                            var openButton = document.querySelector('[data-open-scheduler]');
+                            if (!modal || !openButton) return;
+
+                            var closeButton = modal.querySelector('[data-close-scheduler]');
+                            var form = modal.querySelector('[data-scheduler-form]');
+                            var dateInput = modal.querySelector('#scheduler-date');
+                                                        var timeInput = modal.querySelector('#scheduler-time');
+                                                        var weekLabel = modal.querySelector('[data-week-label]');
+                                                        var daysContainer = modal.querySelector('[data-scheduler-days]');
+                                                        var timesContainer = modal.querySelector('[data-scheduler-times]');
+                                                        var currentWeek = new Date();
+                            var feedback = modal.querySelector('[data-scheduler-feedback]');
+
+                                                        var dayNames = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+                                                        var timeGroups = [
+                                                            { name: 'Manhã', times: ['08:00', '09:00', '10:00', '11:00'] },
+                                                              { name: 'Tarde', times: ['13:00', '14:00', '15:00', '16:00', '17:00'] },
+                                                            { name: 'Noite', times: ['18:00', '19:00', '20:00'] }
+                                                        ];
+
+                                                        function formatDate(date) {
+                                                            var year = date.getFullYear();
+                                                            var month = String(date.getMonth() + 1).padStart(2, '0');
+                                                            var day = String(date.getDate()).padStart(2, '0');
+                                                            return year + '-' + month + '-' + day;
+                                                        }
+
+                                                        function getStartOfWeek(date) {
+                                                            var start = new Date(date);
+                                                            start.setHours(0, 0, 0, 0);
+                                                            start.setDate(start.getDate() - start.getDay());
+                                                            return start;
+                                                        }
+
+                                                        function renderDays() {
+                                                            var start = getStartOfWeek(currentWeek);
+                                                            var today = formatDate(new Date());
+                                                            daysContainer.innerHTML = '';
+                                                            weekLabel.textContent = start.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+                                                            for (var index = 0; index < 7; index += 1) {
+                                                                var date = new Date(start);
+                                                                date.setDate(start.getDate() + index);
+                                                                var dateValue = formatDate(date);
+                                                                var dayButton = document.createElement('button');
+                                                                dayButton.type = 'button';
+                                                                dayButton.className = 'scheduler-day';
+                                                                dayButton.dataset.date = dateValue;
+                                                                dayButton.innerHTML = '<span>' + dayNames[date.getDay()] + '</span><strong>' + date.getDate() + '</strong>';
+                                                                if (dateValue === today) dayButton.classList.add('is-today');
+                                                                if (dateValue < today) {
+                                                                    dayButton.disabled = true;
+                                                                    dayButton.classList.add('is-disabled');
+                                                                }
+                                                                if (dateValue === dateInput.value) dayButton.classList.add('is-selected');
+                                                                dayButton.addEventListener('click', function() {
+                                                                    if (this.disabled) return;
+                                                                    dateInput.value = this.dataset.date;
+                                                                    modal.querySelectorAll('.scheduler-day').forEach(function(button) {
+                                                                        button.classList.remove('is-selected');
+                                                                    });
+                                                                    this.classList.add('is-selected');
+                                                                    timeInput.value = '';
+                                                                    renderTimes();
+                                                                });
+                                                                daysContainer.appendChild(dayButton);
+                                                            }
+                                                        }
+
+                                                        function renderTimes() {
+                                                            timesContainer.innerHTML = '';
+                                                            timeGroups.forEach(function(group) {
+                                                                var groupElement = document.createElement('section');
+                                                                groupElement.className = 'scheduler-time-group';
+                                                                groupElement.innerHTML = '<h3>' + group.name + '</h3><div class="scheduler-time-grid"></div>';
+                                                                var grid = groupElement.querySelector('.scheduler-time-grid');
+                                                                group.times.forEach(function(time) {
+                                                                    var timeButton = document.createElement('button');
+                                                                    timeButton.type = 'button';
+                                                                    timeButton.className = 'scheduler-time';
+                                                                    timeButton.textContent = time;
+                                                                    timeButton.dataset.time = time;
+                                                                    var now = new Date();
+                                                                    var selectedDate = dateInput.value;
+                                                                    var today = formatDate(now);
+                                                                    if (selectedDate < today || (selectedDate === today && time <= now.toTimeString().slice(0, 5))) {
+                                                                        timeButton.disabled = true;
+                                                                        timeButton.classList.add('is-disabled');
+                                                                    }
+                                                                    timeButton.addEventListener('click', function() {
+                                                                        if (this.disabled) return;
+                                                                        timeInput.value = this.dataset.time;
+                                                                        modal.querySelectorAll('.scheduler-time').forEach(function(button) {
+                                                                            button.classList.remove('is-selected');
+                                                                        });
+                                                                        this.classList.add('is-selected');
+                                                                    });
+                                                                    grid.appendChild(timeButton);
+                                                                });
+                                                                timesContainer.appendChild(groupElement);
+                                                            });
+                                                        }
+
+                            function closeModal() {
+                                modal.classList.remove('is-visible');
+                                modal.setAttribute('aria-hidden', 'true');
+                                document.body.classList.remove('scheduler-open');
+                                openButton.focus();
+                            }
+
+                            openButton.addEventListener('click', function() {
+                                                                currentWeek = new Date();
+                                                                dateInput.value = formatDate(new Date());
+                                                                timeInput.value = '';
+                                feedback.textContent = '';
+                                                                renderDays();
+                                                                renderTimes();
+                                modal.classList.add('is-visible');
+                                modal.setAttribute('aria-hidden', 'false');
+                                document.body.classList.add('scheduler-open');
+                                                                modal.querySelector('.scheduler-day.is-selected').focus();
+                            });
+
+                                                        modal.querySelector('[data-previous-week]').addEventListener('click', function() {
+                                                            currentWeek.setDate(currentWeek.getDate() - 7);
+                                                            renderDays();
+                                                        });
+                                                        modal.querySelector('[data-next-week]').addEventListener('click', function() {
+                                                            currentWeek.setDate(currentWeek.getDate() + 7);
+                                                            renderDays();
+                                                        });
+
+                            closeButton.addEventListener('click', closeModal);
+                            modal.addEventListener('click', function(event) {
+                                if (event.target === modal) closeModal();
+                            });
+                            document.addEventListener('keydown', function(event) {
+                                if (event.key === 'Escape' && modal.classList.contains('is-visible')) closeModal();
+                            });
+                            form.addEventListener('submit', function(event) {
+                                event.preventDefault();
+                                feedback.textContent = 'Horário selecionado com sucesso!';
+                                window.setTimeout(closeModal, 900);
+                            });
+                        })();
+                        (function() {
+                            var navbar = document.querySelector('.navbar-encantado');
+                            var loginImage = document.querySelector('.login-image');
+                            if (!navbar || !loginImage || !('IntersectionObserver' in window)) return;
+
+                            var observer = new IntersectionObserver(function(entries) {
+                                navbar.classList.toggle('navbar-login-hidden', entries[0].isIntersecting);
+                            }, { threshold: 0.1 });
+                            observer.observe(loginImage);
+                        })();
