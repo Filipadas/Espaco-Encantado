@@ -34,7 +34,12 @@ app.use(function(err, req, res, next) {
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
   res.status(err.status || 500);
-  res.render('error');
+  res.render('error', {
+    title: 'Erro',
+    message: res.locals.message,
+    error: res.locals.error,
+    status: err.status || 500
+  });
 });
 
 if (require.main === module) {

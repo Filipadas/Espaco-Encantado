@@ -1,6 +1,16 @@
-extends layout 
 
-block content
-  h1= message
-  h2= error.status
-  pre= error.stack
+doctype html
+html
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title Erro | Espaço Encantado
+    link(rel='stylesheet' href='/stylesheets/style.css?v=20260723')
+  body.error-page
+    main.error-screen
+      .error-content
+        span.auth-kicker ESPAÇO ENCANTADO
+        h1.error-code= status || 500
+        h2.error-title Algo inesperado aconteceu.
+        p.error-message= message || 'Não conseguimos concluir esta solicitação agora.'
+        a.auth-submit.error-action(href='/') Voltar para o início

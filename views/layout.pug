@@ -14,7 +14,7 @@ html
                 form.navbar-search(role="search")
                     input.form-control(type="search" placeholder="Buscar..." aria-label="Search")
                 .navbar-actions-section
-                    a.navbar-login(href="#login")
+                    a.navbar-login(href="/login")
                         svg(width="16" height="16" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16")
                             path(d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0")
                             path(fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1")
@@ -58,6 +58,9 @@ html
                                 hr.dropdown-divider
                             li
                                 a.dropdown-item.text-danger(href="#") Desconectar
+                button.theme-toggle(type="button" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false" title="Modo escuro")
+                    i.bi.bi-moon-stars-fill(aria-hidden="true")
+                    
         
         main.container.mt-5
         block content
@@ -247,4 +250,81 @@ html
                                 navbar.classList.toggle('navbar-login-hidden', entries[0].isIntersecting);
                             }, { threshold: 0.1 });
                             observer.observe(loginImage);
+                        })();
+                        (function() {
+                            var carousel = document.querySelector('[data-catalog-carousel]');
+                            if (!carousel) return;
+
+                            var slides = Array.prototype.slice.call(carousel.querySelectorAll('[data-catalog-slide]'));
+                            var currentIndex = 0;
+
+                            function updateCarousel(nextIndex) {
+                                currentIndex = Math.max(0, Math.min(nextIndex, slides.length - 1));
+                                slides.forEach(function(slide, index) {
+                                    var distance = index - currentIndex;
+                                    slide.classList.remove('is-active', 'is-before', 'is-after', 'is-far-before', 'is-far-after', 'is-farthest-before', 'is-farthest-after');
+                                    if (index === currentIndex) slide.classList.add('is-active');
+                                    if (distance === -1) slide.classList.add('is-before');
+                                    if (distance === 1) slide.classList.add('is-after');
+                                    if (distance === -2) slide.classList.add('is-far-before');
+                                    if (distance === 2) slide.classList.add('is-far-after');
+                                    if (distance === -3) slide.classList.add('is-farthest-before');
+                                    if (distance === 3) slide.classList.add('is-farthest-after');
+                                });
+                            }
+
+                            slides.forEach(function(slide, index) {
+                                slide.addEventListener('click', function(event) {
+                                    event.preventDefault();
+                                    var selectedSlide = this;
+                                    updateCarousel(index);
+                                    window.setTimeout(function() {
+                                        window.location.href = selectedSlide.href;
+                                    }, 720);
+                                });
+                            });
+                            updateCarousel(0);
+                        })();
+                        (function() {
+                            var toggle = document.querySelector('[data-theme-toggle]');
+                            if (!toggle) return;
+
+                            var icon = toggle.querySelector('i');
+
+                            function applyTheme(isDark) {
+                                document.body.classList.toggle('dark-mode', isDark);
+                                toggle.setAttribute('aria-pressed', String(isDark));
+                                toggle.setAttribute('aria-label', isDark ? 'Ativar modo claro' : 'Ativar modo escuro');
+                                toggle.setAttribute('title', isDark ? 'Modo claro' : 'Modo escuro');
+                                icon.className = isDark ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+                            }
+
+                            var savedTheme = window.localStorage.getItem('espaco-encantado-theme');
+                            applyTheme(savedTheme === 'dark');
+                            toggle.addEventListener('click', function() {
+                                var isDark = !document.body.classList.contains('dark-mode');
+                                applyTheme(isDark);
+                                window.localStorage.setItem('espaco-encantado-theme', isDark ? 'dark' : 'light');
+                            });
+                        })();
+                        (function() {
+                            var moreButton = document.querySelector('.products-more-button');
+                            var productGrid = document.querySelector('.products-grid');
+                            if (!moreButton || !productGrid) return;
+
+                            var products = Array.prototype.slice.call(productGrid.querySelectorAll('.product-card'));
+                            var visibleCount = 8;
+
+                            function updateProducts() {
+                                products.forEach(function(product, index) {
+                                    product.classList.toggle('is-collapsed', index >= visibleCount);
+                                });
+                                moreButton.textContent = visibleCount >= products.length ? 'Mostrar menos' : 'Ver mais';
+                            }
+
+                            moreButton.addEventListener('click', function() {
+                                visibleCount = visibleCount >= products.length ? 8 : Math.min(visibleCount + 4, products.length);
+                                updateProducts();
+                            });
+                            updateProducts();
                         })();

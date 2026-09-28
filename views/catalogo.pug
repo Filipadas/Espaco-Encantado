@@ -1,0 +1,91 @@
+extends layout
+
+block content
+  - var stateCategories = { brinquedos: 'brinquedo', decoracoes: 'decoração', 'kit-montagem': 'kit-mont', 'festa-infantil': 'infantil' }
+  - var activeState = stateCategories[selectedState] ? selectedState : 'brinquedos'
+  - var activeCategory = stateCategories[activeState]
+  - var categoryTitles = { brinquedo: 'Brinquedos', decoração: 'Decorações', 'kit-mont': 'Kit de montagem', infantil: 'Festa infantil' }
+  main.catalog-page
+    aside.catalog-sidebar(aria-label='Categorias do catálogo' data-catalog-sidebar data-initial-state=activeState data-initial-category=activeCategory)
+      nav.catalog-sidebar-nav
+        button.catalog-sidebar-item(class=activeState === 'brinquedos' ? 'is-selected active' : '' type='button' aria-label='Brinquedos' data-catalog-state='brinquedos' data-catalog-category='brinquedo')
+          img.catalog-sidebar-icon(src='/images/icone_trampolim.png' alt='')
+          span.catalog-sidebar-label Brinquedos
+        button.catalog-sidebar-item(class=activeState === 'decoracoes' ? 'is-selected active' : '' type='button' aria-label='Decorações' data-catalog-state='decoracoes' data-catalog-category='decoração')
+          img.catalog-sidebar-icon(src='/images/icone_balao.png' alt='')
+          span.catalog-sidebar-label Decorações
+        button.catalog-sidebar-item(class=activeState === 'kit-montagem' ? 'is-selected active' : '' type='button' aria-label='Kit de montagem' data-catalog-state='kit-montagem' data-catalog-category='kit-mont')
+          img.catalog-sidebar-icon(src='/images/icone_bolo.png' alt='')
+          span.catalog-sidebar-label Kit de montagem
+        button.catalog-sidebar-item(class=activeState === 'festa-infantil' ? 'is-selected active' : '' type='button' aria-label='Festa infantil' data-catalog-state='festa-infantil' data-catalog-category='infantil')
+          i.bi.bi-emoji-smile(aria-hidden='true')
+          span.catalog-sidebar-label Festa infantil
+      button.catalog-sidebar-toggle(type='button' aria-label='Expandir categorias' aria-expanded='false' data-catalog-sidebar-toggle)
+        i.bi.bi-chevron-right(aria-hidden='true')
+
+    section.catalog-page-content
+      img.catalog-hero-image(src='/images/baloes_catalogo.png' alt='Balões decorativos do catálogo')
+      section.catalog-products(aria-labelledby='catalog-products-title')
+        h1#catalog-products-title.catalog-products-title= categoryTitles[activeCategory]
+        .catalog-products-grid
+          - var catalogProducts = Array.from({ length: 30 }, function(_, index) { return index + 1; })
+          each productNumber in catalogProducts
+            article.catalog-product-card
+              .catalog-product-photo
+                span Foto
+              h2.catalog-product-name(data-catalog-product-name=activeCategory + '-' + productNumber)= activeCategory + ' ' + productNumber
+              p.catalog-product-price R$
+              p.catalog-product-description Aqui poderá ser encontrada a descrição do produto.
+
+  script.
+    (function() {
+      var sidebar = document.querySelector('[data-catalog-sidebar]');
+      var toggle = document.querySelector('[data-catalog-sidebar-toggle]');
+      if (!sidebar || !toggle) return;
+
+      toggle.addEventListener('click', function() {
+        var isExpanded = sidebar.classList.toggle('is-expanded');
+        toggle.setAttribute('aria-expanded', String(isExpanded));
+        toggle.setAttribute('aria-label', isExpanded ? 'Recolher categorias' : 'Expandir categorias');
+      });
+
+      var categoryButtons = Array.prototype.slice.call(document.querySelectorAll('[data-catalog-state]'));
+      var title = document.querySelector('[data-catalog-title]') || document.querySelector('.catalog-products-title');
+      var productNames = Array.prototype.slice.call(document.querySelectorAll('[data-catalog-product-name]'));
+      var catalogCategories = {
+        brinquedos: { category: 'brinquedo', title: 'Brinquedos' },
+        decoracoes: { category: 'decoração', title: 'Decorações' },
+        'kit-montagem': { category: 'kit-mont', title: 'Kit de montagem' },
+        'festa-infantil': { category: 'infantil', title: 'Festa infantil' }
+      };
+
+      function getCatalogStateFromUrl() {
+        var state = new URLSearchParams(window.location.search).get('estado');
+        return Object.prototype.hasOwnProperty.call(catalogCategories, state) ? state : 'brinquedos';
+      }
+
+      function applyCatalogState(state, updateUrl) {
+        var selected = catalogCategories[state] || catalogCategories.brinquedos;
+        categoryButtons.forEach(function(button) {
+          var isActive = button.dataset.catalogState === state;
+          button.classList.toggle('is-selected', isActive);
+          button.classList.toggle('active', isActive);
+        });
+        title.textContent = selected.title;
+        productNames.forEach(function(product, index) {
+          product.textContent = selected.category + ' ' + (index + 1);
+          product.dataset.catalogProductName = selected.category + '-' + (index + 1);
+        });
+        if (updateUrl) {
+          window.history.replaceState({}, '', '/catalogo?estado=' + encodeURIComponent(state));
+        }
+      }
+
+      categoryButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+          applyCatalogState(this.dataset.catalogState, true);
+        });
+      });
+
+      applyCatalogState(getCatalogStateFromUrl(), false);
+    })();

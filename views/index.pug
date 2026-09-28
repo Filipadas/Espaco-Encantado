@@ -114,49 +114,37 @@ block content
 
   section.catalog-start-area
     .catalog-section
-      h3.catalog-title Deseja acessar nossos catálogos?
+      h3.catalog-title Acesse nossos catálogos
       form.catalog-search(role='search')
         input.form-control(type='search' placeholder='Pesquisar' aria-label='Pesquisar catálogo')
 
-      .catalog-grid
-        .catalog-card
-          h4.catalog-card-title Brinquedos
-        .catalog-card
-          h4.catalog-card-title Decorações
-        .catalog-card
-          h4.catalog-card-title Kit de montagem
-        .catalog-card
-          h4.catalog-card-title Festa infantil
+      .catalog-carousel(data-catalog-carousel)
+        .catalog-grid(data-catalog-track)
+          a.catalog-card.is-active(href='/catalogo?estado=brinquedos' data-catalog-slide='0' data-catalog-state='brinquedos')
+            h4.catalog-card-title Brinquedos
+          a.catalog-card(href='/catalogo?estado=decoracoes' data-catalog-slide='1' data-catalog-state='decoracoes')
+            h4.catalog-card-title Decorações
+          a.catalog-card(href='/catalogo?estado=kit-montagem' data-catalog-slide='2' data-catalog-state='kit-montagem')
+            h4.catalog-card-title Kit de montagem
+          a.catalog-card(href='/catalogo?estado=festa-infantil' data-catalog-slide='3' data-catalog-state='festa-infantil')
+            h4.catalog-card-title Festa infantil
+
 
   section.history-area
-    .history-top-image
-      img(src='./images/baloes_hist_topo.png' alt='Balões decorativos')
+    .history-story-band
       h2.history-top-title Conheça um pouco da nossa história
 
-    .history-story-band
       .history-story-card
         p O ponto de partida da loja espaço encantado ocorreu em 2005, um período marcado por desafios e recursos limitados. A proprietária Elisabete, com poucos meios para investir, começou utilizando materiais simples como folhas de E.V.A., TNT e isopor em suas primeiras decorações.
         p Com o tempo, iniciou sua caminhada como empreendedora, investindo em artigos para festas e montando sua primeira loja na sala de casa. A partir daí, o negócio evoluiu gradualmente até se consolidar e se tornar a grande realizadora de sonhos que é hoje.
 
-    .history-bottom-image
-      img(src='./images/baloes_hist_inf.png' alt='Balões decorativos inferiores')
-
-  section.login-area.login-section
-    .login-prompt
-      .login-prompt-link
-        span Faça seu login para desfrutar dos nossos serviços
-        i.bi.bi-arrow-right(aria-hidden='true')
-      .login-prompt-line
-    .login-image
-      img(src='./images/baloes_login.png' alt='Balões decorativos para login')
-      a.login-image-button(href='#login') Login
 
   section.catalog-area.products-section
     h2.products-title Conheça um pouco dos nossos produtos:
     .products-grid
       - var products = Array.from({ length: 20 }, function(_, index) { return 'Produto ' + String(index + 1).padStart(2, '0'); })
       each product, index in products
-        article.product-card(data-product-id=index + 1)
+        article.product-card(class=index >= 8 ? 'is-collapsed' : '' data-product-id=index + 1)
           .product-photo(aria-label='Espaço reservado para foto de ' + product)
             span Foto
           h3.product-name= product

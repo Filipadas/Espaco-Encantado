@@ -1,0 +1,45 @@
+doctype html
+html
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title Entrar | Espaço Encantado
+    link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css')
+    link(rel='stylesheet' href='/stylesheets/style.css?v=20260723')
+  body.auth-page
+    main.login-screen
+      section.login-welcome
+        .login-topbar
+          .auth-brand Espaço Encantado
+          a.auth-home-button(href='/' aria-label='Ir para a página inicial' title='Página inicial')
+            i.bi.bi-house-fill(aria-hidden='true')
+        .login-welcome-copy
+          span.auth-kicker BEM-VINDO DE VOLTA
+          h1 Entre para continuar criando momentos inesquecíveis.
+          p Acesse sua conta para acompanhar seus agendamentos e continuar planejando uma festa cheia de encanto.
+      section.login-panel(aria-labelledby='login-title')
+        .auth-form-shell
+          h1#login-title.auth-title Entrar
+          p.auth-subtitle Acesse sua conta Espaço Encantado.
+          .social-login-group
+            button.auth-social-button(type='button')
+              i.bi.bi-google(aria-hidden='true')
+              | Entrar com Google
+            button.auth-social-button(type='button')
+              i.bi.bi-apple(aria-hidden='true')
+              | Entrar com Apple
+          .auth-divider
+            span ou continue com seu e-mail
+          form.auth-form
+            label(for='login-email') E-mail
+            input#login-email(type='email' name='email' placeholder='seu@email.com' autocomplete='email' required)
+            label(for='login-password') Senha
+            input#login-password(type='password' name='password' placeholder='Digite sua senha' autocomplete='current-password' required)
+            .auth-form-row
+              label.auth-check
+                input(type='checkbox' name='remember')
+                | Lembrar de mim
+              a.auth-inline-link(href='#') Esqueci minha senha
+            button.auth-submit(type='submit') Entrar
+          p.auth-switch Ainda não tem uma conta? 
+            a.auth-link(href='/cadastro') Criar cadastro
