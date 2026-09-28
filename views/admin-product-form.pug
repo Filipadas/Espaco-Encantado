@@ -1,0 +1,28 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/admin/products')
+      i.bi.bi-arrow-left
+      | Gerenciamento de produtos
+    .admin-form-panel
+      p.admin-eyebrow NOVO ITEM
+      h1.admin-title Cadastrar produto
+      if formError
+        p.admin-form-error= formError
+      form.admin-form(method='post' action='/admin/products')
+        label(for='product-name') Nome do produto
+        input#product-name(type='text' name='name' value=product.name required)
+        label(for='product-category') Categoria
+        select#product-category(name='category' required)
+          option(value='brinquedos' selected=product.category === 'brinquedos') Brinquedos
+          option(value='decoracoes' selected=product.category === 'decoracoes') Decorações
+          option(value='kit-montagem' selected=product.category === 'kit-montagem') Kit de montagem
+          option(value='festa-infantil' selected=product.category === 'festa-infantil') Festa infantil
+        label(for='product-price') Preço
+        input#product-price(type='number' name='price' min='0' step='0.01' value=product.price required)
+        label(for='product-description') Descrição
+        textarea#product-description(name='description' rows='4')= product.description
+        button.admin-primary-button(type='submit')
+          i.bi.bi-check-lg
+          | Salvar produto

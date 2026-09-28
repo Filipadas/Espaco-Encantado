@@ -1,0 +1,19 @@
+extends layout
+
+block content
+  main.admin-page.cart-page
+    p.admin-eyebrow MINHA CONTA
+    h1.admin-title Minha sacola
+    if cart && cart.length
+      .cart-list
+        each item in cart
+          .cart-item
+            span= item.name
+            strong R$ #{Number(item.price).toFixed(2).replace('.', ',')}
+      form(method='post' action='/sacola/clear')
+        button.admin-danger-button(type='submit') Esvaziar sacola
+    else
+      .admin-empty
+        i.bi.bi-bag
+        p Sua sacola está vazia.
+        a.admin-primary-button(href='/catalogo') Explorar catálogo

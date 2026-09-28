@@ -14,11 +14,19 @@ html
                 form.navbar-search(role="search")
                     input.form-control(type="search" placeholder="Buscar..." aria-label="Search")
                 .navbar-actions-section
-                    a.navbar-login(href="/login")
-                        svg(width="16" height="16" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16")
-                            path(d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0")
-                            path(fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1")
-                        |&nbsp; Login
+                    if currentUser
+                        a.navbar-login.navbar-login-icon(href="/perfil" aria-label="Meu perfil" title="Meu perfil")
+                            i.bi.bi-person-circle(aria-hidden="true")
+                        if isAdmin
+                            a.navbar-special-action(href="/admin" aria-label="Área do administrador" title="Área do administrador")
+                                i.bi.bi-award-fill(aria-hidden="true")
+                        else
+                            a.navbar-special-action(href="/sacola" aria-label="Minha sacola" title="Minha sacola")
+                                i.bi.bi-bag-fill(aria-hidden="true")
+                    else
+                        a.navbar-login(href="/login" aria-label="Entrar")
+                            i.bi.bi-person-circle(aria-hidden="true")
+                            |&nbsp; Login
                     button.navbar-toggler(type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Toggle navigation")
                         span.hamburger-line
                         span.hamburger-line
@@ -48,16 +56,21 @@ html
                             li
                                 a.dropdown-item(href="#") Whatsapp
                     li.nav-item.dropdown
-                        a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false") Login
+                        a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false") Conta
                         ul.dropdown-menu
-                            li
-                                a.dropdown-item(href="#") Inscrever-se
-                            li
-                                a.dropdown-item(href="#") Entrar
-                            li
-                                hr.dropdown-divider
-                            li
-                                a.dropdown-item.text-danger(href="#") Desconectar
+                            if currentUser
+                                li
+                                    a.dropdown-item(href=isAdmin ? '/admin' : '/sacola')= isAdmin ? 'Área do administrador' : 'Minha sacola'
+                                li
+                                    hr.dropdown-divider
+                                li
+                                    form(method='post' action='/logout')
+                                        button.dropdown-item.text-danger(type='submit') Sair
+                            else
+                                li
+                                    a.dropdown-item(href="/cadastro") Inscrever-se
+                                li
+                                    a.dropdown-item(href="/login") Entrar
                 button.theme-toggle(type="button" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false" title="Modo escuro")
                     i.bi.bi-moon-stars-fill(aria-hidden="true")
                     

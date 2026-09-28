@@ -1,0 +1,20 @@
+extends layout
+
+block content
+  main.admin-page
+    p.admin-eyebrow ÁREA RESTRITA
+    h1.admin-title Painel administrativo
+    p.admin-subtitle Olá, #{currentUser.name}. Escolha uma função exclusiva para administrar a loja.
+    .admin-dashboard-grid
+      a.admin-dashboard-card(href='/admin/users')
+        i.bi.bi-people-fill
+        h2 Gerenciamento de usuários
+        p Consulte contas e altere permissões de acesso.
+      a.admin-dashboard-card(href='/admin/products')
+        i.bi.bi-box-seam-fill
+        h2 Gerenciamento de produtos
+        p Consulte, organize e remova produtos do catálogo.
+      a.admin-dashboard-card(href='/admin/products/new')
+        i.bi.bi-plus-circle-fill
+        h2 Cadastrar produto
+        p Adicione brinquedos, decorações e kits à loja.

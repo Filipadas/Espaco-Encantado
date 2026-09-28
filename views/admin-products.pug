@@ -1,0 +1,34 @@
+extends layout
+
+block content
+  main.admin-page
+    .admin-heading-row
+      div
+        a.admin-back-link(href='/admin')
+          i.bi.bi-arrow-left
+          | Painel administrativo
+        p.admin-eyebrow PRODUTOS
+        h1.admin-title Gerenciamento de produtos
+      a.admin-primary-button(href='/admin/products/new')
+        i.bi.bi-plus-lg
+        | Novo produto
+    .admin-table-wrap
+      table.admin-table
+        thead
+          tr
+            th Produto
+            th Categoria
+            th Preço
+            th Ação
+        tbody
+          each product in products
+            tr
+              td= product.name
+              td= product.category
+              td R$ #{Number(product.price).toFixed(2).replace('.', ',')}
+              td
+                form(method='post' action='/admin/products/' + product._id + '/delete')
+                  button.admin-danger-button(type='submit') Excluir
+          else
+            tr
+              td(colspan='4') Nenhum produto cadastrado ainda.

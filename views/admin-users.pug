@@ -1,0 +1,35 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/admin')
+      i.bi.bi-arrow-left
+      | Painel administrativo
+    .admin-heading-row
+      div
+        p.admin-eyebrow CONTAS
+        h1.admin-title Gerenciamento de usuários
+      span.admin-count #{users.length} usuários
+    .admin-table-wrap
+      table.admin-table
+        thead
+          tr
+            th Nome
+            th E-mail
+            th Perfil
+            th Ação
+        tbody
+          each user in users
+            tr
+              td= user.name
+              td= user.email
+              td
+                span.admin-role(class=user.role === 'admin' ? 'is-admin' : '')= user.role === 'admin' ? 'Administrador' : 'Cliente'
+              td
+                form(method='post' action='/admin/users/' + user._id + '/role')
+                  if user.role === 'admin'
+                    input(type='hidden' name='role' value='user')
+                    button.admin-small-button(type='submit') Tornar cliente
+                  else
+                    input(type='hidden' name='role' value='admin')
+                    button.admin-small-button(type='submit') Tornar admin

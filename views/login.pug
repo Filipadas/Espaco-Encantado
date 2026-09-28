@@ -30,7 +30,9 @@ html
               | Entrar com Apple
           .auth-divider
             span ou continue com seu e-mail
-          form.auth-form
+          if loginError
+            p.auth-form-error= loginError
+          form.auth-form(method='post' action='/login')
             label(for='login-email') E-mail
             input#login-email(type='email' name='email' placeholder='seu@email.com' autocomplete='email' required)
             label(for='login-password') Senha

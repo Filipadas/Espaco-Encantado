@@ -30,4 +30,9 @@ router.get('/cadastro', function(req, res, next) {
   res.render('cadastro', { title: 'Criar conta' });
 });
 
+router.get('/perfil', function(req, res) {
+  if (!req.session.user) return res.redirect('/login');
+  res.render('perfil', { title: 'Meu perfil' });
+});
+
 module.exports = router;

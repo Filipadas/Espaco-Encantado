@@ -17,9 +17,11 @@ html
             i.bi.bi-house-fill(aria-hidden='true')
         .auth-brand Espaço Encantado
       section.register-panel(aria-labelledby='register-title')
-        form.auth-form.register-form
+        form.auth-form.register-form(method='post' action='/register')
           h1#register-title.auth-title Criar cadastro
           p.auth-subtitle Seus dados ajudam a personalizar sua experiência.
+          if registerError
+            p.auth-form-error= registerError
           .register-fields
             .auth-field
               label(for='register-name') Nome completo
