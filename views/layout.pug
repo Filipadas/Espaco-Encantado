@@ -275,12 +275,10 @@ html
 
                             slides.forEach(function(slide, index) {
                                 slide.addEventListener('click', function(event) {
+                                    if (this.classList.contains('is-active')) return;
+
                                     event.preventDefault();
-                                    var selectedSlide = this;
                                     updateCarousel(index);
-                                    window.setTimeout(function() {
-                                        window.location.href = selectedSlide.href;
-                                    }, 720);
                                 });
                             });
                             updateCarousel(0);
@@ -306,25 +304,4 @@ html
                                 applyTheme(isDark);
                                 window.localStorage.setItem('espaco-encantado-theme', isDark ? 'dark' : 'light');
                             });
-                        })();
-                        (function() {
-                            var moreButton = document.querySelector('.products-more-button');
-                            var productGrid = document.querySelector('.products-grid');
-                            if (!moreButton || !productGrid) return;
-
-                            var products = Array.prototype.slice.call(productGrid.querySelectorAll('.product-card'));
-                            var visibleCount = 8;
-
-                            function updateProducts() {
-                                products.forEach(function(product, index) {
-                                    product.classList.toggle('is-collapsed', index >= visibleCount);
-                                });
-                                moreButton.textContent = visibleCount >= products.length ? 'Mostrar menos' : 'Ver mais';
-                            }
-
-                            moreButton.addEventListener('click', function() {
-                                visibleCount = visibleCount >= products.length ? 8 : Math.min(visibleCount + 4, products.length);
-                                updateProducts();
-                            });
-                            updateProducts();
                         })();

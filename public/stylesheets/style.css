@@ -1746,7 +1746,10 @@ body:has(.catalog-page) main.container {
 }
 
 .products-more-button {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
   min-width: 140px;
   min-height: 46px;
   margin: 26px auto 0;
@@ -1757,6 +1760,7 @@ body:has(.catalog-page) main.container {
   color: #2f6ec1;
   font-size: 1rem;
   font-weight: 800;
+  text-align: center;
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
