@@ -1,0 +1,33 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href=isAdminEditing ? '/admin/users' : '/perfil')
+      i.bi.bi-arrow-left
+      | Voltar
+    p.admin-eyebrow PERFIL
+    h1.admin-title= isAdminEditing ? 'Editar perfil' : 'Meu perfil'
+    if formError
+      p.admin-form-error= formError
+    form.admin-form(method='post' enctype='multipart/form-data' action=isAdminEditing ? '/admin/users/' + profile._id : '/users/profile')
+      label(for='profile-name') Nome
+      input#profile-name(type='text' name='name' value=profile.name required)
+      label(for='profile-email') E-mail
+      input#profile-email(type='email' name='email' value=profile.email required)
+      label(for='profile-phone') Telefone
+      input#profile-phone(type='tel' name='phone' value=profile.phone)
+      label(for='profile-address') Endereço
+      input#profile-address(type='text' name='address' value=profile.address)
+      label(for='profile-city') Cidade
+      input#profile-city(type='text' name='city' value=profile.city)
+      label(for='profile-state') Estado
+      input#profile-state(type='text' name='state' value=profile.state)
+      label(for='profile-password') Nova senha
+      input#profile-password(type='password' name='password' autocomplete='new-password')
+      label(for='profile-image') Foto de perfil
+      input#profile-image(type='file' name='image' accept='image/jpeg,image/png,image/webp,image/gif')
+      if profile.imageUrl
+        img.admin-form-image-preview(src=profile.imageUrl alt='Foto de ' + profile.name)
+      button.admin-primary-button(type='submit')
+        i.bi.bi-check-lg(aria-hidden='true')
+        | Salvar perfil

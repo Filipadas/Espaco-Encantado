@@ -1,0 +1,41 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/admin')
+      i.bi.bi-arrow-left
+      | Painel administrativo
+    p.admin-eyebrow ESTOQUE
+    h1.admin-title Controle de estoque
+    p.admin-subtitle Ajuste as unidades físicas e acompanhe o que está disponível para aluguel.
+    if stockError
+      p.admin-form-error= stockError
+    .stock-grid
+      each product in products
+        article.stock-card
+          .stock-card-photo
+            if product.imageUrl
+              img(src=product.imageUrl alt='Foto de ' + product.name)
+            else
+              i.bi.bi-image(aria-hidden='true')
+          .stock-card-header
+            div
+              h2= product.name
+              p= product.category
+            if product.availableUnits > 0
+              span.admin-stock-available Disponível
+            else
+              span.admin-stock-unavailable Indisponível
+          .stock-card-details
+            span Estoque: strong= product.stockTotal || 0
+            span Alugado: strong= product.rentedQuantity || 0
+            span Livre: strong= product.availableUnits
+          form.stock-adjust-form(method='post' action='/admin/stock/' + product._id)
+            input(type='number' name='amount' min=product.rentedQuantity ? -((product.stockTotal || 0) - product.rentedQuantity) : -product.stockTotal placeholder='Quantidade' required)
+            button.admin-small-button(type='submit' name='operation' value='adjust')
+              i.bi.bi-arrow-repeat(aria-hidden='true')
+              | Ajustar
+      else
+        .admin-empty
+          i.bi.bi-box-seam
+          p Nenhum produto cadastrado.

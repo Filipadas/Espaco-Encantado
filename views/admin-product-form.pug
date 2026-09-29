@@ -6,11 +6,11 @@ block content
       i.bi.bi-arrow-left
       | Gerenciamento de produtos
     .admin-form-panel
-      p.admin-eyebrow NOVO ITEM
-      h1.admin-title Cadastrar produto
+      p.admin-eyebrow= isEditing ? 'EDITAR ITEM' : 'NOVO ITEM'
+      h1.admin-title= isEditing ? 'Editar produto' : 'Cadastrar produto'
       if formError
         p.admin-form-error= formError
-      form.admin-form(method='post' action='/admin/products')
+      form.admin-form(method='post' enctype='multipart/form-data' action=isEditing ? '/admin/products/' + product._id : '/admin/products')
         label(for='product-name') Nome do produto
         input#product-name(type='text' name='name' value=product.name required)
         label(for='product-category') Categoria
@@ -21,8 +21,92 @@ block content
           option(value='festa-infantil' selected=product.category === 'festa-infantil') Festa infantil
         label(for='product-price') Preço
         input#product-price(type='number' name='price' min='0' step='0.01' value=product.price required)
+        label(for='product-stock') Estoque total
+        input#product-stock(type='number' name='stockTotal' min='0' step='1' value=product.stockTotal || 0 required)
         label(for='product-description') Descrição
         textarea#product-description(name='description' rows='4')= product.description
+        label(for='product-image') Foto do produto
+        input#product-image(type='file' name='image' accept='image/jpeg,image/png,image/webp,image/gif')
+        if product.imageUrl
+          img.admin-form-image-preview(src=product.imageUrl alt='Foto atual de ' + product.name)
+        p.admin-form-hint A foto será exibida no catálogo, estoque e sacola. O espaço permanece reservado mesmo sem imagem.
+        if availableProducts && availableProducts.length
+          fieldset.admin-components(data-components-fieldset class=product.category === 'kit-montagem' || product.category === 'festa-infantil' ? '' : 'is-hidden')
+            legend Componentes do kit ou festa
+            p.admin-form-hint Selecione produtos já cadastrados. Você pode adicionar quantos componentes forem necessários.
+            .admin-component-list(data-component-list)
+              if product.components && product.components.length
+                each component in product.components
+                  .admin-component-row
+                    select.admin-component-category(name='componentCategory' required)
+                      option(value='brinquedos' selected=(component.category || component.product.category) === 'brinquedos') Brinquedo
+                      option(value='decoracoes' selected=(component.category || component.product.category) === 'decoracoes') Decoração
+                    select.admin-component-select(name='componentProduct')
+                      option(value='') Selecione um produto
+                      each availableProduct in availableProducts
+                        option(value=availableProduct._id data-category=availableProduct.category selected=String(availableProduct._id) === String(component.product._id || component.product))= availableProduct.name
+                    input(type='number' name='componentQuantity' min='1' step='1' value=component.quantity required)
+                    button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-component aria-label='Remover componente' title='Remover componente')
+                      i.bi.bi-trash3-fill(aria-hidden='true')
+              .admin-component-row(data-component-template)
+                select.admin-component-category(name='componentCategory' required)
+                  option(value='brinquedos') Brinquedo
+                  option(value='decoracoes') Decoração
+                select.admin-component-select(name='componentProduct')
+                  option(value='') Selecione um produto
+                  each availableProduct in availableProducts
+                    option(value=availableProduct._id data-category=availableProduct.category)= availableProduct.name
+                input(type='number' name='componentQuantity' min='1' step='1' value='1')
+                button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-component aria-label='Remover componente' title='Remover componente')
+                  i.bi.bi-trash3-fill(aria-hidden='true')
+            button.admin-small-button(type='button' data-add-component)
+              i.bi.bi-plus-lg(aria-hidden='true')
+              | Adicionar componente
         button.admin-primary-button(type='submit')
           i.bi.bi-check-lg
-          | Salvar produto
+          = isEditing ? ' Salvar alterações' : ' Salvar produto'
+
+  if availableProducts && availableProducts.length
+    script.
+      (function() {
+        var list = document.querySelector('[data-component-list]');
+        var template = document.querySelector('[data-component-template]');
+        var addButton = document.querySelector('[data-add-component]');
+        var categorySelect = document.querySelector('#product-category');
+        if (!list || !template || !addButton) return;
+        function filterProducts(row) {
+          var category = row.querySelector('.admin-component-category').value;
+          row.querySelectorAll('.admin-component-select option').forEach(function(option) {
+            option.hidden = option.value && option.dataset.category !== category;
+          });
+          var selected = row.querySelector('.admin-component-select').selectedOptions[0];
+          if (selected && selected.hidden) row.querySelector('.admin-component-select').value = '';
+        }
+        function updateVisibility() {
+          var visible = categorySelect.value === 'kit-montagem' || categorySelect.value === 'festa-infantil';
+          document.querySelector('[data-components-fieldset]').classList.toggle('is-hidden', !visible);
+          list.querySelectorAll('.admin-component-row').forEach(function(row) {
+            row.querySelectorAll('select, input').forEach(function(field) { field.disabled = !visible; });
+            filterProducts(row);
+          });
+        }
+        template.removeAttribute('data-component-template');
+        list.querySelectorAll('.admin-component-row').forEach(function(row) {
+          row.querySelector('.admin-component-category').addEventListener('change', function() { filterProducts(row); });
+          filterProducts(row);
+        });
+        categorySelect.addEventListener('change', updateVisibility);
+        updateVisibility();
+        addButton.addEventListener('click', function() {
+          var row = template.cloneNode(true);
+          row.querySelector('select').value = '';
+          row.querySelector('input').value = '1';
+          list.appendChild(row);
+          row.querySelector('.admin-component-category').addEventListener('change', function() { filterProducts(row); });
+          filterProducts(row);
+        });
+        list.addEventListener('click', function(event) {
+          var removeButton = event.target.closest('[data-remove-component]');
+          if (removeButton) removeButton.closest('.admin-component-row').remove();
+        });
+      })();

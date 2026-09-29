@@ -13,6 +13,7 @@ var productsRouter = require('./routes/products');
 var authRouter = require('./routes/auth');
 var adminRouter = require('./routes/admin');
 var cartRouter = require('./routes/cart');
+var meetingsRouter = require('./routes/meetings');
 
 var app = express();
 
@@ -33,6 +34,11 @@ app.use(session({
 app.use(function(req, res, next) {
   res.locals.currentUser = req.session.user || null;
   res.locals.isAdmin = Boolean(req.session.user && req.session.user.role === 'admin');
+  res.locals.isAdminPanel = req.path.indexOf('/admin') === 0;
+  res.locals.isCatalogPage = req.path === '/catalogo' || req.path === '/favoritos';
+  res.locals.isProductPage = req.path.indexOf('/produto/') === 0;
+  res.locals.adminBackUrl = req.path === '/admin' ? '/' : '/admin';
+  res.locals.adminBackLabel = req.path === '/admin' ? 'Voltar para a tela inicial' : 'Voltar para o painel administrativo';
   next();
 });
 app.use(express.static(path.join(__dirname, 'public')));
@@ -45,6 +51,7 @@ app.use('/api/products', productsRouter);
 app.use('/', authRouter);
 app.use('/admin', adminRouter);
 app.use('/sacola', cartRouter);
+app.use('/reunioes', meetingsRouter);
 
 //Página de error 404
 app.use(function(req, res, next) {

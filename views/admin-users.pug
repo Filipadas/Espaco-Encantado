@@ -26,10 +26,13 @@ block content
               td
                 span.admin-role(class=user.role === 'admin' ? 'is-admin' : '')= user.role === 'admin' ? 'Administrador' : 'Cliente'
               td
-                form(method='post' action='/admin/users/' + user._id + '/role')
-                  if user.role === 'admin'
-                    input(type='hidden' name='role' value='user')
-                    button.admin-small-button(type='submit') Tornar cliente
-                  else
-                    input(type='hidden' name='role' value='admin')
-                    button.admin-small-button(type='submit') Tornar admin
+                .admin-icon-actions
+                  a.admin-icon-button(href='/admin/users/' + user._id + '/edit' aria-label='Editar perfil' title='Editar perfil')
+                    i.bi.bi-pencil-fill(aria-hidden='true')
+                  form(method='post' action='/admin/users/' + user._id + '/role')
+                    if user.role === 'admin'
+                      input(type='hidden' name='role' value='user')
+                      button.admin-small-button(type='submit') Tornar cliente
+                    else
+                      input(type='hidden' name='role' value='admin')
+                      button.admin-small-button(type='submit') Tornar admin

@@ -3,9 +3,16 @@ extends layout
 block content
   main.admin-page
     p.admin-eyebrow MINHA CONTA
-    h1.admin-title= currentUser.name
-    p.admin-subtitle= currentUser.email
+    if updated
+      p.admin-success Perfil atualizado.
+    if profile.imageUrl
+      img.profile-avatar(src=profile.imageUrl alt='Foto de ' + profile.name)
+    h1.admin-title= profile.name
+    p.admin-subtitle= profile.email
     .profile-actions
+      a.admin-primary-button(href='/perfil/editar')
+        i.bi.bi-pencil-fill(aria-hidden='true')
+        | Editar perfil
       a.admin-primary-button(href=isAdmin ? '/admin' : '/sacola')
         i.bi(class=isAdmin ? 'bi-award-fill' : 'bi-bag-fill')
         = isAdmin ? ' Abrir área administrativa' : ' Abrir minha sacola'

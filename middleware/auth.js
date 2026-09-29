@@ -1,5 +1,15 @@
+function getReturnTo(req) {
+  var referer = req.get('referer');
+  if (!referer) return '/';
+  try {
+    var url = new URL(referer);
+    if (url.host === req.get('host')) return url.pathname + url.search;
+  } catch (error) {}
+  return '/';
+}
+
 function requireLogin(req, res, next) {
-  if (!req.session.user) return res.redirect('/login');
+  if (!req.session.user) return res.redirect('/login?returnTo=' + encodeURIComponent(getReturnTo(req)));
   next();
 }
 

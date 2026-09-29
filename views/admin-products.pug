@@ -16,19 +16,36 @@ block content
       table.admin-table
         thead
           tr
+            th Foto
             th Produto
             th Categoria
             th Preço
+            th Disponibilidade
             th Ação
         tbody
           each product in products
             tr
+              td
+                .admin-product-photo
+                  if product.imageUrl
+                    img(src=product.imageUrl alt='Foto de ' + product.name)
+                  else
+                    i.bi.bi-image(aria-hidden='true')
               td= product.name
               td= product.category
               td R$ #{Number(product.price).toFixed(2).replace('.', ',')}
               td
-                form(method='post' action='/admin/products/' + product._id + '/delete')
-                  button.admin-danger-button(type='submit') Excluir
+                if product.availableUnits > 0
+                  span.admin-stock-available #{product.availableUnits} disponível(is)
+                else
+                  span.admin-stock-unavailable Indisponível
+              td
+                .admin-icon-actions
+                  a.admin-icon-button(href='/admin/products/' + product._id + '/edit' aria-label='Editar produto' title='Editar produto')
+                    i.bi.bi-pencil-fill(aria-hidden='true')
+                  form(method='post' action='/admin/products/' + product._id + '/delete')
+                    button.admin-icon-button.admin-icon-button-danger(type='submit' aria-label='Excluir produto' title='Excluir produto')
+                      i.bi.bi-trash3-fill(aria-hidden='true')
           else
             tr
-              td(colspan='4') Nenhum produto cadastrado ainda.
+              td(colspan='6') Nenhum produto cadastrado ainda.

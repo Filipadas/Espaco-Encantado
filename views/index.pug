@@ -67,11 +67,11 @@ block content
         button(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide-to='2' aria-label='Slide 3')
       .carousel-inner
         .carousel-item.active
-          img(src='...' class='d-block w-100' alt='...')
+          img(src='/images/fotoee1.jpeg' class='d-block w-100' alt='Decoração Espaço Encantado 1')
         .carousel-item
-          img(src='...' class='d-block w-100' alt='...')
+          img(src='/images/fotoee2.jpeg' class='d-block w-100' alt='Decoração Espaço Encantado 2')
         .carousel-item
-          img(src='...' class='d-block w-100' alt='...')
+          img(src='/images/fotoee3.jpeg' class='d-block w-100' alt='Decoração Espaço Encantado 3')
       button.carousel-control-prev(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide='prev')
         span.carousel-control-prev-icon(aria-hidden='true')
         span.visually-hidden Previous
@@ -106,10 +106,10 @@ block content
           i.bi.bi-chevron-right
       .scheduler-days(data-scheduler-days)
       .scheduler-times(data-scheduler-times)
-      form.scheduler-form(data-scheduler-form)
-        input#scheduler-date(type='hidden' required)
-        input#scheduler-time(type='hidden' required)
-        button.btn.scheduler-submit(type='submit') Confirmar horário
+      form.scheduler-form(method='post' action='/reunioes' data-scheduler-form)
+        input#scheduler-date(type='hidden' name='date' required)
+        input#scheduler-time(type='hidden' name='time' required)
+        button.btn.scheduler-submit(type='submit') Solicitar reunião
       p.scheduler-feedback(role='status' data-scheduler-feedback)
 
   section.catalog-start-area
@@ -142,13 +142,80 @@ block content
   section.catalog-area.products-section
     h2.products-title Conheça um pouco dos nossos produtos:
     .products-grid
-      - var products = Array.from({ length: 20 }, function(_, index) { return 'Produto ' + String(index + 1).padStart(2, '0'); })
-      each product, index in products
-        article.product-card(class=index >= 8 ? 'is-collapsed' : '' data-product-id=index + 1)
-          .product-photo(aria-label='Espaço reservado para foto de ' + product)
-            span Foto
-          h3.product-name= product
-          p.product-price R$
-          p.product-description Aqui poderá ser encontrada a descrição do produto referente ao nome.
+      each product in homeProducts
+        article.catalog-product-card(data-product-id=product._id data-favorite-product=product._id)
+          .catalog-product-photo
+            if product.imageUrl
+              img(src=product.imageUrl alt='Foto de ' + product.name)
+            else
+              span Foto
+          .catalog-product-summary
+            h2.catalog-product-name= product.name
+            p.catalog-product-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
+            p.catalog-product-description= product.description || 'Produto disponível para sua festa.'
+          button.catalog-card-toggle(type='button' aria-label='Ver detalhes de ' + product.name aria-expanded='false')
+            i.bi.bi-chevron-up(aria-hidden='true')
+          .catalog-product-details
+            h2.catalog-product-name= product.name
+            p.catalog-product-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
+            .catalog-product-actions
+              button.catalog-icon-button(type='button' data-favorite=product._id aria-label='Favoritar ' + product.name aria-pressed='false' title='Favoritar')
+                i.bi.bi-heart(aria-hidden='true')
+              if product.availableUnits > 0
+                form(method='post' action='/sacola/add' data-cart-form)
+                  input(type='hidden' name='productId' value=product._id)
+                  button.catalog-icon-button(type='submit' aria-label='Adicionar ' + product.name + ' à sacola' title='Adicionar à sacola')
+                    i.bi.bi-bag-plus(aria-hidden='true')
+              else
+                span.catalog-product-availability.is-unavailable(title='Este item está sendo utilizado')
+                  i.bi.bi-slash-circle(aria-hidden='true')
+      else
+        p.catalog-empty Nenhum produto cadastrado ainda.
     a.products-more-button(href='/catalogo?estado=brinquedos') Ver mais
+
+  script.
+    (function() {
+      document.querySelectorAll('[data-favorite-product]').forEach(function(card) {
+        card.addEventListener('click', function(event) {
+          if (event.target.closest('button, form, a')) return;
+          window.location.href = '/produto/' + card.dataset.productId;
+        });
+      });
+      document.querySelectorAll('.catalog-card-toggle').forEach(function(button) {
+        button.addEventListener('click', function() {
+          var card = button.closest('.catalog-product-card');
+          var expanded = card.classList.toggle('is-expanded');
+          button.setAttribute('aria-expanded', String(expanded));
+        });
+      });
+      document.querySelectorAll('[data-cart-form]').forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+          event.preventDefault();
+          fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } })
+            .then(function(response) {
+              if (response.url.indexOf('/login') !== -1) return window.location.href = response.url;
+              return response.json();
+            })
+            .then(function(result) { if (result && result.message) window.alert(result.message); })
+            .catch(function() { window.alert('Não foi possível adicionar o produto à sacola.'); });
+        });
+      });
+      var favorites = JSON.parse(localStorage.getItem('espaco-encantado-favorites') || '[]');
+      document.querySelectorAll('[data-favorite]').forEach(function(button) {
+        var id = button.dataset.favorite;
+        var update = function() {
+          var active = favorites.indexOf(id) !== -1;
+          button.setAttribute('aria-pressed', String(active));
+          button.classList.toggle('is-favorite', active);
+        };
+        update();
+        button.addEventListener('click', function() {
+          var position = favorites.indexOf(id);
+          if (position === -1) favorites.push(id);
+          else favorites.splice(position, 1);
+          localStorage.setItem('espaco-encantado-favorites', JSON.stringify(favorites));
+          update();
+        });
+      });
+    })();
 

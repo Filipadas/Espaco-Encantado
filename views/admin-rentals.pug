@@ -1,0 +1,36 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/admin')
+      i.bi.bi-arrow-left
+      | Painel administrativo
+    p.admin-eyebrow LOCAÇÕES
+    h1.admin-title Aluguéis ativos
+    p.admin-subtitle Itens alugados ficam indisponíveis até serem devolvidos.
+    if rentals && rentals.length
+      .admin-table-wrap
+        table.admin-table
+          thead
+            tr
+              th Cliente
+              th Itens
+              th Data
+              th Ação
+          tbody
+            each rental in rentals
+              tr
+                td= rental.user ? rental.user.name : 'Cliente'
+                td
+                  each item in rental.items
+                    div #{item.quantity}x #{item.name}
+                td= rental.createdAt.toLocaleDateString('pt-BR')
+                td
+                  form(method='post' action='/admin/rentals/' + rental._id + '/return')
+                    button.admin-small-button(type='submit')
+                      i.bi.bi-check-lg(aria-hidden='true')
+                      | Registrar devolução
+    else
+      .admin-empty
+        i.bi.bi-calendar-check
+        p Nenhum aluguel ativo.

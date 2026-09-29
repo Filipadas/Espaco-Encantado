@@ -1,0 +1,33 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/admin')
+      i.bi.bi-arrow-left
+      | Painel administrativo
+    p.admin-eyebrow AGENDA
+    h1.admin-title Solicitações de reunião
+    p.admin-subtitle Acompanhe os horários solicitados pelos clientes.
+    if meetings && meetings.length
+      .admin-table-wrap
+        table.admin-table
+          thead
+            tr
+              th Cliente
+              th E-mail
+              th Data
+              th Horário
+              th Status
+          tbody
+            each meeting in meetings
+              tr
+                td= meeting.user ? meeting.user.name : 'Cliente'
+                td= meeting.user ? meeting.user.email : '-'
+                td= meeting.date.split('-').reverse().join('/')
+                td= meeting.time
+                td
+                  span.admin-role(class=meeting.status === 'requested' ? '' : 'is-admin')= meeting.status === 'requested' ? 'Solicitada' : meeting.status
+    else
+      .admin-empty
+        i.bi.bi-calendar-event
+        p Nenhuma reunião solicitada.

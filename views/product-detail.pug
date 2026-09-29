@@ -1,0 +1,27 @@
+extends layout
+
+block content
+  main.product-detail-page
+    a.admin-back-link(href='/catalogo')
+      i.bi.bi-arrow-left
+      | Voltar ao catálogo
+    article.product-detail-card
+      .product-detail-photo
+        if product.imageUrl
+          img(src=product.imageUrl alt='Foto de ' + product.name)
+        else
+          span Foto do produto
+      .product-detail-content
+        p.admin-eyebrow PRODUTO
+        h1.admin-title= product.name
+        p.product-detail-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
+        p.product-detail-description= product.description || 'Produto disponível para sua festa.'
+        if product.availableUnits > 0
+          p.admin-stock-available #{product.availableUnits} unidade(s) disponível(is)
+          form(method='post' action='/sacola/add' data-cart-form)
+            input(type='hidden' name='productId' value=product._id)
+            button.admin-primary-button(type='submit')
+              i.bi.bi-bag-plus(aria-hidden='true')
+              | Adicionar à sacola
+        else
+          p.admin-stock-unavailable Este produto já está sendo utilizado.

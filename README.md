@@ -57,12 +57,14 @@ O schema está em `models/Product.js`. Ele exige `name`, `category` e `price`, e
 
 ## Acesso e gerenciamento
 
-Para testes, a aplicação cria ou atualiza automaticamente este administrador quando conecta ao Atlas:
+Para testes, a aplicação cria este administrador somente se ele ainda não existir:
 
 ```text
 E-mail: admin@espacoencantado.com
 Senha: admin123
 ```
+
+Você pode definir a conta inicial no `.env` com `ADMIN_EMAIL` e `ADMIN_PASSWORD`. Depois que a conta for criada, alterar essas variáveis não sobrescreve a senha existente.
 
 Depois do login, o ícone de perfil abre `/perfil` e o ícone de coroa abre `/admin`. O painel administrativo possui:
 

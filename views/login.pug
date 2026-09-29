@@ -21,18 +21,12 @@ html
         .auth-form-shell
           h1#login-title.auth-title Entrar
           p.auth-subtitle Acesse sua conta Espaço Encantado.
-          .social-login-group
-            button.auth-social-button(type='button')
-              i.bi.bi-google(aria-hidden='true')
-              | Entrar com Google
-            button.auth-social-button(type='button')
-              i.bi.bi-apple(aria-hidden='true')
-              | Entrar com Apple
           .auth-divider
             span ou continue com seu e-mail
           if loginError
             p.auth-form-error= loginError
           form.auth-form(method='post' action='/login')
+            input(type='hidden' name='returnTo' value=returnTo || '/')
             label(for='login-email') E-mail
             input#login-email(type='email' name='email' placeholder='seu@email.com' autocomplete='email' required)
             label(for='login-password') Senha
@@ -43,5 +37,12 @@ html
                 | Lembrar de mim
               a.auth-inline-link(href='#') Esqueci minha senha
             button.auth-submit(type='submit') Entrar
+          .social-login-group
+            button.auth-social-button(type='button')
+              i.bi.bi-google(aria-hidden='true')
+              | Entrar com Google
+            button.auth-social-button(type='button')
+              i.bi.bi-apple(aria-hidden='true')
+              | Entrar com Apple
           p.auth-switch Ainda não tem uma conta? 
             a.auth-link(href='/cadastro') Criar cadastro

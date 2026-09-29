@@ -8,34 +8,63 @@ block content
   main.catalog-page
     aside.catalog-sidebar(aria-label='Categorias do catálogo' data-catalog-sidebar data-initial-state=activeState data-initial-category=activeCategory)
       nav.catalog-sidebar-nav
-        button.catalog-sidebar-item(class=activeState === 'brinquedos' ? 'is-selected active' : '' type='button' aria-label='Brinquedos' data-catalog-state='brinquedos' data-catalog-category='brinquedo')
-          img.catalog-sidebar-icon(src='/images/icone_trampolim.png' alt='')
-          span.catalog-sidebar-label Brinquedos
-        button.catalog-sidebar-item(class=activeState === 'decoracoes' ? 'is-selected active' : '' type='button' aria-label='Decorações' data-catalog-state='decoracoes' data-catalog-category='decoração')
-          img.catalog-sidebar-icon(src='/images/icone_balao.png' alt='')
-          span.catalog-sidebar-label Decorações
-        button.catalog-sidebar-item(class=activeState === 'kit-montagem' ? 'is-selected active' : '' type='button' aria-label='Kit de montagem' data-catalog-state='kit-montagem' data-catalog-category='kit-mont')
-          img.catalog-sidebar-icon(src='/images/icone_bolo.png' alt='')
-          span.catalog-sidebar-label Kit de montagem
-        button.catalog-sidebar-item(class=activeState === 'festa-infantil' ? 'is-selected active' : '' type='button' aria-label='Festa infantil' data-catalog-state='festa-infantil' data-catalog-category='infantil')
-          i.bi.bi-emoji-smile(aria-hidden='true')
-          span.catalog-sidebar-label Festa infantil
+        if favoritesOnly
+          a.catalog-sidebar-item.is-selected.active(href='/favoritos' aria-label='Favoritos')
+            i.bi.bi-heart-fill(aria-hidden='true')
+            span.catalog-sidebar-label Favoritos
+          a.catalog-sidebar-item(href='/catalogo?estado=brinquedos' aria-label='Voltar ao catálogo')
+            i.bi.bi-grid-3x3-gap-fill(aria-hidden='true')
+            span.catalog-sidebar-label Catálogo
+        else
+          button.catalog-sidebar-item(class=activeState === 'brinquedos' ? 'is-selected active' : '' type='button' aria-label='Brinquedos' data-catalog-state='brinquedos' data-catalog-category='brinquedo')
+            img.catalog-sidebar-icon(src='/images/icone_trampolim.png' alt='')
+            span.catalog-sidebar-label Brinquedos
+          button.catalog-sidebar-item(class=activeState === 'decoracoes' ? 'is-selected active' : '' type='button' aria-label='Decorações' data-catalog-state='decoracoes' data-catalog-category='decoração')
+            img.catalog-sidebar-icon(src='/images/icone_balao.png' alt='')
+            span.catalog-sidebar-label Decorações
+          button.catalog-sidebar-item(class=activeState === 'kit-montagem' ? 'is-selected active' : '' type='button' aria-label='Kit de montagem' data-catalog-state='kit-montagem' data-catalog-category='kit-mont')
+            img.catalog-sidebar-icon(src='/images/icone_bolo.png' alt='')
+            span.catalog-sidebar-label Kit de montagem
+          button.catalog-sidebar-item(class=activeState === 'festa-infantil' ? 'is-selected active' : '' type='button' aria-label='Festa infantil' data-catalog-state='festa-infantil' data-catalog-category='infantil')
+            i.bi.bi-emoji-smile(aria-hidden='true')
+            span.catalog-sidebar-label Festa infantil
       button.catalog-sidebar-toggle(type='button' aria-label='Expandir categorias' aria-expanded='false' data-catalog-sidebar-toggle)
         i.bi.bi-chevron-right(aria-hidden='true')
 
     section.catalog-page-content
       img.catalog-hero-image(src='/images/baloes_catalogo.png' alt='Balões decorativos do catálogo')
-      section.catalog-products(aria-labelledby='catalog-products-title')
-        h1#catalog-products-title.catalog-products-title= categoryTitles[activeCategory]
+      section.catalog-products(aria-labelledby='catalog-products-title' data-favorites-only=favoritesOnly ? 'true' : 'false')
+        h1#catalog-products-title.catalog-products-title= favoritesOnly ? 'Favoritos' : categoryTitles[activeCategory]
         .catalog-products-grid
-          - var catalogProducts = Array.from({ length: 30 }, function(_, index) { return index + 1; })
-          each productNumber in catalogProducts
-            article.catalog-product-card
+          each product in products
+            article.catalog-product-card(data-product-id=product._id data-favorite-product=product._id)
               .catalog-product-photo
-                span Foto
-              h2.catalog-product-name(data-catalog-product-name=activeCategory + '-' + productNumber)= activeCategory + ' ' + productNumber
-              p.catalog-product-price R$
-              p.catalog-product-description Aqui poderá ser encontrada a descrição do produto.
+                if product.imageUrl
+                  img(src=product.imageUrl alt='Foto de ' + product.name)
+                else
+                  span Foto
+              .catalog-product-summary
+                h2.catalog-product-name= product.name
+                p.catalog-product-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
+                p.catalog-product-description= product.description || 'Produto disponível para sua festa.'
+              button.catalog-card-toggle(type='button' aria-label='Ver detalhes de ' + product.name aria-expanded='false')
+                i.bi.bi-chevron-up(aria-hidden='true')
+              .catalog-product-details
+                h2.catalog-product-name= product.name
+                p.catalog-product-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
+                .catalog-product-actions
+                  button.catalog-icon-button(type='button' data-favorite=product._id aria-label='Favoritar ' + product.name aria-pressed='false' title='Favoritar')
+                    i.bi.bi-heart(aria-hidden='true')
+                  if product.availableUnits > 0
+                    form(method='post' action='/sacola/add' data-cart-form)
+                      input(type='hidden' name='productId' value=product._id)
+                      button.catalog-icon-button(type='submit' aria-label='Adicionar ' + product.name + ' à sacola' title='Adicionar à sacola')
+                        i.bi.bi-bag-plus(aria-hidden='true')
+                  else
+                    span.catalog-product-availability.is-unavailable(title='Este item está sendo utilizado')
+                      i.bi.bi-slash-circle(aria-hidden='true')
+          else
+            p.catalog-empty Nenhum produto cadastrado nesta categoria.
 
   script.
     (function() {
@@ -51,7 +80,6 @@ block content
 
       var categoryButtons = Array.prototype.slice.call(document.querySelectorAll('[data-catalog-state]'));
       var title = document.querySelector('[data-catalog-title]') || document.querySelector('.catalog-products-title');
-      var productNames = Array.prototype.slice.call(document.querySelectorAll('[data-catalog-product-name]'));
       var catalogCategories = {
         brinquedos: { category: 'brinquedo', title: 'Brinquedos' },
         decoracoes: { category: 'decoração', title: 'Decorações' },
@@ -72,13 +100,7 @@ block content
           button.classList.toggle('active', isActive);
         });
         title.textContent = selected.title;
-        productNames.forEach(function(product, index) {
-          product.textContent = selected.category + ' ' + (index + 1);
-          product.dataset.catalogProductName = selected.category + '-' + (index + 1);
-        });
-        if (updateUrl) {
-          window.history.replaceState({}, '', '/catalogo?estado=' + encodeURIComponent(state));
-        }
+        if (updateUrl) window.location.href = '/catalogo?estado=' + encodeURIComponent(state);
       }
 
       categoryButtons.forEach(function(button) {
@@ -88,4 +110,64 @@ block content
       });
 
       applyCatalogState(getCatalogStateFromUrl(), false);
+
+      var productsOnly = document.querySelector('[data-favorites-only]').dataset.favoritesOnly === 'true';
+      if (productsOnly) title.textContent = 'Favoritos';
+      var savedFavorites = JSON.parse(localStorage.getItem('espaco-encantado-favorites') || '[]');
+      if (productsOnly) {
+        document.querySelectorAll('[data-favorite-product]').forEach(function(card) {
+          if (savedFavorites.indexOf(card.dataset.favoriteProduct) === -1) card.remove();
+        });
+        if (!document.querySelector('[data-favorite-product]')) {
+          var empty = document.createElement('p');
+          empty.className = 'catalog-empty';
+          empty.textContent = 'Você ainda não favoritou produtos.';
+          document.querySelector('.catalog-products-grid').appendChild(empty);
+        }
+      }
+
+      document.querySelectorAll('[data-favorite-product]').forEach(function(card) {
+        card.addEventListener('click', function(event) {
+          if (event.target.closest('button, form, a')) return;
+          window.location.href = '/produto/' + card.dataset.productId;
+        });
+      });
+
+      document.querySelectorAll('[data-cart-form]').forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+          event.preventDefault();
+          fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } })
+            .then(function(response) {
+              if (response.url.indexOf('/login') !== -1) return window.location.href = response.url;
+              return response.json();
+            })
+            .then(function(result) { if (result && result.message) window.alert(result.message); })
+            .catch(function() { window.alert('Não foi possível adicionar o produto à sacola.'); });
+        });
+      });
+
+      document.querySelectorAll('.catalog-card-toggle').forEach(function(button) {
+        button.addEventListener('click', function() {
+          var card = button.closest('.catalog-product-card');
+          var expanded = card.classList.toggle('is-expanded');
+          button.setAttribute('aria-expanded', String(expanded));
+        });
+      });
+
+      var favorites = JSON.parse(localStorage.getItem('espaco-encantado-favorites') || '[]');
+      document.querySelectorAll('[data-favorite]').forEach(function(button) {
+        var id = button.dataset.favorite;
+        var active = favorites.indexOf(id) !== -1;
+        button.setAttribute('aria-pressed', String(active));
+        button.classList.toggle('is-favorite', active);
+        button.addEventListener('click', function() {
+          var position = favorites.indexOf(id);
+          if (position === -1) favorites.push(id);
+          else favorites.splice(position, 1);
+          localStorage.setItem('espaco-encantado-favorites', JSON.stringify(favorites));
+          var selected = favorites.indexOf(id) !== -1;
+          button.setAttribute('aria-pressed', String(selected));
+          button.classList.toggle('is-favorite', selected);
+        });
+      });
     })();

@@ -3,15 +3,20 @@ var bcrypt = require('bcryptjs');
 var User = require('../models/User');
 var router = express.Router();
 
+function safeReturnTo(value) {
+  var target = String(value || '/');
+  return target.charAt(0) === '/' && target.charAt(1) !== '/' ? target : '/';
+}
+
 router.post('/login', async function(req, res, next) {
   try {
     var email = String(req.body.email || '').toLowerCase().trim();
     var user = await User.findOne({ email: email });
     if (!user || !bcrypt.compareSync(String(req.body.password || ''), user.password)) {
-      return res.status(401).render('login', { title: 'Entrar', loginError: 'E-mail ou senha inválidos.' });
+      return res.status(401).render('login', { title: 'Entrar', loginError: 'E-mail ou senha inválidos.', returnTo: safeReturnTo(req.body.returnTo) });
     }
     req.session.user = { id: user._id.toString(), name: user.name, email: user.email, role: user.role };
-    res.redirect('/');
+    res.redirect(safeReturnTo(req.body.returnTo));
   } catch (error) {
     next(error);
   }
