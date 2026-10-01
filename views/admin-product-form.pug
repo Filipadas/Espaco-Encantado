@@ -11,6 +11,9 @@ block content
       if formError
         p.admin-form-error= formError
       form.admin-form(method='post' enctype='multipart/form-data' action=isEditing ? '/admin/products/' + product._id : '/admin/products')
+        label(for='product-images') Foto principal e fotos do carrossel
+        input#product-images(type='file' name='images' accept='image/*' multiple)
+        p.admin-form-hint A primeira imagem será a foto principal. Você poderá organizar as já cadastradas abaixo.
         label(for='product-name') Nome do produto
         input#product-name(type='text' name='name' value=product.name required)
         label(for='product-category') Categoria
@@ -26,21 +29,30 @@ block content
         label(for='product-description') Descrição
         textarea#product-description(name='description' rows='4')= product.description
         label(for='product-image') Foto do produto
-        input#product-image(type='file' name='image' accept='image/jpeg,image/png,image/webp,image/gif')
-        if product.imageUrl
-          img.admin-form-image-preview(src=product.imageUrl alt='Foto atual de ' + product.name)
+        input#product-image(type='url' name='imageUrl' value=product.imageUrl placeholder='https://exemplo.com/foto.jpg')
         p.admin-form-hint A foto será exibida no catálogo, estoque e sacola. O espaço permanece reservado mesmo sem imagem.
+        if product.imageUrls && product.imageUrls.length
+          .admin-image-order(data-image-order)
+            each image in product.imageUrls
+              .admin-image-order-row
+                input(type='hidden' name='imageUrls' value=image)
+                img(src=image alt='Foto cadastrada')
+                span= image
+                button.admin-icon-button(type='button' data-move-image='up' aria-label='Mover foto para cima' title='Mover para cima')
+                  i.bi.bi-arrow-up(aria-hidden='true')
+                button.admin-icon-button(type='button' data-move-image='down' aria-label='Mover foto para baixo' title='Mover para baixo')
+                  i.bi.bi-arrow-down(aria-hidden='true')
         if availableProducts && availableProducts.length
-          fieldset.admin-components(data-components-fieldset class=product.category === 'kit-montagem' || product.category === 'festa-infantil' ? '' : 'is-hidden')
+          fieldset.admin-components(data-components-section)
             legend Componentes do kit ou festa
             p.admin-form-hint Selecione produtos já cadastrados. Você pode adicionar quantos componentes forem necessários.
             .admin-component-list(data-component-list)
               if product.components && product.components.length
                 each component in product.components
                   .admin-component-row
-                    select.admin-component-category(name='componentCategory' required)
-                      option(value='brinquedos' selected=(component.category || component.product.category) === 'brinquedos') Brinquedo
-                      option(value='decoracoes' selected=(component.category || component.product.category) === 'decoracoes') Decoração
+                    select.admin-component-category(name='componentCategory' data-component-category)
+                      option(value='brinquedos' selected=component.product.category === 'brinquedos') Brinquedos
+                      option(value='decoracoes' selected=component.product.category === 'decoracoes') Decorações
                     select.admin-component-select(name='componentProduct')
                       option(value='') Selecione um produto
                       each availableProduct in availableProducts
@@ -49,9 +61,9 @@ block content
                     button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-component aria-label='Remover componente' title='Remover componente')
                       i.bi.bi-trash3-fill(aria-hidden='true')
               .admin-component-row(data-component-template)
-                select.admin-component-category(name='componentCategory' required)
-                  option(value='brinquedos') Brinquedo
-                  option(value='decoracoes') Decoração
+                select.admin-component-category(name='componentCategory' data-component-category)
+                  option(value='brinquedos') Brinquedos
+                  option(value='decoracoes') Decorações
                 select.admin-component-select(name='componentProduct')
                   option(value='') Selecione um produto
                   each availableProduct in availableProducts
@@ -62,6 +74,25 @@ block content
             button.admin-small-button(type='button' data-add-component)
               i.bi.bi-plus-lg(aria-hidden='true')
               | Adicionar componente
+        fieldset.admin-specifications
+          legend Especificações
+          p.admin-form-hint Crie parâmetros e seus valores separados por vírgulas. Exemplo: Tamanho: pequeno, médio, grande.
+          .admin-specification-list(data-specification-list)
+            if product.specifications && product.specifications.length
+              each specification in product.specifications
+                .admin-specification-row
+                  input(type='text' name='specificationName' value=specification.name placeholder='Especificação')
+                  input(type='text' name='specificationValues' value=specification.values.join(', ') placeholder='Valores separados por vírgulas')
+                  button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-specification aria-label='Remover especificação' title='Remover especificação')
+                    i.bi.bi-trash3-fill(aria-hidden='true')
+            .admin-specification-row(data-specification-template)
+              input(type='text' name='specificationName' placeholder='Especificação')
+              input(type='text' name='specificationValues' placeholder='Ex.: pequeno, médio, grande')
+              button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-specification aria-label='Remover especificação' title='Remover especificação')
+                i.bi.bi-trash3-fill(aria-hidden='true')
+          button.admin-small-button(type='button' data-add-specification)
+            i.bi.bi-plus-lg(aria-hidden='true')
+            | Nova especificação
         button.admin-primary-button(type='submit')
           i.bi.bi-check-lg
           = isEditing ? ' Salvar alterações' : ' Salvar produto'
@@ -72,41 +103,50 @@ block content
         var list = document.querySelector('[data-component-list]');
         var template = document.querySelector('[data-component-template]');
         var addButton = document.querySelector('[data-add-component]');
-        var categorySelect = document.querySelector('#product-category');
         if (!list || !template || !addButton) return;
-        function filterProducts(row) {
-          var category = row.querySelector('.admin-component-category').value;
-          row.querySelectorAll('.admin-component-select option').forEach(function(option) {
-            option.hidden = option.value && option.dataset.category !== category;
-          });
-          var selected = row.querySelector('.admin-component-select').selectedOptions[0];
-          if (selected && selected.hidden) row.querySelector('.admin-component-select').value = '';
-        }
-        function updateVisibility() {
-          var visible = categorySelect.value === 'kit-montagem' || categorySelect.value === 'festa-infantil';
-          document.querySelector('[data-components-fieldset]').classList.toggle('is-hidden', !visible);
-          list.querySelectorAll('.admin-component-row').forEach(function(row) {
-            row.querySelectorAll('select, input').forEach(function(field) { field.disabled = !visible; });
-            filterProducts(row);
-          });
-        }
         template.removeAttribute('data-component-template');
-        list.querySelectorAll('.admin-component-row').forEach(function(row) {
-          row.querySelector('.admin-component-category').addEventListener('change', function() { filterProducts(row); });
-          filterProducts(row);
-        });
-        categorySelect.addEventListener('change', updateVisibility);
-        updateVisibility();
         addButton.addEventListener('click', function() {
           var row = template.cloneNode(true);
           row.querySelector('select').value = '';
           row.querySelector('input').value = '1';
           list.appendChild(row);
-          row.querySelector('.admin-component-category').addEventListener('change', function() { filterProducts(row); });
-          filterProducts(row);
         });
         list.addEventListener('click', function(event) {
           var removeButton = event.target.closest('[data-remove-component]');
           if (removeButton) removeButton.closest('.admin-component-row').remove();
+        });
+        var categorySelect = document.querySelector('#product-category');
+        var componentSection = document.querySelector('[data-components-section]');
+        function updateComponents() {
+          if (!componentSection) return;
+          var visible = categorySelect.value === 'kit-montagem' || categorySelect.value === 'festa-infantil';
+          componentSection.hidden = !visible;
+          componentSection.querySelectorAll('[data-component-category]').forEach(function(category) {
+            var productSelect = category.closest('.admin-component-row').querySelector('.admin-component-select');
+            productSelect.querySelectorAll('option[data-category]').forEach(function(option) {
+              option.hidden = option.dataset.category !== category.value;
+            });
+          });
+        }
+        categorySelect.addEventListener('change', updateComponents);
+        list.addEventListener('change', function(event) {
+          if (event.target.matches('[data-component-category]')) updateComponents();
+        });
+        updateComponents();
+        var specificationList = document.querySelector('[data-specification-list]');
+        var specificationTemplate = document.querySelector('[data-specification-template]');
+        var addSpecification = document.querySelector('[data-add-specification]');
+        if (specificationList && specificationTemplate && addSpecification) {
+          specificationTemplate.removeAttribute('data-specification-template');
+          addSpecification.addEventListener('click', function() { specificationList.appendChild(specificationTemplate.cloneNode(true)); });
+          specificationList.addEventListener('click', function(event) { var remove = event.target.closest('[data-remove-specification]'); if (remove) remove.closest('.admin-specification-row').remove(); });
+        }
+        var imageOrder = document.querySelector('[data-image-order]');
+        if (imageOrder) imageOrder.addEventListener('click', function(event) {
+          var button = event.target.closest('[data-move-image]');
+          if (!button) return;
+          var row = button.closest('.admin-image-order-row');
+          if (button.dataset.moveImage === 'up' && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
+          if (button.dataset.moveImage === 'down' && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
         });
       })();

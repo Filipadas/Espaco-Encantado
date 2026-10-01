@@ -37,6 +37,8 @@ app.use(function(req, res, next) {
   res.locals.isAdminPanel = req.path.indexOf('/admin') === 0;
   res.locals.isCatalogPage = req.path === '/catalogo' || req.path === '/favoritos';
   res.locals.isProductPage = req.path.indexOf('/produto/') === 0;
+  res.locals.isLogoutPage = req.path === '/logout';
+  res.locals.isRequestPage = req.path.indexOf('/admin/rentals') === 0;
   res.locals.adminBackUrl = req.path === '/admin' ? '/' : '/admin';
   res.locals.adminBackLabel = req.path === '/admin' ? 'Voltar para a tela inicial' : 'Voltar para o painel administrativo';
   next();

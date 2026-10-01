@@ -2,19 +2,30 @@ extends layout
 
 block content
   main.admin-page
-    p.admin-eyebrow MINHA CONTA
-    if updated
-      p.admin-success Perfil atualizado.
-    if profile.imageUrl
-      img.profile-avatar(src=profile.imageUrl alt='Foto de ' + profile.name)
-    h1.admin-title= profile.name
+    .admin-title-row
+      a.admin-small-button(href='javascript:history.back()' aria-label='Voltar' title='Voltar')
+        i.bi.bi-arrow-left(aria-hidden='true')
+      div
+        p.admin-eyebrow MINHA CONTA
+        h1.admin-title= profile.name
+    if profile.profileImage
+      img.profile-avatar(src=profile.profileImage alt='Foto de ' + profile.name)
     p.admin-subtitle= profile.email
+    .profile-information
+      p Telefone: #{profile.phone || 'Não informado'}
+      p Endereço: #{profile.address || 'Não informado'}
+      p Cidade/Estado: #{[profile.city, profile.state].filter(Boolean).join(' - ') || 'Não informado'}
+      if profile.addresses && profile.addresses.length
+        h2 Outros endereços
+        each address in profile.addresses
+          p #{address.label}: #{address.address}, #{address.city} - #{address.state}
     .profile-actions
-      a.admin-primary-button(href='/perfil/editar')
-        i.bi.bi-pencil-fill(aria-hidden='true')
-        | Editar perfil
+      a.admin-primary-button(href='/users/profile')
+        i.bi.bi-pencil-fill
+        | Editar meu perfil
       a.admin-primary-button(href=isAdmin ? '/admin' : '/sacola')
         i.bi(class=isAdmin ? 'bi-award-fill' : 'bi-bag-fill')
         = isAdmin ? ' Abrir área administrativa' : ' Abrir minha sacola'
-      form(method='post' action='/logout')
-        button.admin-danger-button(type='submit') Sair da conta
+      a.admin-danger-button(href='/logout') Sair da conta
+      if !isAdmin
+        a.admin-danger-button(href='/users/delete') Excluir minha conta

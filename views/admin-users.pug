@@ -15,24 +15,19 @@ block content
         thead
           tr
             th Nome
+            th Foto
             th E-mail
             th Perfil
-            th Ação
         tbody
           each user in users
             tr
               td= user.name
+              td
+                .admin-product-photo
+                  if user.profileImage
+                    img(src=user.profileImage alt='Foto de ' + user.name)
+                  else
+                    i.bi.bi-person(aria-hidden='true')
               td= user.email
               td
                 span.admin-role(class=user.role === 'admin' ? 'is-admin' : '')= user.role === 'admin' ? 'Administrador' : 'Cliente'
-              td
-                .admin-icon-actions
-                  a.admin-icon-button(href='/admin/users/' + user._id + '/edit' aria-label='Editar perfil' title='Editar perfil')
-                    i.bi.bi-pencil-fill(aria-hidden='true')
-                  form(method='post' action='/admin/users/' + user._id + '/role')
-                    if user.role === 'admin'
-                      input(type='hidden' name='role' value='user')
-                      button.admin-small-button(type='submit') Tornar cliente
-                    else
-                      input(type='hidden' name='role' value='admin')
-                      button.admin-small-button(type='submit') Tornar admin

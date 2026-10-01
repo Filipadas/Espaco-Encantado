@@ -1,0 +1,55 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/perfil')
+      i.bi.bi-arrow-left
+      | Meu perfil
+    p.admin-eyebrow PERFIL
+    h1.admin-title Editar meu perfil
+    form.admin-form.profile-form(method='post' action='/users/profile' enctype='multipart/form-data')
+      label(for='profile-name') Nome
+      input#profile-name(type='text' name='name' value=profile.name required)
+      label(for='profile-phone') Telefone
+      input#profile-phone(type='tel' name='phone' value=profile.phone)
+      label(for='profile-image') Foto de perfil
+      input#profile-image(type='file' name='profileImage' accept='image/*')
+      if profile.profileImage
+        img.profile-preview(src=profile.profileImage alt='Foto atual')
+      label(for='profile-address') Endereço principal
+      input#profile-address(type='text' name='address' value=profile.address)
+      label(for='profile-city') Cidade
+      input#profile-city(type='text' name='city' value=profile.city)
+      label(for='profile-state') Estado
+      input#profile-state(type='text' name='state' value=profile.state)
+      fieldset.admin-components
+        legend Outros endereços
+        each address in profile.addresses || []
+          .address-row
+            input(type='text' name='addressLabel' value=address.label placeholder='Nome do endereço')
+            input(type='text' name='addressValue' value=address.address placeholder='Endereço')
+            input(type='text' name='addressCity' value=address.city placeholder='Cidade')
+            input(type='text' name='addressState' value=address.state placeholder='Estado')
+        .address-row
+          input(type='text' name='addressLabel' placeholder='Nome do endereço')
+          input(type='text' name='addressValue' placeholder='Endereço')
+          input(type='text' name='addressCity' placeholder='Cidade')
+          input(type='text' name='addressState' placeholder='Estado')
+        button.admin-small-button(type='button' data-add-address)
+          i.bi.bi-plus-lg(aria-hidden='true')
+          | Adicionar endereço
+      button.admin-primary-button(type='submit')
+        i.bi.bi-check-lg
+        | Salvar perfil
+  script.
+    (function() {
+      var fieldset = document.querySelector('.profile-form fieldset');
+      var addButton = document.querySelector('[data-add-address]');
+      if (!fieldset || !addButton) return;
+      addButton.addEventListener('click', function() {
+        var row = document.createElement('div');
+        row.className = 'address-row';
+        row.innerHTML = '<input type="text" name="addressLabel" placeholder="Nome do endereço"><input type="text" name="addressValue" placeholder="Endereço"><input type="text" name="addressCity" placeholder="Cidade"><input type="text" name="addressState" placeholder="Estado">';
+        fieldset.insertBefore(row, addButton);
+      });
+    })();

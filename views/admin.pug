@@ -2,8 +2,12 @@ extends layout
 
 block content
   main.admin-page
-    p.admin-eyebrow ÁREA RESTRITA
-    h1.admin-title Painel administrativo
+    .admin-title-row
+      a.admin-small-button(href='/' aria-label='Voltar para a tela inicial' title='Voltar para a tela inicial')
+        i.bi.bi-arrow-left(aria-hidden='true')
+      div
+        p.admin-eyebrow ÁREA RESTRITA
+        h1.admin-title Painel administrativo
     p.admin-subtitle Olá, #{currentUser.name}. Escolha uma função exclusiva para administrar a loja.
     .admin-dashboard-grid
       a.admin-dashboard-card(href='/admin/users')
@@ -26,3 +30,11 @@ block content
         i.bi.bi-calendar-check-fill
         h2 Aluguéis ativos
         p Veja itens em uso e registre devoluções.
+      a.admin-dashboard-card(href='/admin/settings')
+        i.bi.bi-sliders
+        h2 Configurações
+        p Edite textos de login e horários disponíveis.
+      a.admin-dashboard-card(href='/admin/invoices')
+        i.bi.bi-receipt
+        h2 Notas fiscais
+        p Consulte o status das notas das solicitações.

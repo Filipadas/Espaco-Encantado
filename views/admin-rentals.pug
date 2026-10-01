@@ -6,8 +6,8 @@ block content
       i.bi.bi-arrow-left
       | Painel administrativo
     p.admin-eyebrow LOCAÇÕES
-    h1.admin-title Aluguéis ativos
-    p.admin-subtitle Itens alugados ficam indisponíveis até serem devolvidos.
+    h1.admin-title Solicitações pendentes
+    p.admin-subtitle As solicitações mais próximas aparecem primeiro.
     if rentals && rentals.length
       .admin-table-wrap
         table.admin-table
@@ -26,10 +26,9 @@ block content
                     div #{item.quantity}x #{item.name}
                 td= rental.createdAt.toLocaleDateString('pt-BR')
                 td
-                  form(method='post' action='/admin/rentals/' + rental._id + '/return')
-                    button.admin-small-button(type='submit')
-                      i.bi.bi-check-lg(aria-hidden='true')
-                      | Registrar devolução
+                  a.admin-small-button(href='/admin/rentals/' + rental._id)
+                    i.bi.bi-eye(aria-hidden='true')
+                    | Abrir solicitação
     else
       .admin-empty
         i.bi.bi-calendar-check

@@ -25,6 +25,11 @@ var productSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  imageUrls: [{ type: String, trim: true }],
+  specifications: [{
+    name: { type: String, trim: true },
+    values: [{ type: String, trim: true }]
+  }],
   stockTotal: {
     type: Number,
     min: 0,
@@ -39,6 +44,11 @@ var productSchema = new mongoose.Schema({
     product: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Product',
+      required: true
+    },
+    category: {
+      type: String,
+      enum: ['brinquedos', 'decoracoes'],
       required: true
     },
     quantity: {

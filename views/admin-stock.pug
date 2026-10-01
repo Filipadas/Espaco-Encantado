@@ -12,7 +12,7 @@ block content
       p.admin-form-error= stockError
     .stock-grid
       each product in products
-        article.stock-card
+        article.stock-card(data-stock-card=product._id)
           .stock-card-photo
             if product.imageUrl
               img(src=product.imageUrl alt='Foto de ' + product.name)
@@ -27,15 +27,52 @@ block content
             else
               span.admin-stock-unavailable Indisponível
           .stock-card-details
-            span Estoque: strong= product.stockTotal || 0
-            span Alugado: strong= product.rentedQuantity || 0
-            span Livre: strong= product.availableUnits
-          form.stock-adjust-form(method='post' action='/admin/stock/' + product._id)
-            input(type='number' name='amount' min=product.rentedQuantity ? -((product.stockTotal || 0) - product.rentedQuantity) : -product.stockTotal placeholder='Quantidade' required)
-            button.admin-small-button(type='submit' name='operation' value='adjust')
-              i.bi.bi-arrow-repeat(aria-hidden='true')
-              | Ajustar
+            span
+              | Total: 
+              strong(data-stock-total)= product.stockTotal || 0
+            span
+              | Alugado: 
+              strong(data-stock-rented)= product.rentedQuantity || 0
+            span
+              | Solicitação: 
+              strong= product.requestedQuantity || 0
+            span
+              | Livre: 
+              strong(data-stock-available)= product.availableUnits
+          if product.category === 'kit-montagem' || product.category === 'festa-infantil'
+            p.admin-form-hint Disponibilidade calculada pelos componentes.
+          else
+            form.stock-adjust-form(method='post' action='/admin/stock/' + product._id data-stock-form)
+              input(type='hidden' name='amount' data-stock-amount)
+              button.stock-adjust-button(type='submit' data-stock-amount-value='-1' aria-label='Remover uma unidade' title='Remover uma unidade')
+                i.bi.bi-dash-lg(aria-hidden='true')
+              output.stock-quantity(data-stock-total)= product.stockTotal || 0
+              button.stock-adjust-button(type='submit' data-stock-amount-value='1' aria-label='Adicionar uma unidade' title='Adicionar uma unidade')
+                i.bi.bi-plus-lg(aria-hidden='true')
       else
         .admin-empty
           i.bi.bi-box-seam
           p Nenhum produto cadastrado.
+  script.
+    (function() {
+      document.querySelectorAll('[data-stock-form]').forEach(function(form) {
+        form.querySelectorAll('[data-stock-amount-value]').forEach(function(button) {
+          button.addEventListener('click', function() { form.querySelector('[data-stock-amount]').value = button.dataset.stockAmountValue; });
+        });
+        form.addEventListener('submit', function(event) {
+          event.preventDefault();
+          var card = form.closest('[data-stock-card]');
+          fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } })
+            .then(function(response) {
+              return response.json().then(function(result) { return { ok: response.ok, result: result }; });
+            })
+            .then(function(data) {
+              if (!data.ok) return window.alert(data.result.message || 'Não foi possível atualizar o estoque.');
+              card.querySelectorAll('[data-stock-total]').forEach(function(output) { output.textContent = data.result.stockTotal; });
+              card.querySelector('[data-stock-rented]').textContent = data.result.rentedQuantity;
+              card.querySelector('[data-stock-available]').textContent = data.result.availableUnits;
+            })
+            .catch(function() { window.alert('Não foi possível atualizar o estoque.'); });
+        });
+      });
+    })();

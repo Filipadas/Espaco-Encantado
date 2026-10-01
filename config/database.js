@@ -28,10 +28,10 @@ async function seedTestProducts() {
     if (!products[definition.name]) products[definition.name] = await Product.create(definition);
   }
   var kitComponents = {
-    'Kit Festa Estrelas': [{ product: products['Painel Jardim Encantado']._id, quantity: 1 }, { product: products['Mesa Provençal Branca']._id, quantity: 1 }],
-    'Kit Festa Safari': [{ product: products['Painel Jardim Encantado']._id, quantity: 1 }, { product: products['Piscina de Bolinhas Arco-Íris']._id, quantity: 1 }],
-    'Festa Infantil Mundo Mágico': [{ product: products['Castelo Inflável Aurora']._id, quantity: 1 }, { product: products['Painel Jardim Encantado']._id, quantity: 1 }],
-    'Festa Infantil Pequeno Explorador': [{ product: products['Piscina de Bolinhas Arco-Íris']._id, quantity: 1 }, { product: products['Mesa Provençal Branca']._id, quantity: 1 }]
+    'Kit Festa Estrelas': [{ product: products['Painel Jardim Encantado']._id, category: 'decoracoes', quantity: 1 }, { product: products['Mesa Provençal Branca']._id, category: 'decoracoes', quantity: 1 }],
+    'Kit Festa Safari': [{ product: products['Painel Jardim Encantado']._id, category: 'decoracoes', quantity: 1 }, { product: products['Piscina de Bolinhas Arco-Íris']._id, category: 'brinquedos', quantity: 1 }],
+    'Festa Infantil Mundo Mágico': [{ product: products['Castelo Inflável Aurora']._id, category: 'brinquedos', quantity: 1 }, { product: products['Painel Jardim Encantado']._id, category: 'decoracoes', quantity: 1 }],
+    'Festa Infantil Pequeno Explorador': [{ product: products['Piscina de Bolinhas Arco-Íris']._id, category: 'brinquedos', quantity: 1 }, { product: products['Mesa Provençal Branca']._id, category: 'decoracoes', quantity: 1 }]
   };
   return Promise.all(Object.keys(kitComponents).map(function(name) {
     return Product.findByIdAndUpdate(products[name]._id, { components: kitComponents[name] });

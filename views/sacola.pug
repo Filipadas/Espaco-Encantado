@@ -2,6 +2,8 @@ extends layout
 
 block content
   main.admin-page.cart-page
+    a.admin-small-button.profile-back-link(href='javascript:history.back()' aria-label='Voltar' title='Voltar')
+      i.bi.bi-arrow-left(aria-hidden='true')
     p.admin-eyebrow MINHA CONTA
     h1.admin-title Minha sacola
     if rentalSuccess
@@ -12,28 +14,43 @@ block content
       .cart-list
         each item in cart
           .cart-item
-            .cart-item-photo
-              if item.imageUrl
-                img(src=item.imageUrl alt='Foto de ' + item.name)
-              else
-                i.bi.bi-image(aria-hidden='true')
+            a.cart-item-product-link(href='/produto/' + item.productId)
+              .cart-item-photo
+                if item.imageUrl
+                  img(src=item.imageUrl alt='Foto de ' + item.name)
+                else
+                  i.bi.bi-image(aria-hidden='true')
             .cart-item-info
-              span= item.name
-              small #{item.quantity} unidade(s)
-            .cart-item-quantity
-              form(method='post' action='/sacola/update')
+              a(href='/produto/' + item.productId)
+                strong #{item.quantity}x #{item.name}
+              label(for='date-' + item.productId) Data disponível
+              form.cart-date-form(method='post' action='/sacola/date')
+                input(type='hidden' name='productId' value=item.productId)
+                select.cart-date-select(id='date-' + item.productId name='date' onchange="this.form.submit()")
+                  each date in item.availableDates
+                    option(value=date selected=date === item.requestDate)= date.split('-').reverse().join('/')
+            strong R$ #{(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}
+            .cart-quantity-actions
+              form(method='post' action='/sacola/adjust')
                 input(type='hidden' name='productId' value=item.productId)
                 input(type='hidden' name='delta' value='-1')
-                button.cart-quantity-button(type='submit' aria-label='Diminuir quantidade' title='Diminuir quantidade')
+                button.cart-quantity-button(type='submit' aria-label='Remover uma unidade' title='Remover uma unidade')
                   i.bi.bi-dash-lg(aria-hidden='true')
-              strong= item.quantity
-              form(method='post' action='/sacola/update')
+              span= item.quantity
+              form(method='post' action='/sacola/adjust')
                 input(type='hidden' name='productId' value=item.productId)
                 input(type='hidden' name='delta' value='1')
-                button.cart-quantity-button(type='submit' aria-label='Aumentar quantidade' title='Aumentar quantidade')
+                button.cart-quantity-button(type='submit' aria-label='Adicionar uma unidade' title='Adicionar uma unidade')
                   i.bi.bi-plus-lg(aria-hidden='true')
-            strong R$ #{(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}
       form(method='post' action='/sacola/confirm')
+        label.salon-rental-check
+          input(type='checkbox' name='salonRental' data-salon-toggle)
+          | Desejo alugar também o horário do salão
+        .salon-rental-drawer(data-salon-drawer hidden)
+          label(for='salon-date') Dia do salão
+          input#salon-date(type='date' name='salonDate')
+          label(for='salon-time') Horário do salão
+          input#salon-time(type='time' name='salonTime')
         button.admin-primary-button(type='submit')
           i.bi.bi-calendar-check(aria-hidden='true')
           | Fazer solicitação
@@ -44,3 +61,9 @@ block content
         i.bi.bi-bag
         p Sua sacola está vazia.
         a.admin-primary-button(href='/catalogo') Explorar catálogo
+  script.
+    (function() {
+      var toggle = document.querySelector('[data-salon-toggle]');
+      var drawer = document.querySelector('[data-salon-drawer]');
+      if (toggle && drawer) toggle.addEventListener('change', function() { drawer.hidden = !toggle.checked; });
+    })();

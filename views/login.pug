@@ -10,17 +10,20 @@ html
     main.login-screen
       section.login-welcome
         .login-topbar
-          .auth-brand Espaço Encantado
+          .auth-brand
+            img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
           a.auth-home-button(href='/' aria-label='Ir para a página inicial' title='Página inicial')
             i.bi.bi-house-fill(aria-hidden='true')
-        .login-welcome-copy
-          span.auth-kicker BEM-VINDO DE VOLTA
-          h1 Entre para continuar criando momentos inesquecíveis.
-          p Acesse sua conta para acompanhar seus agendamentos e continuar planejando uma festa cheia de encanto.
+          .login-welcome-copy
+            span.auth-kicker BEM-VINDO DE VOLTA
+            h1= settings.loginWelcome || 'Entre para continuar criando momentos inesquecíveis.'
+            p Acesse sua conta para acompanhar seus agendamentos e continuar planejando uma festa cheia de encanto.
+      button.theme-toggle.auth-theme-toggle(type='button' data-auth-theme-toggle aria-label='Alternar modo escuro' title='Alternar modo escuro')
+        i.bi.bi-moon-stars-fill(aria-hidden='true')
       section.login-panel(aria-labelledby='login-title')
         .auth-form-shell
           h1#login-title.auth-title Entrar
-          p.auth-subtitle Acesse sua conta Espaço Encantado.
+          p.auth-subtitle= settings.loginSubtitle || 'Acesse sua conta Espaço Encantado.'
           .auth-divider
             span ou continue com seu e-mail
           if loginError
@@ -37,6 +40,8 @@ html
                 | Lembrar de mim
               a.auth-inline-link(href='#') Esqueci minha senha
             button.auth-submit(type='submit') Entrar
+          .auth-divider
+            span ou
           .social-login-group
             button.auth-social-button(type='button')
               i.bi.bi-google(aria-hidden='true')
@@ -46,3 +51,14 @@ html
               | Entrar com Apple
           p.auth-switch Ainda não tem uma conta? 
             a.auth-link(href='/cadastro') Criar cadastro
+      script.
+        (function() {
+          var toggle = document.querySelector('[data-auth-theme-toggle]');
+          var dark = window.localStorage.getItem('espaco-encantado-theme') === 'dark';
+          document.body.classList.toggle('dark-mode', dark);
+          if (toggle) toggle.addEventListener('click', function() {
+            dark = !dark;
+            document.body.classList.toggle('dark-mode', dark);
+            window.localStorage.setItem('espaco-encantado-theme', dark ? 'dark' : 'light');
+          });
+        })();

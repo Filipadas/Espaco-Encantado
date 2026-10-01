@@ -1,0 +1,35 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/perfil')
+      i.bi.bi-arrow-left
+      | Meu perfil
+    p.admin-eyebrow MINHAS SOLICITAÇÕES
+    h1.admin-title Histórico de solicitações
+    if rentals && rentals.length
+      .admin-table-wrap
+        table.admin-table
+          thead
+            tr
+              th Datas
+              th Itens
+              th Status
+              th Nota fiscal
+          tbody
+            each rental in rentals
+              tr
+                td= rental.dates.join(' | ')
+                td
+                  each item in rental.items
+                    div #{item.quantity}x #{item.name}
+                td= rental.status
+                td
+                  if rental.invoiceGenerated
+                    a.admin-small-button(href='#') Visualizar nota fiscal
+                  else
+                    span.admin-stock-unavailable Indisponível
+    else
+      .admin-empty
+        i.bi.bi-clock-history
+        p Você ainda não realizou solicitações.

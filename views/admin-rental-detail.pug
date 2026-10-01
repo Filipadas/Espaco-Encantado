@@ -1,0 +1,37 @@
+extends layout
+
+block content
+  main.admin-page.request-detail-page
+    a.admin-back-link(href='/admin/rentals')
+      i.bi.bi-arrow-left
+      | Solicitações
+    .request-detail-card
+      p.admin-eyebrow SOLICITAÇÃO
+      h1.admin-title= rental.user ? rental.user.name : 'Cliente'
+      p.admin-subtitle= rental.dates.join(' | ')
+      h2 Checklist de entrega e devolução
+      form(method='post' action='/admin/rentals/' + rental._id + '/checklist')
+        each item in rental.items
+          label.request-check
+            input(type='checkbox' name='deliveredItem' value=item.product checked=rental.deliveredItems && rental.deliveredItems.map(String).indexOf(String(item.product)) !== -1)
+            span Entregar #{item.quantity}x #{item.name} em #{item.date}
+          label.request-check
+            input(type='checkbox' name='returnedItem' value=item.product checked=rental.returnedItems && rental.returnedItems.map(String).indexOf(String(item.product)) !== -1)
+            span Devolução conferida: #{item.name}
+        button.admin-primary-button(type='submit') Salvar checklist
+      .request-detail-actions
+        if !rental.deliveryChecked
+          form(method='post' action='/admin/rentals/' + rental._id + '/deliver')
+            button.admin-primary-button(type='submit') Registrar entrega
+        else if !rental.returnChecked
+          form(method='post' action='/admin/rentals/' + rental._id + '/return')
+            button.admin-primary-button(type='submit') Registrar devolução
+        form(method='post' action='/admin/rentals/' + rental._id + '/cancel')
+          button.admin-danger-button(type='submit') Cancelar
+        form(method='post' action='/admin/rentals/' + rental._id + '/finalize')
+          button.admin-primary-button(type='submit') Finalizar
+        if rental.invoiceGenerated
+          a.admin-small-button(href='#') Visualizar nota fiscal
+        else
+          form(method='post' action='/admin/rentals/' + rental._id + '/invoice')
+            button.admin-small-button(type='submit') Criar nota fiscal

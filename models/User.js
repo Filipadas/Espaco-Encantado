@@ -8,8 +8,14 @@ var userSchema = new mongoose.Schema({
   phone: String,
   address: String,
   city: String,
-  state: String,
-  imageUrl: { type: String, trim: true, default: '' }
+  state: String
+  ,profileImage: { type: String, default: '' }
+  ,addresses: [{
+    label: String,
+    address: String,
+    city: String,
+    state: String
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

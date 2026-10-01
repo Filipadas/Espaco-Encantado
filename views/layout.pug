@@ -6,29 +6,35 @@ html
         link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet")
         link(href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet")
         link(rel='stylesheet', href='/stylesheets/style.css?v=20260928')
-    body(class=isAdminPanel ? 'admin-panel-page' : (isCatalogPage ? 'catalog-page-navbar' : (isProductPage ? 'product-detail-no-navbar' : '')))
+    body(class=isAdminPanel ? 'admin-panel-page' : (isCatalogPage ? 'catalog-page-navbar' : (isProductPage ? 'product-detail-no-navbar' : (isLogoutPage ? 'logout-page' : (isRequestPage ? 'request-page' : '')))))
         nav.navbar-encantado
             .navbar-wrapper
                 .navbar-brand-section
-                        a.navbar-brand(href="/") Espaço Encantado
+                        a.navbar-brand(href="/")
+                            img.navbar-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
                 form.navbar-search(role="search")
                     input.form-control(type="search" placeholder="Buscar..." aria-label="Search")
                 .navbar-actions-section
                     if currentUser
                         a.navbar-login.navbar-login-icon(href="/perfil" aria-label="Meu perfil" title="Meu perfil")
-                            i.bi.bi-person-circle(aria-hidden="true")
+                            if currentUser.profileImage
+                                img.navbar-profile-image(src=currentUser.profileImage alt='Foto de perfil')
+                            else
+                                i.bi.bi-person-circle(aria-hidden="true")
                         if isAdmin
                             a.navbar-special-action(href="/admin/meetings" aria-label="Solicitações de reunião" title="Solicitações de reunião")
                                 i.bi.bi-calendar-event-fill(aria-hidden="true")
+                            a.navbar-special-action(href="/admin/rentals" aria-label="Aluguéis ativos" title="Aluguéis ativos")
+                                i.bi.bi-calendar-check-fill(aria-hidden="true")
                             if isAdminPanel
                                 a.navbar-special-action(href="/admin" aria-label="Painel administrativo" title="Painel administrativo")
                                     i.bi.bi-award-fill(aria-hidden="true")
-                                a.navbar-panel-back(href=adminBackUrl aria-label=adminBackLabel title=adminBackLabel)
-                                    i.bi.bi-arrow-left(aria-hidden="true")
                             else
                                 a.navbar-special-action(href="/admin" aria-label="Área do administrador" title="Área do administrador")
                                     i.bi.bi-award-fill(aria-hidden="true")
                         else
+                            a.navbar-special-action(href="/catalogo" aria-label="Catálogo" title="Catálogo")
+                                i.bi.bi-grid-3x3-gap-fill(aria-hidden="true")
                             a.navbar-special-action(href="/sacola" aria-label="Minha sacola" title="Minha sacola")
                                 i.bi.bi-bag-fill(aria-hidden="true")
                     else
@@ -54,35 +60,12 @@ html
                         a.nav-link(href="/favoritos")
                             i.bi.bi-heart-fill(aria-hidden="true")
                             |  Favoritos
-                    li.nav-item.dropdown
-                        a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false") Nossas redes sociais
-                        ul.dropdown-menu
-                            li
-                                a.dropdown-item(href="#") Instagram
-                            li
-                                hr.dropdown-divider
-                            li
-                                a.dropdown-item(href="#") Facebook 
-                            li
-                                hr.dropdown-divider
-                            li
-                                a.dropdown-item(href="#") Whatsapp
-                    li.nav-item.dropdown
-                        a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false") Conta
-                        ul.dropdown-menu
-                            if currentUser
-                                li
-                                    a.dropdown-item(href=isAdmin ? '/admin' : '/sacola')= isAdmin ? 'Área do administrador' : 'Minha sacola'
-                                li
-                                    hr.dropdown-divider
-                                li
-                                    form(method='post' action='/logout')
-                                        button.dropdown-item.text-danger(type='submit') Sair
-                            else
-                                li
-                                    a.dropdown-item(href="/cadastro") Inscrever-se
-                                li
-                                    a.dropdown-item(href="/login") Entrar
+                    if currentUser && !isAdmin
+                        li.nav-item
+                            a.nav-link(href="/sacola/historico")
+                                i.bi.bi-clock-history(aria-hidden="true")
+                                |  Histórico de solicitações
+                img.offcanvas-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
                 button.theme-toggle(type="button" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false" title="Modo escuro")
                     i.bi.bi-moon-stars-fill(aria-hidden="true")
                     
@@ -91,8 +74,18 @@ html
         block content
         
         footer.site-footer
+            .footer-contact
+                span Rua Ricardo Inácio - Praia Grande, SC
+                a(href='https://wa.me/5548999161551?text=Vim%20pelo%20site!' target='_blank' rel='noopener') +55 48 999161551
+            .footer-socials
+                a(href='https://www.instagram.com/espacoencantadodec/' target='_blank' rel='noopener' aria-label='Instagram' title='Instagram')
+                    i.bi.bi-instagram(aria-hidden='true')
+                a(href='https://www.facebook.com/p/Espaço-Encantado-Decorações-e-artigos-de-festa-em-geral-100063738723297/' target='_blank' rel='noopener' aria-label='Facebook' title='Facebook')
+                    i.bi.bi-facebook(aria-hidden='true')
+            img.footer-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
+            small Todos os direitos reservados
 
-        a.whatsapp-float(href='#' aria-label='WhatsApp' title='WhatsApp')
+        a.whatsapp-float(href='https://wa.me/5548999161551?text=Vim%20pelo%20site!' target='_blank' rel='noopener' aria-label='WhatsApp' title='WhatsApp')
             i.bi.bi-whatsapp(aria-hidden='true')
         
             

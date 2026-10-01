@@ -1,0 +1,12 @@
+extends layout
+
+block content
+  main.confirmation-page
+    .confirmation-card
+      img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
+      h1.admin-title Deseja mesmo sair?
+      p.admin-subtitle Sua sessão será encerrada neste dispositivo.
+      .profile-actions
+        a.admin-small-button.confirm-cancel-button(href='javascript:history.back()') Cancelar
+        form(method='post' action='/logout')
+          button.admin-danger-button(type='submit') Sair da conta

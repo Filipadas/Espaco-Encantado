@@ -1,0 +1,31 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/admin')
+      i.bi.bi-arrow-left
+      | Painel administrativo
+    p.admin-eyebrow FINANCEIRO
+    h1.admin-title Notas fiscais
+    .admin-table-wrap
+      table.admin-table
+        thead
+          tr
+            th Cliente
+            th Datas
+            th Status
+            th Nota fiscal
+        tbody
+          each rental in rentals
+            tr
+              td= rental.user ? rental.user.name : 'Cliente'
+              td= (rental.dates || []).join(' | ')
+              td= rental.status
+              td
+                if rental.invoiceGenerated
+                  a.admin-small-button(href='/admin/rentals/' + rental._id) Visualizar nota fiscal
+                else
+                  span.admin-stock-unavailable Ainda não criada
+          else
+            tr
+              td(colspan='4') Nenhuma solicitação registrada.

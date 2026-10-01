@@ -1,0 +1,22 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/admin')
+      i.bi.bi-arrow-left
+      | Painel administrativo
+    p.admin-eyebrow CONFIGURAÇÕES
+    h1.admin-title Site e horários
+    form.admin-form(method='post' action='/admin/settings')
+      label(for='login-welcome') Texto principal do login
+      input#login-welcome(type='text' name='loginWelcome' value=settings.loginWelcome required)
+      label(for='login-subtitle') Subtítulo do login
+      input#login-subtitle(type='text' name='loginSubtitle' value=settings.loginSubtitle required)
+      label(for='meeting-hours') Horários disponíveis para reuniões
+      input#meeting-hours(type='text' name='meetingHours' value=settings.meetingHours required)
+      p.admin-form-hint Separe os horários por vírgula.
+      label(for='salon-hours') Horário de funcionamento do salão
+      textarea#salon-hours(name='salonHours' rows='6' required)= settings.salonHours
+      button.admin-primary-button(type='submit')
+        i.bi.bi-check-lg
+        | Salvar configurações

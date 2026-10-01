@@ -6,22 +6,44 @@ block content
       i.bi.bi-arrow-left
       | Voltar ao catálogo
     article.product-detail-card
-      .product-detail-photo
-        if product.imageUrl
-          img(src=product.imageUrl alt='Foto de ' + product.name)
-        else
-          span Foto do produto
       .product-detail-content
         p.admin-eyebrow PRODUTO
         h1.admin-title= product.name
-        p.product-detail-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
         p.product-detail-description= product.description || 'Produto disponível para sua festa.'
+        p.product-detail-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
+        p.product-detail-note O valor pode sofrer variação de acordo com a negociação com o empreendimento.
         if product.availableUnits > 0
           p.admin-stock-available #{product.availableUnits} unidade(s) disponível(is)
-          form(method='post' action='/sacola/add' data-cart-form)
-            input(type='hidden' name='productId' value=product._id)
-            button.admin-primary-button(type='submit')
-              i.bi.bi-bag-plus(aria-hidden='true')
-              | Adicionar à sacola
+          .product-detail-actions
+            form(method='post' action='/sacola/add' data-cart-form)
+              input(type='hidden' name='productId' value=product._id)
+              button.admin-primary-button(type='submit')
+                i.bi.bi-bag-plus(aria-hidden='true')
+                | Adicionar à sacola
+            button.catalog-icon-button(type='button' data-favorite=product._id aria-label='Favoritar produto' title='Favoritar')
+              i.bi.bi-heart(aria-hidden='true')
         else
           p.admin-stock-unavailable Este produto já está sendo utilizado.
+      .product-detail-visual
+        img.product-detail-balloons(src='/images/baloes-produtos.png' alt='' aria-hidden='true')
+        .product-detail-carousel
+          if product.imageUrls && product.imageUrls.length
+            each image, index in product.imageUrls
+              img(class=index === 0 ? 'is-active' : '' src=image alt='Foto ' + (index + 1) + ' de ' + product.name)
+          else if product.imageUrl
+            img.is-active(src=product.imageUrl alt='Foto de ' + product.name)
+          else
+            .product-detail-photo Foto do produto
+    section.similar-products
+      h2 Produtos semelhantes
+      .similar-products-track
+        each similar in similarProducts
+          a.similar-product-card(href='/produto/' + similar._id)
+            .similar-product-photo
+              if similar.imageUrl
+                img(src=similar.imageUrl alt='Foto de ' + similar.name)
+              else
+                span Foto
+            strong= similar.name
+            span R$ #{Number(similar.price).toFixed(2).replace('.', ',')}
+        a.products-more-button(href='/catalogo?estado=' + product.category) Ver mais

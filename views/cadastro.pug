@@ -15,7 +15,10 @@ html
             | Voltar para entrar
           a.auth-home-button(href='/' aria-label='Ir para a página inicial' title='Página inicial')
             i.bi.bi-house-fill(aria-hidden='true')
-        .auth-brand Espaço Encantado
+        .auth-brand
+          img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
+      button.theme-toggle.auth-theme-toggle(type='button' data-auth-theme-toggle aria-label='Alternar modo escuro' title='Alternar modo escuro')
+        i.bi.bi-moon-stars-fill(aria-hidden='true')
       section.register-panel(aria-labelledby='register-title')
         form.auth-form.register-form(method='post' action='/register')
           h1#register-title.auth-title Criar cadastro
@@ -51,3 +54,14 @@ html
               label(for='register-confirm-password') Confirmar senha
               input#register-confirm-password(type='password' name='confirmPassword' autocomplete='new-password' required)
           button.auth-submit(type='submit') Criar minha conta
+      script.
+        (function() {
+          var toggle = document.querySelector('[data-auth-theme-toggle]');
+          var dark = window.localStorage.getItem('espaco-encantado-theme') === 'dark';
+          document.body.classList.toggle('dark-mode', dark);
+          if (toggle) toggle.addEventListener('click', function() {
+            dark = !dark;
+            document.body.classList.toggle('dark-mode', dark);
+            window.localStorage.setItem('espaco-encantado-theme', dark ? 'dark' : 'light');
+          });
+        })();

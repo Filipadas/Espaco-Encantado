@@ -1,14 +1,15 @@
 var express = require('express');
 var Product = require('../models/Product');
-var inventory = require('../services/inventory');
 var User = require('../models/User');
+var inventory = require('../services/inventory');
+var SiteSettings = require('../models/SiteSettings');
 var router = express.Router();
 
 /* GET home page. */
 router.get('/', async function(req, res, next) {
   try {
     var homeProducts = await Product.find().populate('components.product').sort({ createdAt: -1 }).limit(8);
-    res.render('index', { title: 'Express', homeProducts: await inventory.getProductsAvailability(homeProducts) });
+    res.render('index', { title: 'Express', homeProducts: await inventory.getProductsAvailability(homeProducts), settings: await SiteSettings.findOne({ key: 'main' }) || {} });
   } catch (error) { next(error); }
 });
 
@@ -51,13 +52,14 @@ router.get('/produto/:id', async function(req, res, next) {
     var product = await inventory.findProductGraph(req.params.id);
     if (!product) return res.status(404).render('error', { title: 'Produto não encontrado', message: 'Este produto não está disponível.', error: {}, status: 404 });
     product.availableUnits = inventory.availableUnits(product);
-    res.render('product-detail', { title: product.name, product: product });
+    var similarProducts = await Product.find({ category: product.category, _id: { $ne: product._id } }).limit(8);
+    res.render('product-detail', { title: product.name, product: product, similarProducts: similarProducts });
   } catch (error) { next(error); }
 });
 
-router.get('/login', function(req, res, next) {
+router.get('/login', async function(req, res, next) {
   var returnTo = String(req.query.returnTo || '/');
-  res.render('login', { title: 'Entrar', returnTo: returnTo.charAt(0) === '/' && returnTo.charAt(1) !== '/' ? returnTo : '/' });
+  res.render('login', { title: 'Entrar', settings: await SiteSettings.findOne({ key: 'main' }) || {}, returnTo: returnTo.charAt(0) === '/' && returnTo.charAt(1) !== '/' ? returnTo : '/' });
 });
 
 router.get('/cadastro', function(req, res, next) {
@@ -66,16 +68,7 @@ router.get('/cadastro', function(req, res, next) {
 
 router.get('/perfil', async function(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
-  try {
-    res.render('perfil', { title: 'Meu perfil', profile: await User.findById(req.session.user.id), updated: req.query.atualizado === '1' });
-  } catch (error) { next(error); }
-});
-
-router.get('/perfil/editar', async function(req, res, next) {
-  if (!req.session.user) return res.redirect('/login?returnTo=/perfil/editar');
-  try {
-    res.render('profile-form', { title: 'Editar perfil', profile: await User.findById(req.session.user.id), isAdminEditing: false, formError: null });
-  } catch (error) { next(error); }
+  try { res.render('perfil', { title: 'Meu perfil', profile: await User.findById(req.session.user.id) }); } catch (error) { next(error); }
 });
 
 module.exports = router;
