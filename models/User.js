@@ -8,14 +8,25 @@ var userSchema = new mongoose.Schema({
   phone: String,
   address: String,
   city: String,
-  state: String
-  ,profileImage: { type: String, default: '' }
-  ,addresses: [{
+  state: String,
+  cep: String,
+  profileImage: { type: String, default: '' },
+  addresses: [{
     label: String,
     address: String,
     city: String,
-    state: String
+    state: String,
+    cep: String
+  }],
+  cart: [{
+    productId: { type: String, required: true },
+    name: String,
+    price: Number,
+    imageUrl: String,
+    quantity: { type: Number, min: 1, default: 1 },
+    requestDate: String
   }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
+

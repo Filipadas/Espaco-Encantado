@@ -1,0 +1,61 @@
+extends layout
+
+block content
+  main.invoice-page
+    article.invoice-document
+      header.invoice-header
+        .invoice-brand
+          | Espaço Encantado
+          span Locação de brinquedos e decoração
+        .invoice-number
+          | Referência #{rental.invoiceNumber || ('EE-' + rental.createdAt.getFullYear() + '-' + String(rental._id).slice(-8).toUpperCase())}
+          small Criado em #{invoiceDate}
+      h1.invoice-title Comprovante de locação
+      .invoice-parties
+        .invoice-party
+          strong Emitente
+          | Espaço Encantado<br>
+          | Rua Ricardo Inácio - Praia Grande, SC<br>
+          | CNPJ não cadastrado<br>
+          | +55 48 999161551
+        .invoice-party
+          strong Cliente
+          | #{rental.user ? rental.user.name : 'Cliente'}
+          if rental.user && rental.user.email
+            br
+            | #{rental.user.email}
+        .invoice-party
+          strong Entrega prevista
+          | #{rental.deliveryAddress || 'Endereço não informado'}
+          br
+          | #{[rental.deliveryCity, rental.deliveryState, rental.deliveryCep].filter(Boolean).join(' - ') || 'Localidade não informada'}
+          br
+          | #{rental.deliveryDate ? rental.deliveryDate.split('-').reverse().join('/') : 'Data não informada'}
+          if rental.deliveryTime
+            |  às #{rental.deliveryTime}
+      table.invoice-table
+        thead
+          tr
+            th Produto
+            th Quantidade
+            th Data da locação
+            th Valor
+        tbody
+          each item in rental.items
+            tr
+              td= item.name
+              td= item.quantity
+              td= item.date.split('-').reverse().join('/')
+              td R$ #{(Number(item.price) * Number(item.quantity)).toFixed(2).replace('.', ',')}
+      .invoice-total
+        span Total
+        span R$ #{invoiceTotal.toFixed(2).replace('.', ',')}
+      p.invoice-note Comprovante interno referente à solicitação de locação ##{String(rental._id).slice(-8).toUpperCase()}. Este documento não é uma nota fiscal.
+      .invoice-actions
+        a.admin-small-button(href=isAdminView ? '/admin/rentals/' + rental._id : '/sacola/historico') Voltar
+        button.admin-primary-button(type='button' data-print-invoice) Imprimir / Salvar PDF
+  script.
+    (function() {
+      var printButton = document.querySelector('[data-print-invoice]');
+      if (printButton) printButton.addEventListener('click', function() { window.print(); });
+    })();

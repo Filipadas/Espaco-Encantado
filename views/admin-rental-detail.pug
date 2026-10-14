@@ -9,29 +9,34 @@ block content
       p.admin-eyebrow SOLICITAÇÃO
       h1.admin-title= rental.user ? rental.user.name : 'Cliente'
       p.admin-subtitle= rental.dates.join(' | ')
-      h2 Checklist de entrega e devolução
+      p.admin-subtitle Entrega: #{rental.deliveryAddress || 'Endereço não informado'}, #{rental.deliveryCity || ''} - #{rental.deliveryState || ''} #{rental.deliveryCep || ''}
+      p.admin-subtitle Previsão: #{rental.deliveryDate ? rental.deliveryDate.split('-').reverse().join('/') : 'Data não informada'} #{rental.deliveryTime || ''}
+      if rental.returnChecked
+        h2 Devolução concluída
+        p.admin-subtitle Os itens foram devolvidos e o estoque foi atualizado.
+      else if rental.deliveryChecked
+        h2 Checklist de devolução
+        p.admin-subtitle Confirme cada item devolvido. O estoque será atualizado ao concluir a checklist.
+      else
+        h2 Checklist de entrega
+        p.admin-subtitle Confirme cada item entregue. O estoque será atualizado ao concluir a checklist.
       form(method='post' action='/admin/rentals/' + rental._id + '/checklist')
-        each item in rental.items
-          label.request-check
-            input(type='checkbox' name='deliveredItem' value=item.product checked=rental.deliveredItems && rental.deliveredItems.map(String).indexOf(String(item.product)) !== -1)
-            span Entregar #{item.quantity}x #{item.name} em #{item.date}
-          label.request-check
-            input(type='checkbox' name='returnedItem' value=item.product checked=rental.returnedItems && rental.returnedItems.map(String).indexOf(String(item.product)) !== -1)
-            span Devolução conferida: #{item.name}
-        button.admin-primary-button(type='submit') Salvar checklist
+        if !rental.returnChecked
+          each item in rental.items
+            label.request-check
+              if rental.deliveryChecked
+                input(type='checkbox' name='returnedItem' value=item.product checked=rental.returnedItems && rental.returnedItems.map(String).indexOf(String(item.product)) !== -1)
+                span Receber devolução de #{item.quantity}x #{item.name}
+              else
+                input(type='checkbox' name='deliveredItem' value=item.product checked=rental.deliveredItems && rental.deliveredItems.map(String).indexOf(String(item.product)) !== -1)
+                span Entregar #{item.quantity}x #{item.name} em #{item.date}
+          button.admin-primary-button(type='submit')= rental.deliveryChecked ? 'Confirmar checklist de devolução' : 'Confirmar checklist de entrega'
       .request-detail-actions
-        if !rental.deliveryChecked
-          form(method='post' action='/admin/rentals/' + rental._id + '/deliver')
-            button.admin-primary-button(type='submit') Registrar entrega
-        else if !rental.returnChecked
-          form(method='post' action='/admin/rentals/' + rental._id + '/return')
-            button.admin-primary-button(type='submit') Registrar devolução
-        form(method='post' action='/admin/rentals/' + rental._id + '/cancel')
-          button.admin-danger-button(type='submit') Cancelar
-        form(method='post' action='/admin/rentals/' + rental._id + '/finalize')
-          button.admin-primary-button(type='submit') Finalizar
+        if !rental.returnChecked
+          form(method='post' action='/admin/rentals/' + rental._id + '/cancel')
+            button.admin-danger-button(type='submit') Cancelar solicitação
         if rental.invoiceGenerated
-          a.admin-small-button(href='#') Visualizar nota fiscal
+          a.admin-small-button(href='/admin/invoices/' + rental._id + '/view') Visualizar comprovante
         else
-          form(method='post' action='/admin/rentals/' + rental._id + '/invoice')
-            button.admin-small-button(type='submit') Criar nota fiscal
+          form(method='post' action='/admin/invoices/' + rental._id + '/create')
+            button.admin-small-button(type='submit') Criar comprovante

@@ -21,6 +21,7 @@ router.post('/login', async function(req, res, next) {
     if (!user || !bcrypt.compareSync(String(req.body.password || ''), user.password)) {
       return res.status(401).render('login', { title: 'Entrar', settings: await SiteSettings.findOne({ key: 'main' }) || {}, loginError: 'E-mail ou senha inválidos.', returnTo: safeReturnTo(req.body.returnTo) });
     }
+    if (req.session.user && req.session.user.id !== user._id.toString()) delete req.session.cart;
     req.session.user = { id: user._id.toString(), name: user.name, email: user.email, role: user.role, profileImage: user.profileImage };
     res.redirect(safeReturnTo(req.body.returnTo));
   } catch (error) {
@@ -37,8 +38,9 @@ router.post('/logout', function(req, res, next) {
 
 router.post('/register', async function(req, res, next) {
   try {
+    var formData = { name: req.body.name, email: req.body.email, phone: req.body.phone, birthDate: req.body.birthDate, address: req.body.address, city: req.body.city, state: req.body.state, cep: req.body.cep };
     if (req.body.password !== req.body.confirmPassword) {
-      return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'As senhas não coincidem.' });
+      return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'As senhas não coincidem.', formData: formData });
     }
     var password = bcrypt.hashSync(String(req.body.password || ''), 10);
     var user = await User.create({
@@ -48,14 +50,17 @@ router.post('/register', async function(req, res, next) {
       phone: req.body.phone,
       address: req.body.address,
       city: req.body.city,
-      state: req.body.state
+      state: req.body.state,
+      cep: req.body.cep
     });
+    if (req.session.user && req.session.user.id !== user._id.toString()) delete req.session.cart;
     req.session.user = { id: user._id.toString(), name: user.name, email: user.email, role: user.role, profileImage: user.profileImage };
     res.redirect('/');
   } catch (error) {
-    if (error.code === 11000) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'Este e-mail já está cadastrado.' });
+    if (error.code === 11000) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'Este e-mail já está cadastrado.', formData: req.body });
     next(error);
   }
 });
 
 module.exports = router;
+

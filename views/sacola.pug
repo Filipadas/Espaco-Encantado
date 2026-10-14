@@ -43,6 +43,34 @@ block content
                 button.cart-quantity-button(type='submit' aria-label='Adicionar uma unidade' title='Adicionar uma unidade')
                   i.bi.bi-plus-lg(aria-hidden='true')
       form(method='post' action='/sacola/confirm')
+        h2 Dados da entrega
+        .auth-field
+          label(for='saved-delivery-address') Usar endereço salvo
+          select#saved-delivery-address
+            option(value='') Digitar outro endereço
+            if deliveryProfile && deliveryProfile.address
+              option(value=JSON.stringify({ address: deliveryProfile.address, city: deliveryProfile.city, state: deliveryProfile.state, cep: deliveryProfile.cep }) selected) Endereço principal
+            each savedAddress, index in (deliveryProfile && deliveryProfile.addresses || [])
+              option(value=JSON.stringify({ address: savedAddress.address, city: savedAddress.city, state: savedAddress.state, cep: savedAddress.cep }) selected=(!deliveryProfile.address && index === 0 ? true : undefined))= savedAddress.label || ('Endereço salvo ' + (index + 1))
+        .register-location-fields
+          .auth-field
+            label(for='delivery-address') Endereço
+            input#delivery-address(type='text' name='deliveryAddress' autocomplete='street-address' required value=(deliveryProfile && deliveryProfile.address) || '')
+          .auth-field
+            label(for='delivery-city') Cidade
+            input#delivery-city(type='text' name='deliveryCity' autocomplete='address-level2' required value=(deliveryProfile && deliveryProfile.city) || '')
+          .auth-field
+            label(for='delivery-state') UF
+            input#delivery-state(type='text' name='deliveryState' maxlength='2' autocomplete='address-level1' required value=(deliveryProfile && deliveryProfile.state) || '')
+          .auth-field
+            label(for='delivery-cep') CEP
+            input#delivery-cep(type='text' name='deliveryCep' autocomplete='postal-code' required value=(deliveryProfile && deliveryProfile.cep) || '')
+          .auth-field
+            label(for='delivery-date') Data prevista da entrega
+            input#delivery-date(type='date' name='deliveryDate' required)
+          .auth-field
+            label(for='delivery-time') Horário previsto da entrega
+            input#delivery-time(type='time' name='deliveryTime' required)
         label.salon-rental-check
           input(type='checkbox' name='salonRental' data-salon-toggle)
           | Desejo alugar também o horário do salão
@@ -63,6 +91,24 @@ block content
         a.admin-primary-button(href='/catalogo') Explorar catálogo
   script.
     (function() {
+    var savedAddress = document.querySelector('#saved-delivery-address');
+    if (savedAddress) savedAddress.addEventListener('change', function() {
+      if (!savedAddress.value) {
+        document.querySelector('#delivery-address').value = '';
+        document.querySelector('#delivery-city').value = '';
+        document.querySelector('#delivery-state').value = '';
+        document.querySelector('#delivery-cep').value = '';
+        return;
+      }
+      try {
+        var address = JSON.parse(savedAddress.value);
+        document.querySelector('#delivery-address').value = address.address || '';
+        document.querySelector('#delivery-city').value = address.city || '';
+        document.querySelector('#delivery-state').value = address.state || '';
+        document.querySelector('#delivery-cep').value = address.cep || '';
+      } catch (error) {}
+    });
+    if (savedAddress && savedAddress.value) savedAddress.dispatchEvent(new Event('change'));
       var toggle = document.querySelector('[data-salon-toggle]');
       var drawer = document.querySelector('[data-salon-drawer]');
       if (toggle && drawer) toggle.addEventListener('change', function() { drawer.hidden = !toggle.checked; });

@@ -25,21 +25,21 @@ block content
         tbody
           each product in products
             tr
-              td
+              td(data-label='Foto')
                 .admin-product-photo
                   if product.imageUrl
                     img(src=product.imageUrl alt='Foto de ' + product.name)
                   else
                     i.bi.bi-image(aria-hidden='true')
-              td= product.name
-              td= product.category
-              td R$ #{Number(product.price).toFixed(2).replace('.', ',')}
-              td
+              td(data-label='Produto')= product.name
+              td(data-label='Categoria')= product.category
+              td(data-label='Preço') R$ #{Number(product.price).toFixed(2).replace('.', ',')}
+              td(data-label='Disponibilidade')
                 if product.availableUnits > 0
                   span.admin-stock-available #{product.availableUnits} disponível(is)
                 else
                   span.admin-stock-unavailable Indisponível
-              td
+              td(data-label='Ação')
                 .admin-icon-actions
                   a.admin-icon-button(href='/admin/products/' + product._id + '/edit' aria-label='Editar produto' title='Editar produto')
                     i.bi.bi-pencil-fill(aria-hidden='true')

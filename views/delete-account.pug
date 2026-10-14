@@ -1,16 +1,22 @@
-extends layout
-
-block content
-  main.confirmation-page
-    .confirmation-card
-      img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
-      h1.admin-title Excluir conta?
-      p.admin-subtitle Esta ação é permanente. Digite sua senha para confirmar.
-      if formError
-        p.admin-form-error= formError
-      form.admin-form(method='post' action='/users/delete')
-        label(for='delete-password') Senha da conta
-        input#delete-password(type='password' name='password' required autocomplete='current-password')
-        .profile-actions
-          a.admin-small-button.confirm-cancel-button(href='/perfil') Cancelar
-          button.admin-danger-button(type='submit') Excluir conta
+doctype html
+html
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title Excluir conta | Espaço Encantado
+    link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css')
+    link(rel='stylesheet' href='/stylesheets/style.css?v=20261014-fit-mobile')
+  body.delete-account-page
+    main.confirmation-page
+      .confirmation-card
+        img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
+        h1.admin-title Excluir conta?
+        p.admin-subtitle Esta ação é permanente. Digite sua senha para confirmar.
+        if formError
+          p.admin-form-error= formError
+        form.admin-form(method='post' action='/users/delete')
+          label(for='delete-password') Senha da conta
+          input#delete-password(type='password' name='password' required autocomplete='current-password')
+          .profile-actions
+            a.admin-small-button.confirm-cancel-button(href='/perfil') Cancelar
+            button.admin-danger-button(type='submit') Excluir conta

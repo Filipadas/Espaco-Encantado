@@ -27,10 +27,22 @@ router.get('/profile', requireLogin, async function(req, res, next) {
 
 router.post('/profile', requireLogin, upload.single('profileImage'), async function(req, res, next) {
   try {
-    var addresses = Array.isArray(req.body.addressLabel) ? req.body.addressLabel.map(function(label, index) {
-      return { label: label, address: req.body.addressValue[index], city: req.body.addressCity[index], state: req.body.addressState[index] };
-    }) : [];
-    var data = { name: req.body.name, phone: req.body.phone, address: req.body.address, city: req.body.city, state: req.body.state, addresses: addresses };
+    function values(value) { return Array.isArray(value) ? value : (value === undefined ? [] : [value]); }
+    var labels = values(req.body.addressLabel);
+    var addressValues = values(req.body.addressValue);
+    var cities = values(req.body.addressCity);
+    var states = values(req.body.addressState);
+    var ceps = values(req.body.addressCep);
+    var addresses = labels.map(function(label, index) {
+      return {
+        label: String(label || '').trim(),
+        address: String(addressValues[index] || '').trim(),
+        city: String(cities[index] || '').trim(),
+        state: String(states[index] || '').trim().toUpperCase(),
+        cep: String(ceps[index] || '').trim()
+      };
+    }).filter(function(address) { return address.label || address.address || address.city || address.state || address.cep; });
+    var data = { name: req.body.name, phone: req.body.phone, address: req.body.address, city: req.body.city, state: req.body.state, cep: req.body.cep, addresses: addresses };
     if (req.file) data.profileImage = '/uploads/' + req.file.filename;
     var user = await User.findByIdAndUpdate(req.session.user.id, data, { new: true, runValidators: true });
     req.session.user.name = user.name;

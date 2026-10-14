@@ -14,6 +14,12 @@ var rentalSchema = new mongoose.Schema({
     quantity: { type: Number, required: true, min: 1 }
   }],
   dates: [{ type: String }],
+  deliveryAddress: String,
+  deliveryCity: String,
+  deliveryState: String,
+  deliveryCep: String,
+  deliveryDate: String,
+  deliveryTime: String,
   salonRental: { type: Boolean, default: false },
   salonDate: String,
   salonTime: String,
@@ -22,6 +28,8 @@ var rentalSchema = new mongoose.Schema({
   deliveredItems: [{ type: mongoose.Schema.Types.ObjectId }],
   returnedItems: [{ type: mongoose.Schema.Types.ObjectId }],
   invoiceGenerated: { type: Boolean, default: false },
+  invoiceNumber: String,
+  invoiceGeneratedAt: Date,
   status: { type: String, enum: ['active', 'returned', 'cancelled'], default: 'active' }
 }, { timestamps: true });
 

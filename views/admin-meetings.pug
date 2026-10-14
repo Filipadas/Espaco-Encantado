@@ -21,11 +21,11 @@ block content
           tbody
             each meeting in meetings
               tr
-                td= meeting.user ? meeting.user.name : 'Cliente'
-                td= meeting.user ? meeting.user.email : '-'
-                td= meeting.date.split('-').reverse().join('/')
-                td= meeting.time
-                td
+                td(data-label='Cliente')= meeting.user ? meeting.user.name : 'Cliente'
+                td(data-label='E-mail')= meeting.user ? meeting.user.email : '-'
+                td(data-label='Data')= meeting.date.split('-').reverse().join('/')
+                td(data-label='Horário')= meeting.time
+                td(data-label='Status')
                   span.admin-role(class=meeting.status === 'requested' ? '' : 'is-admin')= meeting.status === 'requested' ? 'Solicitada' : meeting.status
     else
       .admin-empty

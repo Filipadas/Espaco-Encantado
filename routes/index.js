@@ -15,19 +15,20 @@ router.get('/', async function(req, res, next) {
 
 router.get('/catalogo', async function(req, res, next) {
   var states = {
-    brinquedos: 'brinquedo',
-    decoracoes: 'decoração',
-    'kit-montagem': 'kit-mont',
-    'festa-infantil': 'infantil'
+    brinquedos: { categories: ['brinquedos', 'brinquedo'], label: 'brinquedo' },
+    decoracoes: { categories: ['decoracoes', 'decoração', 'decoracao'], label: 'decoração' },
+    'kit-montagem': { categories: ['kit-montagem', 'kit-mont'], label: 'kit-mont' },
+    'festa-infantil': { categories: ['festa-infantil', 'infantil'], label: 'infantil' }
   };
   var requestedState = String(req.query.estado || 'brinquedos');
   var selectedState = Object.prototype.hasOwnProperty.call(states, requestedState) ? requestedState : 'brinquedos';
   try {
-    var products = await Product.find({ category: selectedState }).populate('components.product').sort({ name: 1 });
+    var selectedCategory = states[selectedState];
+    var products = await Product.find({ category: { $in: selectedCategory.categories } }).populate('components.product').sort({ name: 1 });
     res.render('catalogo', {
       title: 'Catálogo',
       selectedState: selectedState,
-      selectedCategory: states[selectedState],
+      selectedCategory: selectedCategory.label,
       products: await inventory.getProductsAvailability(products),
       favoritesOnly: false
     });

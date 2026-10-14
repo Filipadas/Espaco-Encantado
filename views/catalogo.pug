@@ -55,14 +55,10 @@ block content
                 .catalog-product-actions
                   button.catalog-icon-button(type='button' data-favorite=product._id aria-label='Favoritar ' + product.name aria-pressed='false' title='Favoritar')
                     i.bi.bi-heart(aria-hidden='true')
-                  if product.availableUnits > 0
-                    form(method='post' action='/sacola/add' data-cart-form)
-                      input(type='hidden' name='productId' value=product._id)
-                      button.catalog-icon-button(type='submit' aria-label='Adicionar ' + product.name + ' à sacola' title='Adicionar à sacola')
-                        i.bi.bi-bag-plus(aria-hidden='true')
-                  else
-                    span.catalog-product-availability.is-unavailable(title='Este item está sendo utilizado')
-                      i.bi.bi-slash-circle(aria-hidden='true')
+                  form(method='post' action='/sacola/add' data-cart-form)
+                    input(type='hidden' name='productId' value=product._id)
+                    button.catalog-icon-button(type='submit' aria-label='Adicionar ' + product.name + ' à sacola' title='Adicionar à sacola')
+                      i.bi.bi-bag-plus(aria-hidden='true')
           else
             p.catalog-empty Nenhum produto cadastrado nesta categoria.
 
@@ -136,7 +132,7 @@ block content
       document.querySelectorAll('[data-cart-form]').forEach(function(form) {
         form.addEventListener('submit', function(event) {
           event.preventDefault();
-          fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } })
+          fetch(form.action, { method: 'POST', body: new URLSearchParams(new FormData(form)), headers: { Accept: 'application/json', 'X-Cart-Request': 'json' } })
             .then(function(response) {
               if (response.url.indexOf('/login') !== -1) return window.location.href = response.url;
               return response.json().then(function(result) { return { ok: response.ok, result: result }; });

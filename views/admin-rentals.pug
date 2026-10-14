@@ -1,35 +1,36 @@
 extends layout
 
 block content
-  main.admin-page
-    a.admin-back-link(href='/admin')
+  main.admin-page.request-list-page
+    a.admin-back-link.request-list-back(href='/admin')
       i.bi.bi-arrow-left
       | Painel administrativo
-    p.admin-eyebrow LOCAÇÕES
-    h1.admin-title Solicitações pendentes
-    p.admin-subtitle As solicitações mais próximas aparecem primeiro.
-    if rentals && rentals.length
-      .admin-table-wrap
-        table.admin-table
-          thead
-            tr
-              th Cliente
-              th Itens
-              th Data
-              th Ação
-          tbody
-            each rental in rentals
+    .request-list-card
+      p.admin-eyebrow LOCAÇÕES
+      h1.admin-title Solicitações pendentes
+      p.admin-subtitle As solicitações mais próximas aparecem primeiro.
+      if rentals && rentals.length
+        .admin-table-wrap
+          table.admin-table
+            thead
               tr
-                td= rental.user ? rental.user.name : 'Cliente'
-                td
-                  each item in rental.items
-                    div #{item.quantity}x #{item.name}
-                td= rental.createdAt.toLocaleDateString('pt-BR')
-                td
-                  a.admin-small-button(href='/admin/rentals/' + rental._id)
-                    i.bi.bi-eye(aria-hidden='true')
-                    | Abrir solicitação
-    else
-      .admin-empty
-        i.bi.bi-calendar-check
-        p Nenhum aluguel ativo.
+                th Cliente
+                th Itens
+                th Data
+                th Ação
+            tbody
+              each rental in rentals
+                tr
+                  td(data-label='Cliente')= rental.user ? rental.user.name : 'Cliente'
+                  td(data-label='Itens')
+                    each item in rental.items
+                      div #{item.quantity}x #{item.name}
+                  td(data-label='Data')= rental.createdAt.toLocaleDateString('pt-BR')
+                  td(data-label='Ação')
+                    a.admin-small-button(href='/admin/rentals/' + rental._id)
+                      i.bi.bi-eye(aria-hidden='true')
+                      | Abrir solicitação
+      else
+        .admin-empty
+          i.bi.bi-calendar-check
+          p Nenhum aluguel ativo.

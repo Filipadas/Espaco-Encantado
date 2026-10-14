@@ -11,9 +11,10 @@ block content
       if formError
         p.admin-form-error= formError
       form.admin-form(method='post' enctype='multipart/form-data' action=isEditing ? '/admin/products/' + product._id : '/admin/products')
+        input(type='hidden' name='carouselOrderSubmitted' value='1')
         label(for='product-images') Foto principal e fotos do carrossel
         input#product-images(type='file' name='images' accept='image/*' multiple)
-        p.admin-form-hint A primeira imagem será a foto principal. Você poderá organizar as já cadastradas abaixo.
+        p.admin-form-hint Confira a prévia do carrossel, remova fotos ou use as setas para definir a ordem. A primeira será a foto principal.
         label(for='product-name') Nome do produto
         input#product-name(type='text' name='name' value=product.name required)
         label(for='product-category') Categoria
@@ -28,20 +29,48 @@ block content
         input#product-stock(type='number' name='stockTotal' min='0' step='1' value=product.stockTotal || 0 required)
         label(for='product-description') Descrição
         textarea#product-description(name='description' rows='4')= product.description
-        label(for='product-image') Foto do produto
+        label(for='product-image') Foto principal por URL (opcional)
         input#product-image(type='url' name='imageUrl' value=product.imageUrl placeholder='https://exemplo.com/foto.jpg')
-        p.admin-form-hint A foto será exibida no catálogo, estoque e sacola. O espaço permanece reservado mesmo sem imagem.
-        if product.imageUrls && product.imageUrls.length
-          .admin-image-order(data-image-order)
+        p.admin-form-hint O carrossel do produto usa as fotos organizadas abaixo. A foto por URL é usada quando não houver fotos no carrossel.
+        .admin-image-order(data-image-order)
+          if product.imageUrls && product.imageUrls.length
             each image in product.imageUrls
               .admin-image-order-row
-                input(type='hidden' name='imageUrls' value=image)
+                input(type='hidden' name='carouselImageOrder' value='existing:' + image)
                 img(src=image alt='Foto cadastrada')
                 span= image
                 button.admin-icon-button(type='button' data-move-image='up' aria-label='Mover foto para cima' title='Mover para cima')
                   i.bi.bi-arrow-up(aria-hidden='true')
                 button.admin-icon-button(type='button' data-move-image='down' aria-label='Mover foto para baixo' title='Mover para baixo')
                   i.bi.bi-arrow-down(aria-hidden='true')
+                button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-image aria-label='Remover foto' title='Remover foto')
+                  i.bi.bi-trash3-fill(aria-hidden='true')
+          else if product.imageUrl
+            .admin-image-order-row
+              input(type='hidden' name='carouselImageOrder' value='existing:' + product.imageUrl)
+              img(src=product.imageUrl alt='Foto cadastrada')
+              span= product.imageUrl
+              button.admin-icon-button(type='button' data-move-image='up' aria-label='Mover foto para cima' title='Mover para cima')
+                i.bi.bi-arrow-up(aria-hidden='true')
+              button.admin-icon-button(type='button' data-move-image='down' aria-label='Mover foto para baixo' title='Mover para baixo')
+                i.bi.bi-arrow-down(aria-hidden='true')
+              button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-image aria-label='Remover foto' title='Remover foto')
+                i.bi.bi-trash3-fill(aria-hidden='true')
+        .admin-carousel-preview(aria-live='polite')
+          strong Prévia do carrossel
+          .admin-carousel-preview-stage(data-carousel-stage)
+            if product.imageUrls && product.imageUrls.length
+              img(src=product.imageUrls[0] alt='Prévia do carrossel')
+            else if product.imageUrl
+              img(src=product.imageUrl alt='Prévia do carrossel')
+            else
+              span Nenhuma imagem selecionada
+          .admin-carousel-preview-controls
+            button.admin-icon-button(type='button' data-preview-prev aria-label='Foto anterior' title='Foto anterior')
+              i.bi.bi-chevron-left(aria-hidden='true')
+            span(data-preview-position) 0 / 0
+            button.admin-icon-button(type='button' data-preview-next aria-label='Próxima foto' title='Próxima foto')
+              i.bi.bi-chevron-right(aria-hidden='true')
         if availableProducts && availableProducts.length
           fieldset.admin-components(data-components-section)
             legend Componentes do kit ou festa
@@ -97,13 +126,12 @@ block content
           i.bi.bi-check-lg
           = isEditing ? ' Salvar alterações' : ' Salvar produto'
 
-  if availableProducts && availableProducts.length
-    script.
-      (function() {
-        var list = document.querySelector('[data-component-list]');
-        var template = document.querySelector('[data-component-template]');
-        var addButton = document.querySelector('[data-add-component]');
-        if (!list || !template || !addButton) return;
+  script.
+    (function() {
+      var list = document.querySelector('[data-component-list]');
+      var template = document.querySelector('[data-component-template]');
+      var addButton = document.querySelector('[data-add-component]');
+      if (list && template && addButton) {
         template.removeAttribute('data-component-template');
         addButton.addEventListener('click', function() {
           var row = template.cloneNode(true);
@@ -133,20 +161,97 @@ block content
           if (event.target.matches('[data-component-category]')) updateComponents();
         });
         updateComponents();
-        var specificationList = document.querySelector('[data-specification-list]');
-        var specificationTemplate = document.querySelector('[data-specification-template]');
-        var addSpecification = document.querySelector('[data-add-specification]');
-        if (specificationList && specificationTemplate && addSpecification) {
-          specificationTemplate.removeAttribute('data-specification-template');
-          addSpecification.addEventListener('click', function() { specificationList.appendChild(specificationTemplate.cloneNode(true)); });
-          specificationList.addEventListener('click', function(event) { var remove = event.target.closest('[data-remove-specification]'); if (remove) remove.closest('.admin-specification-row').remove(); });
-        }
-        var imageOrder = document.querySelector('[data-image-order]');
-        if (imageOrder) imageOrder.addEventListener('click', function(event) {
+      }
+      var specificationList = document.querySelector('[data-specification-list]');
+      var specificationTemplate = document.querySelector('[data-specification-template]');
+      var addSpecification = document.querySelector('[data-add-specification]');
+      if (specificationList && specificationTemplate && addSpecification) {
+        specificationTemplate.removeAttribute('data-specification-template');
+        addSpecification.addEventListener('click', function() { specificationList.appendChild(specificationTemplate.cloneNode(true)); });
+        specificationList.addEventListener('click', function(event) { var remove = event.target.closest('[data-remove-specification]'); if (remove) remove.closest('.admin-specification-row').remove(); });
+      }
+      var imageOrder = document.querySelector('[data-image-order]');
+      var imageInput = document.querySelector('#product-images');
+      var imageUrlInput = document.querySelector('#product-image');
+      var carouselStage = document.querySelector('[data-carousel-stage]');
+      var previewPosition = document.querySelector('[data-preview-position]');
+      var previewIndex = 0;
+      function updateCarouselPreview() {
+          if (!imageOrder || !carouselStage) return;
+          var orderedImages = Array.from(imageOrder.querySelectorAll('.admin-image-order-row img'));
+          if (!orderedImages.length && imageUrlInput && imageUrlInput.value.trim()) orderedImages.push({ src: imageUrlInput.value.trim() });
+          if (previewIndex >= orderedImages.length) previewIndex = 0;
+          carouselStage.innerHTML = '';
+          if (orderedImages.length) {
+            var preview = document.createElement('img');
+            preview.src = orderedImages[previewIndex].src;
+            preview.alt = 'Prévia do carrossel';
+            carouselStage.appendChild(preview);
+            if (previewPosition) previewPosition.textContent = (previewIndex + 1) + ' / ' + orderedImages.length;
+          } else {
+            var empty = document.createElement('span');
+            empty.textContent = 'Nenhuma imagem selecionada';
+            carouselStage.appendChild(empty);
+            if (previewPosition) previewPosition.textContent = '0 / 0';
+          }
+      }
+      function addImageRow(token, src, label) {
+          var row = document.createElement('div');
+          row.className = 'admin-image-order-row';
+          var hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = 'carouselImageOrder';
+          hidden.value = token;
+          var image = document.createElement('img');
+          image.src = src;
+          image.alt = 'Foto do carrossel';
+          var text = document.createElement('span');
+          text.textContent = label;
+          row.append(hidden, image, text);
+          [['up', 'Mover foto para cima', 'bi-arrow-up'], ['down', 'Mover foto para baixo', 'bi-arrow-down'], ['remove', 'Remover foto', 'bi-trash3-fill']].forEach(function(action) {
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'admin-icon-button' + (action[0] === 'remove' ? ' admin-icon-button-danger' : '');
+            button.setAttribute(action[0] === 'remove' ? 'data-remove-image' : 'data-move-image', action[0]);
+            button.setAttribute('aria-label', action[1]);
+            button.title = action[1];
+            button.innerHTML = '<i class="bi ' + action[2] + '" aria-hidden="true"></i>';
+            row.appendChild(button);
+          });
+          imageOrder.appendChild(row);
+      }
+      if (imageOrder) imageOrder.addEventListener('click', function(event) {
           var button = event.target.closest('[data-move-image]');
-          if (!button) return;
-          var row = button.closest('.admin-image-order-row');
-          if (button.dataset.moveImage === 'up' && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
-          if (button.dataset.moveImage === 'down' && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
-        });
-      })();
+          var row = event.target.closest('.admin-image-order-row');
+          if (button && row) {
+            if (button.dataset.moveImage === 'up' && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
+            if (button.dataset.moveImage === 'down' && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
+            previewIndex = 0;
+          }
+          if (event.target.closest('[data-remove-image]') && row) {
+            row.remove();
+            if (!imageOrder.querySelector('.admin-image-order-row') && imageUrlInput) imageUrlInput.value = '';
+          }
+          updateCarouselPreview();
+      });
+      document.querySelector('[data-preview-prev]').addEventListener('click', function() {
+          var total = imageOrder.querySelectorAll('.admin-image-order-row').length || (imageUrlInput && imageUrlInput.value.trim() ? 1 : 0);
+          if (total) previewIndex = (previewIndex - 1 + total) % total;
+          updateCarouselPreview();
+      });
+      document.querySelector('[data-preview-next]').addEventListener('click', function() {
+          var total = imageOrder.querySelectorAll('.admin-image-order-row').length || (imageUrlInput && imageUrlInput.value.trim() ? 1 : 0);
+          if (total) previewIndex = (previewIndex + 1) % total;
+          updateCarouselPreview();
+      });
+      if (imageInput && imageOrder) imageInput.addEventListener('change', function() {
+          imageOrder.querySelectorAll('[data-upload-preview]').forEach(function(row) { row.remove(); });
+          Array.from(imageInput.files || []).forEach(function(file, index) {
+            addImageRow('upload:' + index, URL.createObjectURL(file), file.name);
+            imageOrder.lastElementChild.setAttribute('data-upload-preview', '');
+          });
+          updateCarouselPreview();
+      });
+      if (imageUrlInput) imageUrlInput.addEventListener('input', updateCarouselPreview);
+      updateCarouselPreview();
+    })();

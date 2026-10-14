@@ -42,7 +42,9 @@ function availableUnits(product) {
 
 async function getProductsAvailability(products) {
   return Promise.all(products.map(async function(product) {
-    var graph = product.components ? product : await findProductGraph(product._id);
+    // Use the same freshly populated graph as the product detail and cart
+    // endpoints so composite and regular items get identical availability.
+    var graph = await findProductGraph(product._id);
     product.availableUnits = availableUnits(graph);
     product.isComposite = isComposite(graph);
     return product;

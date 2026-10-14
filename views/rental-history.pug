@@ -15,20 +15,17 @@ block content
               th Datas
               th Itens
               th Status
-              th Nota fiscal
+              th Comprovante
           tbody
             each rental in rentals
               tr
-                td= rental.dates.join(' | ')
-                td
+                td(data-label='Datas')= rental.dates.join(' | ')
+                td(data-label='Itens')
                   each item in rental.items
                     div #{item.quantity}x #{item.name}
-                td= rental.status
-                td
-                  if rental.invoiceGenerated
-                    a.admin-small-button(href='#') Visualizar nota fiscal
-                  else
-                    span.admin-stock-unavailable Indisponível
+                td(data-label='Status')= rental.status === 'active' ? 'Ativo' : rental.status === 'returned' ? 'Devolvido' : rental.status === 'cancelled' ? 'Cancelado' : rental.status
+                td(data-label='Comprovante')
+                  a.admin-small-button(href='/sacola/comprovante/' + rental._id) Visualizar comprovante
     else
       .admin-empty
         i.bi.bi-clock-history

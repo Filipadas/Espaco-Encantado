@@ -21,13 +21,13 @@ block content
         tbody
           each user in users
             tr
-              td= user.name
-              td
+              td(data-label='Nome')= user.name
+              td(data-label='Foto')
                 .admin-product-photo
                   if user.profileImage
                     img(src=user.profileImage alt='Foto de ' + user.name)
                   else
                     i.bi.bi-person(aria-hidden='true')
-              td= user.email
-              td
+              td(data-label='E-mail')= user.email
+              td(data-label='Perfil')
                 span.admin-role(class=user.role === 'admin' ? 'is-admin' : '')= user.role === 'admin' ? 'Administrador' : 'Cliente'
