@@ -2,7 +2,7 @@ extends layout
 
 block content
   main.admin-page.request-detail-page
-    a.admin-back-link(href='/admin/rentals')
+    a.admin-back-link(href='/admin/solicitacoes')
       i.bi.bi-arrow-left
       | Solicitações
     .request-detail-card
@@ -20,7 +20,7 @@ block content
       else
         h2 Checklist de entrega
         p.admin-subtitle Confirme cada item entregue. O estoque será atualizado ao concluir a checklist.
-      form(method='post' action='/admin/rentals/' + rental._id + '/checklist')
+      form(method='post' action='/admin/solicitacoes/' + rental._id + '/conferencia')
         if !rental.returnChecked
           each item in rental.items
             label.request-check
@@ -33,10 +33,10 @@ block content
           button.admin-primary-button(type='submit')= rental.deliveryChecked ? 'Confirmar checklist de devolução' : 'Confirmar checklist de entrega'
       .request-detail-actions
         if !rental.returnChecked
-          form(method='post' action='/admin/rentals/' + rental._id + '/cancel')
+          form(method='post' action='/admin/solicitacoes/' + rental._id + '/cancelar')
             button.admin-danger-button(type='submit') Cancelar solicitação
         if rental.invoiceGenerated
-          a.admin-small-button(href='/admin/invoices/' + rental._id + '/view') Visualizar comprovante
+          a.admin-small-button(href='/admin/comprovantes/' + rental._id + '/visualizar') Visualizar comprovante
         else
-          form(method='post' action='/admin/invoices/' + rental._id + '/create')
+          form(method='post' action='/admin/comprovantes/' + rental._id + '/criar')
             button.admin-small-button(type='submit') Criar comprovante

@@ -7,7 +7,7 @@ block content
       | Painel administrativo
     p.admin-eyebrow CONFIGURAÇÕES
     h1.admin-title Site e horários
-    form.admin-form(method='post' action='/admin/settings')
+    form.admin-form(method='post' action='/admin/configuracoes')
       label(for='login-welcome') Texto principal do login
       input#login-welcome(type='text' name='loginWelcome' value=settings.loginWelcome required)
       label(for='login-subtitle') Subtítulo do login

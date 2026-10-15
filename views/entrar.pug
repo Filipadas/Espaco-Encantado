@@ -28,7 +28,7 @@ html
             span ou continue com seu e-mail
           if loginError
             p.auth-form-error= loginError
-          form.auth-form(method='post' action='/login')
+          form.auth-form(method='post' action='/entrar')
             input(type='hidden' name='returnTo' value=returnTo || '/')
             label(for='login-email') E-mail
             input#login-email(type='email' name='email' placeholder='seu@email.com' autocomplete='email' required)

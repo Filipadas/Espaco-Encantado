@@ -42,7 +42,7 @@ block content
           if product.category === 'kit-montagem' || product.category === 'festa-infantil'
             p.admin-form-hint Disponibilidade calculada pelos componentes.
           else
-            form.stock-adjust-form(method='post' action='/admin/stock/' + product._id data-stock-form)
+            form.stock-adjust-form(method='post' action='/admin/estoque/' + product._id data-stock-form)
               input(type='hidden' name='amount' data-stock-amount)
               button.stock-adjust-button(type='submit' data-stock-amount-value='-1' aria-label='Remover uma unidade' title='Remover uma unidade')
                 i.bi.bi-dash-lg(aria-hidden='true')

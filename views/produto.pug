@@ -15,7 +15,7 @@ block content
         if product.availableUnits > 0
           p.admin-stock-available #{product.availableUnits} unidade(s) disponível(is)
           .product-detail-actions
-            form(method='post' action='/sacola/add-from-product')
+            form(method='post' action='/sacola/adicionar-do-produto')
               input(type='hidden' name='productId' value=product._id)
               button.admin-primary-button(type='submit')
                 i.bi.bi-bag-plus(aria-hidden='true')

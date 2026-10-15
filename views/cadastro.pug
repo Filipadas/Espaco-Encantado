@@ -10,7 +10,7 @@ html
     main.register-screen
       section.register-header
         .register-topbar
-          a.auth-back-link(href='/login')
+          a.auth-back-link(href='/entrar')
             i.bi.bi-arrow-left(aria-hidden='true')
             | Voltar para entrar
           a.auth-home-button(href='/' aria-label='Ir para a página inicial' title='Página inicial')
@@ -20,7 +20,7 @@ html
       button.theme-toggle.auth-theme-toggle(type='button' data-auth-theme-toggle aria-label='Alternar modo escuro' title='Alternar modo escuro')
         i.bi.bi-moon-stars-fill(aria-hidden='true')
       section.register-panel(aria-labelledby='register-title')
-        form.auth-form.register-form(method='post' action='/register')
+        form.auth-form.register-form(method='post' action='/cadastro')
           h1#register-title.auth-title Criar cadastro
           p.auth-subtitle Seus dados ajudam a personalizar sua experiência.
           if registerError

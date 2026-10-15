@@ -4,7 +4,7 @@ var Product = require('../models/Product');
 var database = require('../config/database');
 var { requireAdmin } = require('../middleware/auth');
 
-router.get('/health', function(req, res) {
+router.get('/saude', function(req, res) {
   res.json({ database: database.getConnectionState() });
 });
 

@@ -9,7 +9,7 @@ block content
           | Painel administrativo
         p.admin-eyebrow PRODUTOS
         h1.admin-title Gerenciamento de produtos
-      a.admin-primary-button(href='/admin/products/new')
+      a.admin-primary-button(href='/admin/produtos/novo')
         i.bi.bi-plus-lg
         | Novo produto
     .admin-table-wrap
@@ -41,9 +41,9 @@ block content
                   span.admin-stock-unavailable Indisponível
               td(data-label='Ação')
                 .admin-icon-actions
-                  a.admin-icon-button(href='/admin/products/' + product._id + '/edit' aria-label='Editar produto' title='Editar produto')
+                  a.admin-icon-button(href='/admin/produtos/' + product._id + '/editar' aria-label='Editar produto' title='Editar produto')
                     i.bi.bi-pencil-fill(aria-hidden='true')
-                  form(method='post' action='/admin/products/' + product._id + '/delete')
+                  form(method='post' action='/admin/produtos/' + product._id + '/excluir')
                     button.admin-icon-button.admin-icon-button-danger(type='submit' aria-label='Excluir produto' title='Excluir produto')
                       i.bi.bi-trash3-fill(aria-hidden='true')
           else

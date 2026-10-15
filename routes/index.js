@@ -3,6 +3,7 @@ var Product = require('../models/Product');
 var User = require('../models/User');
 var inventory = require('../services/inventory');
 var SiteSettings = require('../models/SiteSettings');
+var database = require('../config/database');
 var router = express.Router();
 
 /* GET home page. */
@@ -51,16 +52,23 @@ router.get('/favoritos', async function(req, res, next) {
 router.get('/produto/:id', async function(req, res, next) {
   try {
     var product = await inventory.findProductGraph(req.params.id);
-    if (!product) return res.status(404).render('error', { title: 'Produto não encontrado', message: 'Este produto não está disponível.', error: {}, status: 404 });
+    if (!product) return res.status(404).render('erro', { title: 'Produto não encontrado', message: 'Este produto não está disponível.', error: {}, status: 404 });
     product.availableUnits = inventory.availableUnits(product);
     var similarProducts = await Product.find({ category: product.category, _id: { $ne: product._id } }).limit(8);
-    res.render('product-detail', { title: product.name, product: product, similarProducts: similarProducts });
+    res.render('produto', { title: product.name, product: product, similarProducts: similarProducts });
   } catch (error) { next(error); }
 });
 
-router.get('/login', async function(req, res, next) {
+router.get('/entrar', async function(req, res, next) {
   var returnTo = String(req.query.returnTo || '/');
-  res.render('login', { title: 'Entrar', settings: await SiteSettings.findOne({ key: 'main' }) || {}, returnTo: returnTo.charAt(0) === '/' && returnTo.charAt(1) !== '/' ? returnTo : '/' });
+  var settings = {};
+  if (database.getConnectionState() === 'conectado') {
+    try { settings = await SiteSettings.findOne({ key: 'main' }) || {}; }
+    catch (error) {
+      if (database.getConnectionState() === 'conectado' && error.name !== 'MongooseError') return next(error);
+    }
+  }
+  res.render('entrar', { title: 'Entrar', settings: settings, returnTo: returnTo.charAt(0) === '/' && returnTo.charAt(1) !== '/' ? returnTo : '/' });
 });
 
 router.get('/cadastro', function(req, res, next) {
@@ -68,7 +76,7 @@ router.get('/cadastro', function(req, res, next) {
 });
 
 router.get('/perfil', async function(req, res, next) {
-  if (!req.session.user) return res.redirect('/login');
+  if (!req.session.user) return res.redirect('/entrar');
   try { res.render('perfil', { title: 'Meu perfil', profile: await User.findById(req.session.user.id) }); } catch (error) { next(error); }
 });
 

@@ -27,7 +27,7 @@ block content
                       div #{item.quantity}x #{item.name}
                   td(data-label='Data')= rental.createdAt.toLocaleDateString('pt-BR')
                   td(data-label='Ação')
-                    a.admin-small-button(href='/admin/rentals/' + rental._id)
+                    a.admin-small-button(href='/admin/solicitacoes/' + rental._id)
                       i.bi.bi-eye(aria-hidden='true')
                       | Abrir solicitação
       else

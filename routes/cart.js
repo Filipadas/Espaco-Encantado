@@ -2,6 +2,7 @@ var express = require('express');
 var mongoose = require('mongoose');
 var Product = require('../models/Product');
 var Rental = require('../models/Rental');
+var receipts = require('../services/receipts');
 var User = require('../models/User');
 var inventory = require('../services/inventory');
 var { requireLogin } = require('../middleware/auth');
@@ -113,15 +114,15 @@ async function addToCart(req, res, next, fromProductPage) {
   } catch (error) { next(error); }
 }
 
-router.post('/add', requireLogin, function(req, res, next) {
+router.post('/adicionar', requireLogin, function(req, res, next) {
   addToCart(req, res, next, false);
 });
 
-router.post('/add-from-product', requireLogin, function(req, res, next) {
+router.post('/adicionar-do-produto', requireLogin, function(req, res, next) {
   addToCart(req, res, next, true);
 });
 
-router.post('/adjust', requireLogin, async function(req, res, next) {
+router.post('/ajustar', requireLogin, async function(req, res, next) {
   try {
     var delta = Number(req.body.delta);
     var cart = await getUserCart(req);
@@ -141,7 +142,7 @@ router.post('/adjust', requireLogin, async function(req, res, next) {
   } catch (error) { next(error); }
 });
 
-router.post('/date', requireLogin, async function(req, res, next) {
+router.post('/data', requireLogin, async function(req, res, next) {
   try {
     var cart = await getUserCart(req);
     var item = cart.find(function(entry) { return String(entry.productId) === String(req.body.productId); });
@@ -153,7 +154,7 @@ router.post('/date', requireLogin, async function(req, res, next) {
   } catch (error) { next(error); }
 });
 
-router.post('/confirm', requireLogin, async function(req, res) {
+router.post('/confirmar', requireLogin, async function(req, res) {
   var session = await mongoose.startSession();
   try {
     var cart = await getUserCart(req);
@@ -206,7 +207,7 @@ router.post('/confirm', requireLogin, async function(req, res) {
   }
 });
 
-router.post('/clear', requireLogin, async function(req, res, next) {
+router.post('/limpar', requireLogin, async function(req, res, next) {
   try {
     await saveUserCart(req, []);
     res.redirect('/sacola');
@@ -216,15 +217,10 @@ router.post('/clear', requireLogin, async function(req, res, next) {
 async function showCustomerReceipt(req, res, next) {
   try {
     var rental = await Rental.findOne({ _id: req.params.id, user: req.session.user.id }).populate('user');
-    if (!rental) return res.status(404).render('error', { title: 'Comprovante não encontrado', message: 'Este comprovante não está disponível para sua conta.', error: {}, status: 404 });
-    if (!rental.invoiceGenerated || !rental.invoiceNumber || !rental.invoiceGeneratedAt) {
-      rental.invoiceGenerated = true;
-      rental.invoiceNumber = rental.invoiceNumber || 'EE-' + new Date().getFullYear() + '-' + String(rental._id).slice(-8).toUpperCase();
-      rental.invoiceGeneratedAt = rental.invoiceGeneratedAt || new Date();
-      await rental.save();
-    }
-    var invoiceTotal = rental.items.reduce(function(total, item) { return total + Number(item.price) * Number(item.quantity); }, 0);
-    res.render('invoice', { title: 'Comprovante de locação', rental: rental, invoiceTotal: invoiceTotal, invoiceDate: (rental.invoiceGeneratedAt || rental.createdAt).toLocaleDateString('pt-BR'), isAdminView: false });
+    if (!rental) return res.status(404).render('erro', { title: 'Comprovante não encontrado', message: 'Este comprovante não está disponível para sua conta.', error: {}, status: 404 });
+    var viewData = await receipts.getReceiptViewData(rental);
+    viewData.isAdminView = false;
+    res.render('comprovante', viewData);
   } catch (error) { next(error); }
 }
 
@@ -233,7 +229,7 @@ router.get('/comprovante/:id', requireLogin, showCustomerReceipt);
 
 router.get('/historico', requireLogin, async function(req, res, next) {
   try {
-    res.render('rental-history', { title: 'Histórico de solicitações', rentals: await Rental.find({ user: req.session.user.id }).sort({ createdAt: -1 }) });
+    res.render('sacola-historico', { title: 'Histórico de solicitações', rentals: await Rental.find({ user: req.session.user.id }).sort({ createdAt: -1 }) });
   } catch (error) { next(error); }
 });
 

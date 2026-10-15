@@ -16,16 +16,16 @@ var upload = multer({
 
 /* GET users listing. */
 router.get('/', requireLogin, function(req, res) {
-  res.redirect('/users/profile');
+  res.redirect('/usuarios/perfil');
 });
 
-router.get('/profile', requireLogin, async function(req, res, next) {
+router.get('/perfil', requireLogin, async function(req, res, next) {
   try {
-    res.render('profile-edit', { title: 'Editar meu perfil', profile: await User.findById(req.session.user.id), formError: null });
+    res.render('usuarios-perfil', { title: 'Editar meu perfil', profile: await User.findById(req.session.user.id), formError: null });
   } catch (error) { next(error); }
 });
 
-router.post('/profile', requireLogin, upload.single('profileImage'), async function(req, res, next) {
+router.post('/perfil', requireLogin, upload.single('profileImage'), async function(req, res, next) {
   try {
     function values(value) { return Array.isArray(value) ? value : (value === undefined ? [] : [value]); }
     var labels = values(req.body.addressLabel);
@@ -51,15 +51,15 @@ router.post('/profile', requireLogin, upload.single('profileImage'), async funct
   } catch (error) { next(error); }
 });
 
-router.get('/delete', requireLogin, function(req, res) {
-  res.render('delete-account', { title: 'Excluir conta', formError: null });
+router.get('/excluir', requireLogin, function(req, res) {
+  res.render('usuarios-excluir', { title: 'Excluir conta', formError: null });
 });
 
-router.post('/delete', requireLogin, async function(req, res, next) {
+router.post('/excluir', requireLogin, async function(req, res, next) {
   try {
     var user = await User.findById(req.session.user.id);
-    if (!user || !bcrypt.compareSync(String(req.body.password || ''), user.password)) return res.status(400).render('delete-account', { title: 'Excluir conta', formError: 'Senha incorreta.' });
-    if (user.role === 'admin' && await User.countDocuments({ role: 'admin' }) < 2) return res.status(400).render('delete-account', { title: 'Excluir conta', formError: 'Transfira a função de administrador para outra conta antes de excluir esta conta.' });
+    if (!user || !bcrypt.compareSync(String(req.body.password || ''), user.password)) return res.status(400).render('usuarios-excluir', { title: 'Excluir conta', formError: 'Senha incorreta.' });
+    if (user.role === 'admin' && await User.countDocuments({ role: 'admin' }) < 2) return res.status(400).render('usuarios-excluir', { title: 'Excluir conta', formError: 'Transfira a função de administrador para outra conta antes de excluir esta conta.' });
     await User.findByIdAndDelete(user._id);
     req.session.destroy(function(error) { if (error) return next(error); res.redirect('/'); });
   } catch (error) { next(error); }

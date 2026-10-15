@@ -36,21 +36,21 @@ O servidor ficará disponível em `http://localhost:3000`.
 
 ### 4. Verifique a conexão
 
-Abra `http://localhost:3000/api/products/health`. A resposta deve indicar `"conectado"` quando o MongoDB estiver disponível.
+Abra `http://localhost:3000/api/produtos/saude`. A resposta deve indicar `"conectado"` quando o MongoDB estiver disponível.
 
 ### 5. Teste a API
 
 Listar produtos:
 
 ```powershell
-Invoke-RestMethod http://localhost:3000/api/products
+Invoke-RestMethod http://localhost:3000/api/produtos
 ```
 
 Criar um produto:
 
 ```powershell
 $body = @{ name = 'Kit Festa Encantada'; category = 'kit-montagem'; price = 59.90 } | ConvertTo-Json
-Invoke-RestMethod http://localhost:3000/api/products -Method Post -ContentType 'application/json' -Body $body
+Invoke-RestMethod http://localhost:3000/api/produtos -Method Post -ContentType 'application/json' -Body $body
 ```
 
 O schema está em `models/Product.js`. Ele exige `name`, `category` e `price`, e adiciona automaticamente `createdAt` e `updatedAt`.
@@ -68,9 +68,11 @@ Você pode definir a conta inicial no `.env` com `ADMIN_EMAIL` e `ADMIN_PASSWORD
 
 Depois do login, o ícone de perfil abre `/perfil` e o ícone de coroa abre `/admin`. O painel administrativo possui:
 
-- `/admin/users`: gerenciamento de usuários e permissões;
-- `/admin/products`: gerenciamento de produtos;
-- `/admin/products/new`: cadastro de produtos;
+- `/admin/usuarios`: gerenciamento de usuários e permissões;
+- `/admin/produtos`: gerenciamento de produtos;
+- `/admin/produtos/novo`: cadastro de produtos;
+- `/admin/solicitacoes`: solicitações de locação;
+- `/admin/comprovantes`: criação e visualização de comprovantes;
 - `/sacola`: sacola do cliente comum.
 
 A autorização é verificada no servidor. Um cliente comum pode acessar a sacola, mas recebe `403` ao tentar acessar `/admin` diretamente.

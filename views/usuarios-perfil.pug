@@ -7,7 +7,7 @@ block content
       | Meu perfil
     p.admin-eyebrow PERFIL
     h1.admin-title Editar meu perfil
-    form.admin-form.profile-form(method='post' action='/users/profile' enctype='multipart/form-data')
+    form.admin-form.profile-form(method='post' action='/usuarios/perfil' enctype='multipart/form-data')
       label(for='profile-name') Nome
       input#profile-name(type='text' name='name' value=profile.name required)
       label(for='profile-phone') Telefone

@@ -2,7 +2,7 @@ extends layout
 
 block content
   main.admin-page
-    a.admin-back-link(href='/admin/products')
+    a.admin-back-link(href='/admin/produtos')
       i.bi.bi-arrow-left
       | Gerenciamento de produtos
     .admin-form-panel
@@ -10,7 +10,7 @@ block content
       h1.admin-title= isEditing ? 'Editar produto' : 'Cadastrar produto'
       if formError
         p.admin-form-error= formError
-      form.admin-form(method='post' enctype='multipart/form-data' action=isEditing ? '/admin/products/' + product._id : '/admin/products')
+      form.admin-form(method='post' enctype='multipart/form-data' action=isEditing ? '/admin/produtos/' + product._id : '/admin/produtos')
         input(type='hidden' name='carouselOrderSubmitted' value='1')
         label(for='product-images') Foto principal e fotos do carrossel
         input#product-images(type='file' name='images' accept='image/*' multiple)

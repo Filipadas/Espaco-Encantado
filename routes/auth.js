@@ -9,17 +9,17 @@ function safeReturnTo(value) {
   return target.charAt(0) === '/' && target.charAt(1) !== '/' ? target : '/';
 }
 
-router.get('/logout', function(req, res) {
+router.get('/sair', function(req, res) {
   if (!req.session.user) return res.redirect('/');
-  res.render('logout-confirm', { title: 'Sair da conta' });
+  res.render('sair', { title: 'Sair da conta' });
 });
 
-router.post('/login', async function(req, res, next) {
+router.post('/entrar', async function(req, res, next) {
   try {
     var email = String(req.body.email || '').toLowerCase().trim();
     var user = await User.findOne({ email: email });
     if (!user || !bcrypt.compareSync(String(req.body.password || ''), user.password)) {
-      return res.status(401).render('login', { title: 'Entrar', settings: await SiteSettings.findOne({ key: 'main' }) || {}, loginError: 'E-mail ou senha inválidos.', returnTo: safeReturnTo(req.body.returnTo) });
+      return res.status(401).render('entrar', { title: 'Entrar', settings: await SiteSettings.findOne({ key: 'main' }) || {}, loginError: 'E-mail ou senha inválidos.', returnTo: safeReturnTo(req.body.returnTo) });
     }
     if (req.session.user && req.session.user.id !== user._id.toString()) delete req.session.cart;
     req.session.user = { id: user._id.toString(), name: user.name, email: user.email, role: user.role, profileImage: user.profileImage };
@@ -29,14 +29,14 @@ router.post('/login', async function(req, res, next) {
   }
 });
 
-router.post('/logout', function(req, res, next) {
+router.post('/sair', function(req, res, next) {
   req.session.destroy(function(error) {
     if (error) return next(error);
     res.redirect('/');
   });
 });
 
-router.post('/register', async function(req, res, next) {
+router.post('/cadastro', async function(req, res, next) {
   try {
     var formData = { name: req.body.name, email: req.body.email, phone: req.body.phone, birthDate: req.body.birthDate, address: req.body.address, city: req.body.city, state: req.body.state, cep: req.body.cep };
     if (req.body.password !== req.body.confirmPassword) {

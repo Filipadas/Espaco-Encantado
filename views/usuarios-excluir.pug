@@ -14,7 +14,7 @@ html
         p.admin-subtitle Esta ação é permanente. Digite sua senha para confirmar.
         if formError
           p.admin-form-error= formError
-        form.admin-form(method='post' action='/users/delete')
+        form.admin-form(method='post' action='/usuarios/excluir')
           label(for='delete-password') Senha da conta
           input#delete-password(type='password' name='password' required autocomplete='current-password')
           .profile-actions

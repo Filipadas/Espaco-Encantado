@@ -23,9 +23,9 @@ block content
               td(data-label='Status')= rental.status === 'active' ? 'Ativa' : rental.status === 'returned' ? 'Devolvida' : rental.status === 'cancelled' ? 'Cancelada' : rental.status
               td(data-label='Comprovante')
                 if rental.invoiceGenerated
-                  a.admin-small-button(href='/admin/invoices/' + rental._id + '/view') Visualizar comprovante
+                  a.admin-small-button(href='/admin/comprovantes/' + rental._id + '/visualizar') Visualizar comprovante
                 else
-                  form(method='post' action='/admin/invoices/' + rental._id + '/create')
+                  form(method='post' action='/admin/comprovantes/' + rental._id + '/criar')
                     button.admin-small-button(type='submit') Criar comprovante
           else
             tr

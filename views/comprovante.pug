@@ -5,8 +5,10 @@ block content
     article.invoice-document
       header.invoice-header
         .invoice-brand
-          | Espaço Encantado
-          span Locação de brinquedos e decoração
+          img.invoice-logo(src='/images/logo_ee.png' alt='Logo Espaço Encantado')
+          .invoice-brand-copy
+            | Espaço Encantado
+            span Locação de brinquedos e decoração
         .invoice-number
           | Referência #{rental.invoiceNumber || ('EE-' + rental.createdAt.getFullYear() + '-' + String(rental._id).slice(-8).toUpperCase())}
           small Criado em #{invoiceDate}
@@ -24,15 +26,23 @@ block content
           if rental.user && rental.user.email
             br
             | #{rental.user.email}
+          if rental.user && rental.user.phone
+            br
+            | #{rental.user.phone}
+          if rental.user && rental.user.address
+            br
+            | #{[rental.user.address, rental.user.city, rental.user.state, rental.user.cep].filter(Boolean).join(' - ')}
         .invoice-party
           strong Entrega prevista
           | #{rental.deliveryAddress || 'Endereço não informado'}
           br
           | #{[rental.deliveryCity, rental.deliveryState, rental.deliveryCep].filter(Boolean).join(' - ') || 'Localidade não informada'}
           br
-          | #{rental.deliveryDate ? rental.deliveryDate.split('-').reverse().join('/') : 'Data não informada'}
+          | #{deliveryDateFormatted}
           if rental.deliveryTime
             |  às #{rental.deliveryTime}
+      - var receiptItems = invoiceItems && invoiceItems.length ? invoiceItems : ((rental && rental.items) || [])
+      - var receiptTotal = receiptItems.reduce(function(total, item) { return total + Number(item.price || 0) * Number(item.quantity || 0); }, 0)
       table.invoice-table
         thead
           tr
@@ -41,18 +51,21 @@ block content
             th Data da locação
             th Valor
         tbody
-          each item in rental.items
+          each item in receiptItems
             tr
               td= item.name
               td= item.quantity
-              td= item.date.split('-').reverse().join('/')
-              td R$ #{(Number(item.price) * Number(item.quantity)).toFixed(2).replace('.', ',')}
+              td= item.dateFormatted || (item.date ? String(item.date).split('-').reverse().join('/') : 'Não informada')
+              td R$ #{item.lineTotalFormatted || (Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2).replace('.', ',')}
+          else
+            tr
+              td(colspan='4') Nenhum produto registrado nesta solicitação.
       .invoice-total
         span Total
-        span R$ #{invoiceTotal.toFixed(2).replace('.', ',')}
+        span R$ #{invoiceTotalFormatted || receiptTotal.toFixed(2).replace('.', ',')}
       p.invoice-note Comprovante interno referente à solicitação de locação ##{String(rental._id).slice(-8).toUpperCase()}. Este documento não é uma nota fiscal.
       .invoice-actions
-        a.admin-small-button(href=isAdminView ? '/admin/rentals/' + rental._id : '/sacola/historico') Voltar
+        a.admin-small-button(href=isAdminView ? '/admin/solicitacoes/' + rental._id : '/sacola/historico') Voltar
         button.admin-primary-button(type='button' data-print-invoice) Imprimir / Salvar PDF
   script.
     (function() {

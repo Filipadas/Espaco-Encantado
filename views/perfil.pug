@@ -20,12 +20,12 @@ block content
         each address in profile.addresses
           p #{address.label}: #{address.address}, #{address.city} - #{address.state}
     .profile-actions
-      a.admin-primary-button(href='/users/profile')
+      a.admin-primary-button(href='/usuarios/perfil')
         i.bi.bi-pencil-fill
         | Editar meu perfil
       a.admin-primary-button(href=isAdmin ? '/admin' : '/sacola')
         i.bi(class=isAdmin ? 'bi-award-fill' : 'bi-bag-fill')
         = isAdmin ? ' Abrir área administrativa' : ' Abrir minha sacola'
-      a.admin-danger-button(href='/logout') Sair da conta
+      a.admin-danger-button(href='/sair') Sair da conta
       if !isAdmin
-        a.admin-danger-button(href='/users/delete') Excluir minha conta
+        a.admin-danger-button(href='/usuarios/excluir') Excluir minha conta

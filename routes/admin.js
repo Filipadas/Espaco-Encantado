@@ -9,6 +9,7 @@ var Rental = require('../models/Rental');
 var Meeting = require('../models/Meeting');
 var SiteSettings = require('../models/SiteSettings');
 var inventory = require('../services/inventory');
+var receipts = require('../services/receipts');
 var { requireAdmin } = require('../middleware/auth');
 var router = express.Router();
 var upload = multer({
@@ -30,30 +31,30 @@ router.get('/', function(req, res) {
   res.render('admin', { title: 'Painel administrativo' });
 });
 
-router.get('/users', async function(req, res, next) {
+router.get('/usuarios', async function(req, res, next) {
   try {
-    res.render('admin-users', { title: 'Gerenciar usuários', users: await User.find().sort({ createdAt: -1 }) });
+    res.render('admin-usuarios', { title: 'Gerenciar usuários', users: await User.find().sort({ createdAt: -1 }) });
   } catch (error) { next(error); }
 });
 
-router.get('/products', async function(req, res, next) {
+router.get('/produtos', async function(req, res, next) {
   try {
     var products = await Product.find().populate('components.product').sort({ createdAt: -1 });
-    res.render('admin-products', { title: 'Gerenciar produtos', products: await inventory.getProductsAvailability(products) });
+    res.render('admin-produtos', { title: 'Gerenciar produtos', products: await inventory.getProductsAvailability(products) });
   } catch (error) { next(error); }
 });
 
-router.get('/products/new', async function(req, res, next) {
+router.get('/produtos/novo', async function(req, res, next) {
   try {
-    res.render('admin-product-form', { title: 'Cadastrar produto', product: {}, formError: null, isEditing: false, availableProducts: await Product.find({ $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
+    res.render('admin-produtos-form', { title: 'Cadastrar produto', product: {}, formError: null, isEditing: false, availableProducts: await Product.find({ $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
   } catch (error) { next(error); }
 });
 
-router.get('/products/:id/edit', async function(req, res, next) {
+router.get('/produtos/:id/editar', async function(req, res, next) {
   try {
     var product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).render('error', { title: 'Produto não encontrado', message: 'O produto solicitado não existe.', error: {}, status: 404 });
-    res.render('admin-product-form', { title: 'Editar produto', product: product, formError: null, isEditing: true, availableProducts: await Product.find({ _id: { $ne: product._id }, $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
+    if (!product) return res.status(404).render('erro', { title: 'Produto não encontrado', message: 'O produto solicitado não existe.', error: {}, status: 404 });
+    res.render('admin-produtos-form', { title: 'Editar produto', product: product, formError: null, isEditing: true, availableProducts: await Product.find({ _id: { $ne: product._id }, $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
   } catch (error) { next(error); }
 });
 
@@ -92,29 +93,29 @@ function buildOrderedImages(body, uploadedImages, fallbackImages) {
   }).filter(Boolean);
 }
 
-router.post('/products', upload.array('images', 10), async function(req, res, next) {
+router.post('/produtos', upload.array('images', 10), async function(req, res, next) {
   try {
     var data = getProductData(req.body);
     var uploadedImages = (req.files || []).map(function(file) { return '/uploads/' + file.filename; });
     data.imageUrls = buildOrderedImages(req.body, uploadedImages, data.imageUrls);
     data.imageUrl = data.imageUrls[0] || data.imageUrl;
     await Product.create(data);
-    res.redirect('/admin/products');
+    res.redirect('/admin/produtos');
   } catch (error) {
-    res.status(400).render('admin-product-form', { title: 'Cadastrar produto', product: req.body, formError: error.message || 'Preencha os dados do produto corretamente.', isEditing: false, availableProducts: await Product.find({ $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
+    res.status(400).render('admin-produtos-form', { title: 'Cadastrar produto', product: req.body, formError: error.message || 'Preencha os dados do produto corretamente.', isEditing: false, availableProducts: await Product.find({ $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
   }
 });
 
-router.post('/products/:id', upload.array('images', 10), async function(req, res, next) {
+router.post('/produtos/:id', upload.array('images', 10), async function(req, res, next) {
   try {
     var data = getProductData(req.body);
     var uploadedImages = (req.files || []).map(function(file) { return '/uploads/' + file.filename; });
     data.imageUrls = buildOrderedImages(req.body, uploadedImages, data.imageUrls);
     data.imageUrl = data.imageUrls[0] || data.imageUrl;
     await Product.findByIdAndUpdate(req.params.id, data, { runValidators: true });
-    res.redirect('/admin/products');
+    res.redirect('/admin/produtos');
   } catch (error) {
-    res.status(400).render('admin-product-form', {
+      res.status(400).render('admin-produtos-form', {
       title: 'Editar produto',
       product: Object.assign({}, req.body, { _id: req.params.id }),
       formError: 'Preencha os dados do produto corretamente.',
@@ -124,7 +125,7 @@ router.post('/products/:id', upload.array('images', 10), async function(req, res
   }
 });
 
-router.get('/stock', async function(req, res, next) {
+router.get('/estoque', async function(req, res, next) {
   try {
     var products = await Product.find().populate('components.product').sort({ category: 1, name: 1 });
     var activeRentals = await Rental.find({ status: 'active' }).select('reservedComponents');
@@ -132,48 +133,48 @@ router.get('/stock', async function(req, res, next) {
     activeRentals.forEach(function(rental) { (rental.reservedComponents || []).forEach(function(component) { requested[String(component.product)] = (requested[String(component.product)] || 0) + component.quantity; }); });
     products = await inventory.getProductsAvailability(products);
     products.forEach(function(product) { product.requestedQuantity = requested[String(product._id)] || 0; });
-    res.render('admin-stock', { title: 'Controle de estoque', products: products, stockError: null });
+    res.render('admin-estoque', { title: 'Controle de estoque', products: products, stockError: null });
   } catch (error) { next(error); }
 });
 
-router.post('/stock/:id', async function(req, res, next) {
+router.post('/estoque/:id', async function(req, res, next) {
   try {
     var amount = Number(req.body.amount);
     var product = await Product.findById(req.params.id);
     var composite = product && ['kit-montagem', 'festa-infantil'].indexOf(product.category) !== -1;
     if (!product || composite || !Number.isInteger(amount) || amount === 0) {
       if (req.get('Accept') && req.get('Accept').indexOf('application/json') !== -1) return res.status(400).json({ ok: false, message: 'A quantidade de kits e festas é calculada pelos componentes.' });
-      return res.redirect('/admin/stock');
+      return res.redirect('/admin/estoque');
     }
     var nextStock = (Number(product.stockTotal) || 0) + amount;
     if (nextStock < (Number(product.rentedQuantity) || 0)) {
       var products = await Product.find().populate('components.product').sort({ category: 1, name: 1 });
       if (req.get('Accept') && req.get('Accept').indexOf('application/json') !== -1) return res.status(400).json({ ok: false, message: 'Não é possível remover unidades que estão alugadas.' });
-      return res.status(400).render('admin-stock', { title: 'Controle de estoque', products: await inventory.getProductsAvailability(products), stockError: 'Não é possível remover unidades que estão alugadas.' });
+      return res.status(400).render('admin-estoque', { title: 'Controle de estoque', products: await inventory.getProductsAvailability(products), stockError: 'Não é possível remover unidades que estão alugadas.' });
     }
     await Product.findByIdAndUpdate(product._id, { stockTotal: nextStock });
     if (req.get('Accept') && req.get('Accept').indexOf('application/json') !== -1) {
       var updatedProduct = await inventory.findProductGraph(product._id);
       return res.json({ ok: true, stockTotal: updatedProduct.stockTotal, rentedQuantity: updatedProduct.rentedQuantity, availableUnits: inventory.availableUnits(updatedProduct) });
     }
-    res.redirect('/admin/stock');
+    res.redirect('/admin/estoque');
   } catch (error) {
     if (req.get('Accept') && req.get('Accept').indexOf('application/json') !== -1) return res.status(500).json({ ok: false, message: error.message });
     next(error);
   }
 });
 
-router.get('/rentals', async function(req, res, next) {
+router.get('/solicitacoes', async function(req, res, next) {
   try {
-    res.render('admin-rentals', { title: 'Solicitações', rentals: await Rental.find({ status: 'active' }).populate('user').sort({ dates: 1, createdAt: 1 }) });
+    res.render('admin-solicitacoes', { title: 'Solicitações', rentals: await Rental.find({ status: 'active' }).populate('user').sort({ dates: 1, createdAt: 1 }) });
   } catch (error) { next(error); }
 });
 
-router.get('/rentals/:id', async function(req, res, next) {
+router.get('/solicitacoes/:id', async function(req, res, next) {
   try {
     var rental = await Rental.findById(req.params.id).populate('user');
-    if (!rental) return res.status(404).render('error', { title: 'Solicitação não encontrada', message: 'Esta solicitação não existe.', error: {}, status: 404 });
-    res.render('admin-rental-detail', { title: 'Detalhes da solicitação', rental: rental });
+    if (!rental) return res.status(404).render('erro', { title: 'Solicitação não encontrada', message: 'Esta solicitação não existe.', error: {}, status: 404 });
+    res.render('admin-solicitacao-detalhe', { title: 'Detalhes da solicitação', rental: rental });
   } catch (error) { next(error); }
 });
 
@@ -185,18 +186,18 @@ async function closeRental(req, res, next, status) {
       rental.returnChecked = true;
       await rental.save();
     }
-    res.redirect('/admin/rentals');
+    res.redirect('/admin/solicitacoes');
   } catch (error) { next(error); }
 }
 
-router.post('/rentals/:id/checklist', async function(req, res, next) {
+router.post('/solicitacoes/:id/conferencia', async function(req, res, next) {
   var session = await mongoose.startSession();
   try {
     session.startTransaction();
     var rental = await Rental.findOne({ _id: req.params.id, status: 'active' }).session(session);
     if (!rental) {
       await session.abortTransaction();
-      return res.redirect('/admin/rentals');
+      return res.redirect('/admin/solicitacoes');
     }
 
     var submittedItems = rental.deliveryChecked ? req.body.returnedItem : req.body.deliveredItem;
@@ -226,7 +227,7 @@ router.post('/rentals/:id/checklist', async function(req, res, next) {
 
     await rental.save({ session: session });
     await session.commitTransaction();
-    res.redirect('/admin/rentals/' + rental._id);
+    res.redirect('/admin/solicitacoes/' + rental._id);
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
     next(error);
@@ -235,76 +236,65 @@ router.post('/rentals/:id/checklist', async function(req, res, next) {
   }
 });
 
-router.post('/rentals/:id/cancel', function(req, res, next) { closeRental(req, res, next, 'cancelled'); });
+router.post('/solicitacoes/:id/cancelar', function(req, res, next) { closeRental(req, res, next, 'cancelled'); });
 
 async function createRentalReceipt(req, res, next) {
   try {
     var rental = await Rental.findById(req.params.id);
-    if (!rental) return res.status(404).render('error', { title: 'Solicitação não encontrada', message: 'Esta solicitação não existe.', error: {}, status: 404 });
-    await ensureRentalReceipt(rental);
-    rental = await Rental.findById(rental._id).populate('user');
-    var invoiceTotal = rental.items.reduce(function(total, item) { return total + Number(item.price) * Number(item.quantity); }, 0);
-    res.render('invoice', { title: 'Comprovante de locação', rental: rental, invoiceTotal: invoiceTotal, invoiceDate: (rental.invoiceGeneratedAt || rental.createdAt).toLocaleDateString('pt-BR'), isAdminView: true });
+    if (!rental) return res.status(404).render('erro', { title: 'Solicitação não encontrada', message: 'Esta solicitação não existe.', error: {}, status: 404 });
+    var viewData = await receipts.getReceiptViewData(rental);
+    viewData.isAdminView = true;
+    res.render('comprovante', viewData);
   } catch (error) { next(error); }
 }
 
-router.post('/rentals/:id/invoice', createRentalReceipt);
-router.post('/invoices/:id/create', createRentalReceipt);
-router.post('/invoices/:id', createRentalReceipt);
-
-async function ensureRentalReceipt(rental) {
-  if (rental.invoiceGenerated && rental.invoiceNumber && rental.invoiceGeneratedAt) return rental;
-  rental.invoiceGenerated = true;
-  rental.invoiceNumber = rental.invoiceNumber || 'EE-' + new Date().getFullYear() + '-' + String(rental._id).slice(-8).toUpperCase();
-  rental.invoiceGeneratedAt = rental.invoiceGeneratedAt || new Date();
-  await rental.save();
-  return rental;
-}
+router.post('/solicitacoes/:id/comprovante', createRentalReceipt);
+router.post('/comprovantes/:id/criar', createRentalReceipt);
+router.post('/comprovantes/:id', createRentalReceipt);
 
 async function showRentalReceipt(req, res, next) {
   try {
     var rental = await Rental.findById(req.params.id);
-    if (!rental) return res.status(404).render('error', { title: 'Comprovante não encontrado', message: 'Este comprovante ainda não foi criado.', error: {}, status: 404 });
-    await ensureRentalReceipt(rental);
-    rental = await Rental.findById(rental._id).populate('user');
-    var invoiceTotal = rental.items.reduce(function(total, item) { return total + Number(item.price) * Number(item.quantity); }, 0);
-    res.render('invoice', { title: 'Comprovante de locação', rental: rental, invoiceTotal: invoiceTotal, invoiceDate: (rental.invoiceGeneratedAt || rental.createdAt).toLocaleDateString('pt-BR'), isAdminView: true });
+    if (!rental) return res.status(404).render('erro', { title: 'Comprovante não encontrado', message: 'Este comprovante ainda não foi criado.', error: {}, status: 404 });
+    var viewData = await receipts.getReceiptViewData(rental);
+    viewData.isAdminView = true;
+    res.render('comprovante', viewData);
   } catch (error) { next(error); }
 }
 
-router.get('/rentals/:id/invoice', showRentalReceipt);
-router.get('/invoices/:id', showRentalReceipt);
-router.get('/invoices/:id/view', showRentalReceipt);
+router.get('/solicitacoes/:id/comprovante', showRentalReceipt);
+router.get('/comprovantes/:id', showRentalReceipt);
+router.get('/comprovantes/:id/visualizar', showRentalReceipt);
 
-router.get('/invoices', async function(req, res, next) {
+router.get('/comprovantes', async function(req, res, next) {
   try {
-    res.render('admin-invoices', { title: 'Comprovantes de locação', rentals: await Rental.find().populate('user').sort({ createdAt: -1 }) });
+    res.render('admin-comprovantes', { title: 'Comprovantes de locação', rentals: await Rental.find().populate('user').sort({ createdAt: -1 }) });
   } catch (error) { next(error); }
 });
 
-router.get('/meetings', async function(req, res, next) {
+router.get('/reunioes', async function(req, res, next) {
   try {
-    res.render('admin-meetings', { title: 'Solicitações de reunião', meetings: await Meeting.find().populate('user').sort({ date: 1, time: 1 }) });
+    res.render('admin-reunioes', { title: 'Solicitações de reunião', meetings: await Meeting.find().populate('user').sort({ date: 1, time: 1 }) });
   } catch (error) { next(error); }
 });
 
-router.get('/settings', async function(req, res, next) {
+router.get('/configuracoes', async function(req, res, next) {
   try {
-    res.render('admin-settings', { title: 'Configurações do site', settings: await SiteSettings.findOne({ key: 'main' }) || new SiteSettings(), formError: null });
+    res.render('admin-configuracoes', { title: 'Configurações do site', settings: await SiteSettings.findOne({ key: 'main' }) || new SiteSettings(), formError: null });
   } catch (error) { next(error); }
 });
 
-router.post('/settings', async function(req, res, next) {
+router.post('/configuracoes', async function(req, res, next) {
   try {
     await SiteSettings.findOneAndUpdate({ key: 'main' }, { key: 'main', loginWelcome: req.body.loginWelcome, loginSubtitle: req.body.loginSubtitle, meetingHours: req.body.meetingHours, salonHours: req.body.salonHours }, { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true });
-    res.redirect('/admin/settings');
+    res.redirect('/admin/configuracoes');
   } catch (error) { next(error); }
 });
 
-router.post('/products/:id/delete', async function(req, res, next) {
+router.post('/produtos/:id/excluir', async function(req, res, next) {
   try {
     await Product.findByIdAndDelete(req.params.id);
-    res.redirect('/admin/products');
+    res.redirect('/admin/produtos');
   } catch (error) { next(error); }
 });
 

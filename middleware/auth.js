@@ -9,13 +9,13 @@ function getReturnTo(req) {
 }
 
 function requireLogin(req, res, next) {
-  if (!req.session.user) return res.redirect('/login?returnTo=' + encodeURIComponent(getReturnTo(req)));
+  if (!req.session.user) return res.redirect('/entrar?returnTo=' + encodeURIComponent(getReturnTo(req)));
   next();
 }
 
 function requireAdmin(req, res, next) {
   if (!req.session.user || req.session.user.role !== 'admin') {
-    return res.status(403).render('error', {
+    return res.status(403).render('erro', {
       title: 'Acesso negado',
       message: 'Esta área é exclusiva para administradores.',
       error: {},

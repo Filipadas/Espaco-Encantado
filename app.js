@@ -38,9 +38,9 @@ app.use(function(req, res, next) {
   res.locals.isAdminPanel = req.path.indexOf('/admin') === 0;
   res.locals.isCatalogPage = req.path === '/catalogo' || req.path === '/favoritos';
   res.locals.isProductPage = req.path.indexOf('/produto/') === 0;
-  res.locals.isLogoutPage = req.path === '/logout';
-  res.locals.isDeleteAccountPage = req.path === '/users/delete';
-  res.locals.isRequestPage = req.path.indexOf('/admin/rentals') === 0;
+  res.locals.isLogoutPage = req.path === '/sair';
+  res.locals.isDeleteAccountPage = req.path === '/usuarios/excluir';
+  res.locals.isRequestPage = req.path.indexOf('/admin/solicitacoes') === 0;
   res.locals.adminBackUrl = req.path === '/admin' ? '/' : '/admin';
   res.locals.adminBackLabel = req.path === '/admin' ? 'Voltar para a tela inicial' : 'Voltar para o painel administrativo';
   next();
@@ -50,8 +50,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 database.connectDatabase();
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
-app.use('/api/products', productsRouter);
+app.use('/usuarios', usersRouter);
+app.use('/api/produtos', productsRouter);
 app.use('/', authRouter);
 app.use('/admin', adminRouter);
 app.use('/sacola', cartRouter);
@@ -64,12 +64,11 @@ app.use(function(req, res, next) {
 
 
 app.use(function(err, req, res, next) {
-  
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
   res.status(err.status || 500);
-  res.render('error', {
+  res.render('erro', {
     title: 'Erro',
     message: res.locals.message,
     error: res.locals.error,

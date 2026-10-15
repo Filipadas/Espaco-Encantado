@@ -23,9 +23,9 @@ html
                             else
                                 i.bi.bi-person-circle(aria-hidden="true")
                         if isAdmin
-                            a.navbar-special-action(href="/admin/meetings" aria-label="Solicitações de reunião" title="Solicitações de reunião")
+                            a.navbar-special-action(href="/admin/reunioes" aria-label="Solicitações de reunião" title="Solicitações de reunião")
                                 i.bi.bi-calendar-event-fill(aria-hidden="true")
-                            a.navbar-special-action(href="/admin/rentals" aria-label="Aluguéis ativos" title="Aluguéis ativos")
+                            a.navbar-special-action(href="/admin/solicitacoes" aria-label="Aluguéis ativos" title="Aluguéis ativos")
                                 i.bi.bi-calendar-check-fill(aria-hidden="true")
                             if isAdminPanel
                                 a.navbar-special-action(href="/admin" aria-label="Painel administrativo" title="Painel administrativo")
@@ -39,7 +39,7 @@ html
                             a.navbar-special-action(href="/sacola" aria-label="Minha sacola" title="Minha sacola")
                                 i.bi.bi-bag-fill(aria-hidden="true")
                     else
-                        a.navbar-login(href="/login" aria-label="Entrar")
+                        a.navbar-login(href="/entrar" aria-label="Entrar")
                             i.bi.bi-person-circle(aria-hidden="true")
                             |&nbsp; Login
                     button.navbar-toggler(type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Toggle navigation")
@@ -62,11 +62,11 @@ html
                                 i.bi.bi-speedometer2(aria-hidden='true')
                                 |  Painel administrativo
                         li.nav-item
-                            a.nav-link(href='/admin/rentals')
+                            a.nav-link(href='/admin/solicitacoes')
                                 i.bi.bi-calendar-check-fill(aria-hidden='true')
                                 |  Locações
                         li.nav-item
-                            a.nav-link(href='/admin/meetings')
+                            a.nav-link(href='/admin/reunioes')
                                 i.bi.bi-calendar-event-fill(aria-hidden='true')
                                 |  Reuniões
                     else if currentUser && !isAdmin
@@ -92,7 +92,7 @@ html
                                 i.bi.bi-calendar-plus(aria-hidden='true')
                                 |  Agendar reunião
                         li.nav-item
-                            a.nav-link(href='/login') Entrar
+                            a.nav-link(href='/entrar') Entrar
                         li.nav-item
                             a.nav-link(href='/cadastro') Criar conta
                 img.offcanvas-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
@@ -116,7 +116,7 @@ html
             button.mobile-tab-item(type='button' data-bs-toggle='offcanvas' data-bs-target='#offcanvasNavbar' aria-controls='offcanvasNavbar' aria-label='Outros')
                 i.bi.bi-three-dots(aria-hidden='true')
                 span Outros
-            a.mobile-tab-item(class=activePath === '/perfil' || activePath === '/login' ? 'is-active' : '' href=currentUser ? '/perfil' : '/login' aria-label='Conta')
+            a.mobile-tab-item(class=activePath === '/perfil' || activePath === '/entrar' ? 'is-active' : '' href=currentUser ? '/perfil' : '/entrar' aria-label='Conta')
                 if currentUser && currentUser.profileImage
                     img.mobile-tab-avatar(src=currentUser.profileImage alt='Foto do perfil')
                 else
