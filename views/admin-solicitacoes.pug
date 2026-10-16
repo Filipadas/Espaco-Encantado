@@ -9,13 +9,27 @@ block content
       | Painel administrativo
     .request-list-card
       p.admin-eyebrow LOCAÇÕES
-      h1.admin-title Solicitações pendentes
-      p.admin-subtitle As solicitações mais próximas aparecem primeiro.
+      h1.admin-title Solicitações de locação
+      p.admin-subtitle Revise as solicitações em análise e acompanhe os aluguéis ativos.
       .request-urgency-legend(aria-label='Cores por proximidade da entrega')
         span.request-urgency-key.request-urgency-key--urgent Até 3 dias
         span.request-urgency-key.request-urgency-key--soon De 4 a 7 dias
         span.request-urgency-key.request-urgency-key--upcoming De 8 a 30 dias
         span.request-urgency-key.request-urgency-key--distant Mais de 30 dias
+      if rentals && rentals.length
+        section.admin-product-filters(data-rental-filters)
+          label.admin-product-search
+            span Pesquisar solicitações
+            input(type='search' placeholder='Cliente, produto ou status' data-rental-search)
+          label.admin-product-search
+            span Ordenar por:
+            select(data-rental-sort)
+              option(value='created-desc') Solicitação mais recente
+              option(value='created-asc') Solicitação mais antiga
+              option(value='delivery-asc') Entrega mais próxima
+              option(value='delivery-desc') Entrega mais distante
+              option(value='customer-asc') Cliente (A–Z)
+              option(value='customer-desc') Cliente (Z–A)
       if rentals && rentals.length
         .admin-table-wrap
           table.admin-table.request-list-table
@@ -24,6 +38,7 @@ block content
                 th Cliente
                 th Itens
                 th Datas
+                th Status
                 th Ação
             tbody
               each rental in rentals
@@ -33,7 +48,7 @@ block content
                 - var validDeliveryDate = Number.isFinite(deliveryTimestamp) && new Date(deliveryTimestamp).toISOString().slice(0, 10) === deliveryDate
                 - var daysUntilDelivery = validDeliveryDate ? Math.ceil((deliveryTimestamp - todayUtc) / 86400000) : null
                 - var urgency = daysUntilDelivery === null || daysUntilDelivery > 30 ? 'distant' : (daysUntilDelivery <= 3 ? 'urgent' : (daysUntilDelivery <= 7 ? 'soon' : 'upcoming'))
-                tr(class='request-urgency-' + urgency)
+                tr(class='request-urgency-' + urgency data-rental-row data-customer=rental.user ? rental.user.name : 'Cliente' data-created=rental.createdAt.toISOString() data-delivery=validDeliveryDate ? deliveryDate : '')
                   td(data-label='Cliente')= rental.user ? rental.user.name : 'Cliente'
                   td(data-label='Itens')
                     each item in rental.items
@@ -41,6 +56,8 @@ block content
                   td(data-label='Datas')
                     div Data da solicitação: #{rental.createdAt.toLocaleDateString('pt-BR')}
                     div Data de entrega: #{validDeliveryDate ? deliveryDate.split('-').reverse().join('/') : 'Não informada'}
+                  td(data-label='Status')
+                    span.admin-role(class=rental.status === 'active' ? 'is-admin' : '')= rental.status === 'analysis' ? 'Em análise' : 'Ativa'
                   td(data-label='Ação')
                     a.admin-small-button(href='/admin/solicitacoes/' + rental._id)
                       i.bi.bi-eye(aria-hidden='true')
@@ -48,4 +65,31 @@ block content
       else
         .admin-empty
           i.bi.bi-calendar-check
-          p Nenhum aluguel ativo.
+          p Nenhuma solicitação em análise ou aluguel ativo.
+      if rentals && rentals.length
+        p.admin-empty(data-rental-empty hidden) Nenhuma solicitação corresponde à pesquisa.
+  script.
+    (function() {
+      var filters = document.querySelector('[data-rental-filters]');
+      if (!filters) return;
+      var body = document.querySelector('.request-list-table tbody');
+      var rows = Array.prototype.slice.call(document.querySelectorAll('[data-rental-row]'));
+      var search = filters.querySelector('[data-rental-search]');
+      var sort = filters.querySelector('[data-rental-sort]');
+      var empty = document.querySelector('[data-rental-empty]');
+      function render() {
+        var term = search.value.trim().toLocaleLowerCase();
+        var parts = sort.value.split('-');
+        var field = parts.slice(0, -1).join('-');
+        var direction = parts[parts.length - 1] === 'desc' ? -1 : 1;
+        rows.sort(function(a, b) {
+          var left = field === 'created' ? a.dataset.created : field === 'delivery' ? (a.dataset.delivery || '9999-99-99') : a.dataset.customer;
+          var right = field === 'created' ? b.dataset.created : field === 'delivery' ? (b.dataset.delivery || '9999-99-99') : b.dataset.customer;
+          return (field === 'customer' ? left.localeCompare(right, 'pt-BR', { sensitivity: 'base' }) : left.localeCompare(right)) * direction;
+        }).forEach(function(row) { body.appendChild(row); });
+        var visible = 0;
+        rows.forEach(function(row) { row.hidden = !!term && row.textContent.toLocaleLowerCase().indexOf(term) === -1; if (!row.hidden) visible += 1; });
+        empty.hidden = visible > 0;
+      }
+      search.addEventListener('input', render); sort.addEventListener('change', render); render();
+    })();

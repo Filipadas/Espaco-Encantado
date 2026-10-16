@@ -12,6 +12,15 @@ block content
       label.admin-product-search
         span Pesquisar produtos
         input(type='search' placeholder='Nome, categoria ou subcategoria' data-admin-product-search)
+      label.admin-product-search
+        span Ordenar por:
+        select(data-admin-product-sort)
+          option(value='name-asc') Nome (A–Z)
+          option(value='name-desc') Nome (Z–A)
+          option(value='availability-desc') Disponibilidade (maior primeiro)
+          option(value='availability-asc') Disponibilidade (menor primeiro)
+          option(value='total-desc') Estoque total (maior primeiro)
+          option(value='total-asc') Estoque total (menor primeiro)
       .admin-category-card
         .admin-category-row(aria-label='Categorias de produtos')
           button.admin-category-button.is-active(type='button' data-filter-category='') Todas
@@ -22,7 +31,7 @@ block content
       p.admin-form-error= stockError
     .stock-grid
       each product in products
-        article.stock-card(data-stock-card=product._id data-admin-product data-category=product.category data-subcategories=JSON.stringify(product.subcategories || []))
+        article.stock-card(data-stock-card=product._id data-admin-product data-name=product.name data-availability=product.availableUnits data-total=product.stockTotal data-category=product.category data-subcategories=JSON.stringify(product.subcategories || []))
           .stock-card-photo
             if product.imageUrl
               img(src=product.imageUrl alt='Foto de ' + product.name)
@@ -77,6 +86,7 @@ block content
         var categoryButtons = filters.querySelectorAll('[data-filter-category]');
         var subcategoryRow = filters.querySelector('[data-subcategory-row]');
         var search = filters.querySelector('[data-admin-product-search]');
+        var sort = filters.querySelector('[data-admin-product-sort]');
         var empty = document.querySelector('[data-filter-empty]');
         var categoryLabels = { brinquedos: 'Brinquedos', decoracoes: 'Decorações', 'kit-montagem': 'Kits de montagem', 'festa-infantil': 'Festas infantis' };
         var selectedCategory = '';
@@ -101,6 +111,13 @@ block content
         }
         function applyFilters() {
           var term = search.value.trim().toLocaleLowerCase();
+          var parts = sort.value.split('-');
+          var field = parts.slice(0, -1).join('-');
+          var direction = parts[parts.length - 1] === 'desc' ? -1 : 1;
+          items.sort(function(a, b) {
+            if (field === 'name') return a.dataset.name.localeCompare(b.dataset.name, 'pt-BR', { sensitivity: 'base' }) * direction;
+            return (Number(a.dataset[field]) - Number(b.dataset[field])) * direction;
+          }).forEach(function(item) { item.parentNode.appendChild(item); });
           var visible = 0;
           items.forEach(function(item) {
             var subcategories = [];
@@ -123,6 +140,7 @@ block content
           });
         });
         search.addEventListener('input', applyFilters);
+        sort.addEventListener('change', applyFilters);
         applyFilters();
       }
       document.querySelectorAll('[data-stock-form]').forEach(function(form) {

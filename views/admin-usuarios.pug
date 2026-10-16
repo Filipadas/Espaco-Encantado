@@ -10,6 +10,20 @@ block content
         p.admin-eyebrow CONTAS
         h1.admin-title Gerenciamento de usuários
       span.admin-count #{users.length} usuários
+    if userMessage
+      p.admin-success= userMessage
+    section.admin-product-filters(data-admin-list-filters)
+      label.admin-product-search
+        span Pesquisar usuários
+        input(type='search' placeholder='Nome, e-mail ou perfil' data-list-search)
+      label.admin-product-search
+        span Ordenar por:
+        select(data-list-sort)
+          option(value='name-asc') Nome (A–Z)
+          option(value='name-desc') Nome (Z–A)
+          option(value='created-desc') Cadastro (mais recente)
+          option(value='created-asc') Cadastro (mais antigo)
+          option(value='role-asc') Perfil
     .admin-table-wrap
       table.admin-table
         thead
@@ -18,9 +32,10 @@ block content
             th Foto
             th E-mail
             th Perfil
+            th Alterar perfil
         tbody
           each user in users
-            tr
+            tr(data-list-row data-name=user.name data-email=user.email data-role=user.role data-created=user.createdAt.toISOString())
               td(data-label='Nome')= user.name
               td(data-label='Foto')
                 .admin-product-photo
@@ -31,3 +46,40 @@ block content
               td(data-label='E-mail')= user.email
               td(data-label='Perfil')
                 span.admin-role(class=user.role === 'admin' ? 'is-admin' : '')= user.role === 'admin' ? 'Administrador' : 'Cliente'
+              td(data-label='Alterar perfil')
+                if String(user._id) === String(currentAdminId)
+                  span Sua conta não pode ser alterada
+                else
+                  form(method='post' action='/admin/usuarios/' + user._id + '/perfil' class='admin-role-form')
+                    select(name='role' aria-label='Função de ' + user.name)
+                      option(value='user' selected=user.role === 'user') Cliente
+                      option(value='admin' selected=user.role === 'admin') Administrador
+                    button.admin-small-button(type='submit') Salvar
+      p.admin-empty(data-list-empty hidden) Nenhum usuário corresponde à pesquisa.
+  script.
+    (function() {
+      var filters = document.querySelector('[data-admin-list-filters]');
+      if (!filters) return;
+      var body = document.querySelector('.admin-table tbody');
+      var rows = Array.prototype.slice.call(document.querySelectorAll('[data-list-row]'));
+      var search = filters.querySelector('[data-list-search]');
+      var sort = filters.querySelector('[data-list-sort]');
+      var empty = document.querySelector('[data-list-empty]');
+      function render() {
+        var term = search.value.trim().toLocaleLowerCase();
+        var key = sort.value.split('-')[0];
+        var direction = sort.value.endsWith('desc') ? -1 : 1;
+        rows.sort(function(a, b) {
+          var left = key === 'created' ? a.dataset.created : key === 'role' ? a.dataset.role : a.dataset.name;
+          var right = key === 'created' ? b.dataset.created : key === 'role' ? b.dataset.role : b.dataset.name;
+          return (key === 'created' ? left.localeCompare(right) : left.localeCompare(right, 'pt-BR', { sensitivity: 'base' })) * direction;
+        }).forEach(function(row) { body.appendChild(row); });
+        var visible = 0;
+        rows.forEach(function(row) {
+          row.hidden = !!term && [row.dataset.name, row.dataset.email, row.dataset.role].join(' ').toLocaleLowerCase().indexOf(term) === -1;
+          if (!row.hidden) visible += 1;
+        });
+        empty.hidden = visible > 0;
+      }
+      search.addEventListener('input', render); sort.addEventListener('change', render); render();
+    })();

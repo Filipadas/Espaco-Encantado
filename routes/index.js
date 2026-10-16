@@ -3,7 +3,10 @@ var Product = require('../models/Product');
 var User = require('../models/User');
 var inventory = require('../services/inventory');
 var SiteSettings = require('../models/SiteSettings');
+var Meeting = require('../models/Meeting');
+var meetingHoursConfig = require('../utils/meeting-hours');
 var database = require('../config/database');
+var defaultHomeCarouselImages = require('../config/home-carousel-images');
 var router = express.Router();
 var catalogStates = {
   brinquedos: { categories: ['brinquedos', 'brinquedo'], label: 'brinquedo', title: 'Brinquedos' },
@@ -67,11 +70,29 @@ function matchesSpecificationFilters(product, filters) {
   });
 }
 
+async function getFavoriteIds(req) {
+  if (!req.session.user) return [];
+  var user = await User.findById(req.session.user.id).select('favorites');
+  return user ? (user.favorites || []).map(function(id) { return String(id); }) : [];
+}
+
 /* GET home page. */
 router.get('/', async function(req, res, next) {
   try {
     var homeProducts = await Product.find().populate('components.product').sort({ createdAt: -1 }).limit(8);
-    res.render('index', { title: 'Express', homeProducts: await inventory.getProductsAvailability(homeProducts), settings: await SiteSettings.findOne({ key: 'main' }) || {} });
+    var settings = await SiteSettings.findOne({ key: 'main' }) || {};
+    var today = new Date();
+    var todayString = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    var meetings = await Meeting.find({ date: { $gte: todayString }, status: { $in: ['requested', 'confirmed', 'unavailable'] } }).select('date time status');
+    var queryMessages = {
+      solicitada: 'Sua reunião foi solicitada.',
+      ocupado: 'Esse horário acabou de ser ocupado. Escolha outro horário.',
+      erro: 'Escolha uma data e um horário disponíveis.',
+      bloqueado: 'O horário foi marcado como indisponível.',
+      liberado: 'O horário voltou a ficar disponível.',
+      admin: 'Administradores usam esta agenda para marcar indisponibilidades.'
+    };
+    res.render('index', { title: 'Express', homeProducts: await inventory.getProductsAvailability(homeProducts), favoriteIds: await getFavoriteIds(req), settings: settings, homeCarouselImages: settings.homeCarouselImages && settings.homeCarouselImages.length ? settings.homeCarouselImages : defaultHomeCarouselImages, meetingHours: meetingHoursConfig.getMeetingHours(settings.meetingHours), schedulerMeetings: meetings.map(function(meeting) { return { date: meeting.date, time: meeting.time, status: meeting.status }; }), schedulerMessage: queryMessages[req.query.reuniao] || '' });
   } catch (error) { next(error); }
 });
 
@@ -107,6 +128,7 @@ router.get('/catalogo', async function(req, res, next) {
       searchAction: '/catalogo',
       searchState: selectedState,
       products: products,
+      favoriteIds: await getFavoriteIds(req),
       subcategoryRows: subcategoryRows,
       listingMode: Boolean(searchQuery),
       favoritesOnly: false
@@ -158,7 +180,14 @@ router.get('/pesquisa', async function(req, res, next) {
     var selectedFilters = selectedSpecificationFilters(req.query.spec);
     var filteredProducts = matchedProducts.filter(function(product) { return matchesSpecificationFilters(product, selectedFilters); });
     var products = await inventory.getProductsAvailability(filteredProducts);
-    res.render('pesquisa', { title: 'Resultados da pesquisa', searchQuery: query, products: products, specificationFacets: Object.keys(facets).sort(function(a, b) { return a.localeCompare(b, 'pt-BR'); }).map(function(name) { return { name: name, values: facets[name] }; }), selectedSpecifications: selectedFilters });
+    var sortOrder = String(req.query.ordenar || 'relevancia');
+    if (sortOrder === 'nome-asc') products.sort(function(a, b) { return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }); });
+    else if (sortOrder === 'nome-desc') products.sort(function(a, b) { return b.name.localeCompare(a.name, 'pt-BR', { sensitivity: 'base' }); });
+    else if (sortOrder === 'preco-asc') products.sort(function(a, b) { return Number(a.price) - Number(b.price); });
+    else if (sortOrder === 'preco-desc') products.sort(function(a, b) { return Number(b.price) - Number(a.price); });
+    else if (sortOrder === 'disponibilidade') products.sort(function(a, b) { return Number(b.availableUnits) - Number(a.availableUnits); });
+    else sortOrder = 'relevancia';
+    res.render('pesquisa', { title: 'Resultados da pesquisa', searchQuery: query, products: products, selectedSortOrder: sortOrder, specificationFacets: Object.keys(facets).sort(function(a, b) { return a.localeCompare(b, 'pt-BR'); }).map(function(name) { return { name: name, values: facets[name] }; }), selectedSpecifications: selectedFilters });
   } catch (error) { next(error); }
 });
 
@@ -186,6 +215,7 @@ router.get('/catalogo/:estado/:subcategoria', async function(req, res, next) {
       searchQuery: searchQuery,
       searchAction: '/catalogo/' + selectedState + '/' + requestedSubcategory,
       products: selectedProducts,
+      favoriteIds: await getFavoriteIds(req),
       subcategoryRows: [],
       listingMode: true,
       favoritesOnly: false
@@ -194,8 +224,10 @@ router.get('/catalogo/:estado/:subcategoria', async function(req, res, next) {
 });
 
 router.get('/favoritos', async function(req, res, next) {
+  if (!req.session.user) return res.redirect('/entrar?returnTo=' + encodeURIComponent(req.originalUrl));
   try {
-    var products = await Product.find().populate('components.product').sort({ name: 1 });
+    var favoriteIds = await getFavoriteIds(req);
+    var products = await Product.find({ _id: { $in: favoriteIds } }).populate('components.product').sort({ name: 1 });
     var searchQuery = String(req.query.busca || '').trim();
     if (searchQuery) products = products.filter(function(product) { return (product.name + ' ' + (product.description || '')).toLocaleLowerCase().indexOf(searchQuery.toLocaleLowerCase()) !== -1; });
     res.render('catalogo', {
@@ -205,7 +237,51 @@ router.get('/favoritos', async function(req, res, next) {
       searchQuery: searchQuery,
       searchAction: '/favoritos',
       products: await inventory.getProductsAvailability(products),
+      favoriteIds: favoriteIds,
       favoritesOnly: true
+    });
+  } catch (error) { next(error); }
+});
+
+router.post('/favoritos/toggle', async function(req, res, next) {
+  if (!req.session.user) {
+    var returnTo = String(req.body.returnTo || '/catalogo');
+    if (returnTo.charAt(0) !== '/' || returnTo.charAt(1) === '/') returnTo = '/catalogo';
+    return res.status(401).json({ ok: false, loginUrl: '/entrar?returnTo=' + encodeURIComponent(returnTo) });
+  }
+  try {
+    var productId = String(req.body.productId || '');
+    if (!/^[a-f0-9]{24}$/i.test(productId)) return res.status(400).json({ ok: false, message: 'Produto inválido.' });
+    var product = await Product.findById(productId).select('_id');
+    if (!product) return res.status(404).json({ ok: false, message: 'Este produto não está mais disponível.' });
+    var user = await User.findById(req.session.user.id).select('favorites');
+    if (!user) return res.status(401).json({ ok: false, loginUrl: '/entrar?returnTo=' + encodeURIComponent('/catalogo') });
+    var alreadyFavorite = (user.favorites || []).some(function(id) { return String(id) === productId; });
+    if (alreadyFavorite) user.favorites.pull(product._id);
+    else user.favorites.addToSet(product._id);
+    await user.save();
+    res.json({ ok: true, favorited: !alreadyFavorite, productId: productId });
+  } catch (error) { next(error); }
+});
+
+router.get('/produto/:id/semelhantes', async function(req, res, next) {
+  try {
+    var product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).render('erro', { title: 'Produto não encontrado', message: 'Este produto não está disponível.', error: {}, status: 404 });
+    var categoryKey = Object.keys(catalogStates).find(function(key) { return catalogStates[key].categories.indexOf(product.category) !== -1; }) || 'brinquedos';
+    var category = catalogStates[categoryKey];
+    var similarProducts = await Product.find({ category: product.category, _id: { $ne: product._id } }).populate('components.product').sort({ name: 1 });
+    res.render('catalogo', {
+      title: 'Produtos semelhantes a ' + product.name,
+      selectedState: categoryKey,
+      selectedCategory: category.label,
+      categoryTitle: category.title,
+      selectedSubcategoryTitle: 'Semelhantes a ' + product.name,
+      products: await inventory.getProductsAvailability(similarProducts),
+      favoriteIds: await getFavoriteIds(req),
+      subcategoryRows: [],
+      listingMode: true,
+      favoritesOnly: false
     });
   } catch (error) { next(error); }
 });
@@ -216,7 +292,7 @@ router.get('/produto/:id', async function(req, res, next) {
     if (!product) return res.status(404).render('erro', { title: 'Produto não encontrado', message: 'Este produto não está disponível.', error: {}, status: 404 });
     product.availableUnits = inventory.availableUnits(product);
     var similarProducts = await Product.find({ category: product.category, _id: { $ne: product._id } }).limit(8);
-    res.render('produto', { title: product.name, product: product, similarProducts: similarProducts });
+    res.render('produto', { title: product.name, product: product, similarProducts: similarProducts, favoriteIds: await getFavoriteIds(req) });
   } catch (error) { next(error); }
 });
 

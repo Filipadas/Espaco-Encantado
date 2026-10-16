@@ -1,0 +1,30 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/admin')
+      i.bi.bi-arrow-left
+      | Painel administrativo
+    p.admin-eyebrow TELA INICIAL
+    h1.admin-title Fotos do carrossel
+    p.admin-subtitle Troque ou remova as fotos exibidas no carrossel da página inicial. Envie imagens JPG, PNG ou WebP de até 5 MB.
+    if carouselError
+      p.admin-form-error= carouselError
+    form.admin-form(method='post' action='/admin/carrossel' enctype='multipart/form-data')
+      each image, index in images
+        fieldset.admin-components
+          legend Foto #{index + 1}
+          if image
+            img.admin-carousel-image(src=image alt='Foto atual do carrossel ' + (index + 1))
+          else
+            p.admin-form-hint Espaço disponível para uma nova foto.
+          input(type='hidden' name='currentCarouselImage' + index value=image)
+          label(for='carousel-image-' + index) Escolher foto para substituir
+          input(id='carousel-image-' + index type='file' name='carouselImage' + index accept='image/*')
+          if image
+            label.admin-inline-check
+              input(type='checkbox' name='removeCarouselImage' + index)
+              | Remover esta foto
+      button.admin-primary-button(type='submit')
+        i.bi.bi-check-lg(aria-hidden='true')
+        | Salvar fotos

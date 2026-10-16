@@ -8,20 +8,61 @@ block content
     .request-detail-card
       p.admin-eyebrow SOLICITAÇÃO
       h1.admin-title= rental.user ? rental.user.name : 'Cliente'
-      p.admin-subtitle= rental.dates.join(' | ')
-      p.admin-subtitle Entrega: #{rental.deliveryAddress || 'Endereço não informado'}, #{rental.deliveryCity || ''} - #{rental.deliveryState || ''} #{rental.deliveryCep || ''}
-      p.admin-subtitle Previsão: #{rental.deliveryDate ? rental.deliveryDate.split('-').reverse().join('/') : 'Data não informada'} #{rental.deliveryTime || ''}
-      if rental.returnChecked
-        h2 Devolução concluída
-        p.admin-subtitle Os itens foram devolvidos e o estoque foi atualizado.
-      else if rental.deliveryChecked
-        h2 Checklist de devolução
-        p.admin-subtitle Confirme cada item devolvido. O estoque será atualizado ao concluir a checklist.
-      else
-        h2 Checklist de entrega
-        p.admin-subtitle Confirme cada item entregue. O estoque será atualizado ao concluir a checklist.
-      form(method='post' action='/admin/solicitacoes/' + rental._id + '/conferencia')
-        if !rental.returnChecked
+      p.admin-subtitle Status: #{rental.status === 'analysis' ? 'Em análise' : rental.status === 'active' ? 'Ativa' : rental.status === 'returned' ? 'Devolvida' : 'Cancelada'}
+      if rental.user && rental.user.phone
+        p.admin-subtitle Telefone: #{rental.user.phone}
+      if formError
+        p.admin-form-error= formError
+      if formSuccess
+        p.admin-success= formSuccess
+      if ['analysis', 'active'].indexOf(rental.status) !== -1 && !rental.deliveryChecked
+        h2 Editar solicitação
+        p.admin-subtitle Ajuste os itens e os dados da entrega antes de concluir a entrega.
+        form.admin-form(method='post' action='/admin/solicitacoes/' + rental._id + '/editar' target=rental.user && rental.user.phone ? '_blank' : undefined)
+          h3 Itens solicitados
+          each item in rental.items
+            fieldset.admin-components
+              legend= item.name
+              input(type='hidden' name='itemProductId' value=item.product)
+              label(for='quantity-' + item._id) Quantidade
+              input(id='quantity-' + item._id type='number' name='itemQuantity' min='1' step='1' required value=item.quantity)
+              label(for='item-date-' + item._id) Data de utilização
+              input(id='item-date-' + item._id type='date' name='itemDate' required value=item.date)
+          h3 Dados da entrega
+          label(for='edit-delivery-address') Endereço
+          input#edit-delivery-address(type='text' name='deliveryAddress' required value=rental.deliveryAddress || '')
+          label(for='edit-delivery-city') Cidade
+          input#edit-delivery-city(type='text' name='deliveryCity' required value=rental.deliveryCity || '')
+          label(for='edit-delivery-state') Estado (UF)
+          input#edit-delivery-state(type='text' name='deliveryState' maxlength='2' pattern='[A-Za-z]{2}' required value=rental.deliveryState || '')
+          label(for='edit-delivery-cep') CEP
+          input#edit-delivery-cep(type='text' name='deliveryCep' required value=rental.deliveryCep || '')
+          label(for='edit-delivery-date') Data prevista
+          input#edit-delivery-date(type='date' name='deliveryDate' required value=rental.deliveryDate || '')
+          label(for='edit-delivery-time') Horário previsto
+          input#edit-delivery-time(type='time' name='deliveryTime' required value=rental.deliveryTime || '')
+          h3 Salão
+          label.admin-inline-check
+            input(type='checkbox' name='salonRental' checked=rental.salonRental)
+            | Cliente deseja alugar o salão
+          label(for='edit-salon-date') Data do evento
+          input#edit-salon-date(type='date' name='salonDate' value=rental.salonDate || '' required=rental.salonRental)
+          label(for='edit-salon-time') Horário do evento
+          input#edit-salon-time(type='time' name='salonTime' value=rental.salonTime || '' required=rental.salonRental)
+          button.admin-primary-button(type='submit') Salvar alterações
+        if rental.status === 'analysis'
+          h2 Aprovação
+          p.admin-subtitle Ao aprovar, a solicitação muda para ativa e fica disponível para a checklist de entrega.
+          form(method='post' action='/admin/solicitacoes/' + rental._id + '/confirmar' target=rental.user && rental.user.phone ? '_blank' : undefined)
+            button.admin-primary-button(type='submit') Confirmar solicitação e ativar
+      else if rental.status === 'active' && !rental.returnChecked
+        if rental.deliveryChecked
+          h2 Checklist de devolução
+          p.admin-subtitle Confirme cada item devolvido. O estoque será atualizado ao concluir a checklist.
+        else
+          h2 Checklist de entrega
+          p.admin-subtitle Confirme cada item entregue. O estoque será atualizado ao concluir a checklist.
+        form(method='post' action='/admin/solicitacoes/' + rental._id + '/conferencia' target=rental.user && rental.user.phone ? '_blank' : undefined)
           each item in rental.items
             label.request-check
               if rental.deliveryChecked
@@ -31,9 +72,14 @@ block content
                 input(type='checkbox' name='deliveredItem' value=item.product checked=rental.deliveredItems && rental.deliveredItems.map(String).indexOf(String(item.product)) !== -1)
                 span Entregar #{item.quantity}x #{item.name} em #{item.date}
           button.admin-primary-button(type='submit')= rental.deliveryChecked ? 'Confirmar checklist de devolução' : 'Confirmar checklist de entrega'
+      else if rental.returnChecked
+        h2 Devolução concluída
+        p.admin-subtitle Os itens foram devolvidos e o estoque foi atualizado.
+      else
+        h2 Solicitação cancelada
       .request-detail-actions
-        if !rental.returnChecked
-          form(method='post' action='/admin/solicitacoes/' + rental._id + '/cancelar')
+        if ['analysis', 'active'].indexOf(rental.status) !== -1 && !rental.returnChecked
+          form(method='post' action='/admin/solicitacoes/' + rental._id + '/cancelar' target=rental.user && rental.user.phone ? '_blank' : undefined)
             button.admin-danger-button(type='submit') Cancelar solicitação
         if rental.invoiceGenerated
           a.admin-small-button(href='/admin/comprovantes/' + rental._id + '/visualizar') Visualizar comprovante

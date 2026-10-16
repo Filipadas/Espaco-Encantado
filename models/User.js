@@ -5,6 +5,8 @@ var userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  googleId: { type: String, sparse: true },
+  appleId: { type: String, sparse: true },
   phone: String,
   address: String,
   city: String,
@@ -25,7 +27,8 @@ var userSchema = new mongoose.Schema({
     imageUrl: String,
     quantity: { type: Number, min: 1, default: 1 },
     requestDate: String
-  }]
+  }],
+  favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

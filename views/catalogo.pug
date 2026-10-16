@@ -1,7 +1,7 @@
 extends layout
 
 mixin catalogProductCard(product)
-  article.catalog-product-card(data-product-id=product._id data-favorite-product=product._id)
+  article.catalog-product-card(data-product-id=product._id data-favorite-product=product._id data-product-name=product.name data-product-price=product.price)
     .catalog-product-photo
       if product.imageUrl
         img(src=product.imageUrl alt='Foto de ' + product.name)
@@ -17,7 +17,7 @@ mixin catalogProductCard(product)
       h2.catalog-product-name= product.name
       p.catalog-product-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
       .catalog-product-actions
-        button.catalog-icon-button(type='button' data-favorite=product._id aria-label='Favoritar ' + product.name aria-pressed='false' title='Favoritar')
+        button.catalog-icon-button(class=(favoriteIds || []).indexOf(String(product._id)) !== -1 ? 'is-favorite' : '' type='button' data-favorite=product._id aria-label='Favoritar ' + product.name aria-pressed=(favoriteIds || []).indexOf(String(product._id)) !== -1 title='Favoritar')
           i.bi.bi-heart(aria-hidden='true')
         form(method='post' action='/sacola/adicionar' data-cart-form)
           input(type='hidden' name='productId' value=product._id)
@@ -35,9 +35,6 @@ block content
     aside.catalog-sidebar(aria-label='Categorias do catálogo' data-catalog-sidebar data-initial-state=activeState data-initial-category=activeCategory)
       nav.catalog-sidebar-nav
         if favoritesOnly
-          a.catalog-sidebar-item.is-selected.active(href='/favoritos' aria-label='Favoritos')
-            i.bi.bi-heart-fill(aria-hidden='true')
-            span.catalog-sidebar-label Favoritos
           a.catalog-sidebar-item(href='/catalogo?estado=brinquedos' aria-label='Voltar ao catálogo')
             i.bi.bi-grid-3x3-gap-fill(aria-hidden='true')
             span.catalog-sidebar-label Catálogo
@@ -54,12 +51,15 @@ block content
           button.catalog-sidebar-item(class=activeState === 'festa-infantil' ? 'is-selected active' : '' type='button' aria-label='Festa infantil' data-catalog-state='festa-infantil' data-catalog-category='infantil')
             img.catalog-sidebar-icon(src='/images/icone_feliz.png' alt='')
             span.catalog-sidebar-label Festa infantil
+      a.catalog-sidebar-favorite(class=favoritesOnly ? 'is-selected' : '' href='/favoritos' aria-label='Favoritos' title='Favoritos')
+        i.bi.bi-heart-fill(aria-hidden='true')
+        span.catalog-sidebar-favorite-label Favoritos
       button.catalog-sidebar-toggle(type='button' aria-label='Expandir categorias' aria-expanded='false' data-catalog-sidebar-toggle)
         i.bi.bi-chevron-right(aria-hidden='true')
 
     section.catalog-page-content
       img.catalog-hero-image(src='/images/baloes_catalogo.png' alt='Balões decorativos do catálogo')
-      section.catalog-products(aria-labelledby='catalog-products-title' data-favorites-only=favoritesOnly ? 'true' : 'false')
+      section.catalog-products(aria-labelledby='catalog-products-title' data-favorites-only=favoritesOnly ? 'true' : 'false' data-favorite-ids=JSON.stringify(favoriteIds || []))
         if favoritesOnly
           h1#catalog-products-title.catalog-products-title Favoritos
         else if listingMode
@@ -68,12 +68,19 @@ block content
           h1#catalog-products-title.catalog-products-title= categoryTitle
         form.catalog-search.catalog-page-search(role='search' data-catalog-search-form)
           input.form-control(type='search' placeholder='Pesquisar produtos' aria-label='Pesquisar produtos' data-catalog-search)
+          label.admin-product-search.catalog-sort-control
+            span Ordenar por:
+            select(data-catalog-sort)
+              option(value='name-asc') Nome (A–Z)
+              option(value='name-desc') Nome (Z–A)
+              option(value='price-asc') Preço (menor primeiro)
+              option(value='price-desc') Preço (maior primeiro)
         if favoritesOnly || listingMode
           .catalog-products-grid(data-catalog-grid)
             each product in products
               +catalogProductCard(product)
             else
-              p.catalog-empty(data-catalog-empty) Nenhum produto encontrado.
+              p.catalog-empty(data-catalog-empty)= favoritesOnly ? 'Você ainda não favoritou produtos.' : 'Nenhum produto encontrado.'
         else
           .catalog-product-rows
             section.catalog-product-row.catalog-product-row-general(data-catalog-row)
@@ -125,26 +132,25 @@ block content
         title.textContent = catalogCategories[selectedState].title;
       }
 
-      var productsOnly = document.querySelector('[data-favorites-only]').dataset.favoritesOnly === 'true';
-      var savedFavorites = JSON.parse(localStorage.getItem('espaco-encantado-favorites') || '[]');
-      if (productsOnly) {
-        document.querySelectorAll('[data-favorite-product]').forEach(function(card) {
-          if (savedFavorites.indexOf(card.dataset.favoriteProduct) === -1) card.remove();
-        });
-        if (!document.querySelector('[data-favorite-product]')) {
-          var emptyFavorites = document.querySelector('[data-catalog-empty]');
-          if (emptyFavorites) emptyFavorites.textContent = 'Você ainda não favoritou produtos.';
-          else {
-            emptyFavorites = document.createElement('p');
-            emptyFavorites.className = 'catalog-empty';
-            emptyFavorites.textContent = 'Você ainda não favoritou produtos.';
-            document.querySelector('.catalog-products-grid').appendChild(emptyFavorites);
-          }
-        }
-      }
+      var favoriteState = document.querySelector('[data-favorites-only]');
+      var productsOnly = favoriteState.dataset.favoritesOnly === 'true';
 
       var search = document.querySelector('[data-catalog-search]');
-      if (search) search.addEventListener('input', function() {
+      var sort = document.querySelector('[data-catalog-sort]');
+      function renderCatalog() {
+        var sortDirection = sort && sort.value.endsWith('desc') ? -1 : 1;
+        var sortField = sort ? sort.value.split('-').slice(0, -1).join('-') : 'name';
+        document.querySelectorAll('[data-catalog-row], [data-catalog-grid]').forEach(function(container) {
+          var cards = Array.prototype.slice.call(container.querySelectorAll('.catalog-product-card'));
+          cards.sort(function(a, b) {
+            if (sortField === 'price') return (Number(a.dataset.productPrice) - Number(b.dataset.productPrice)) * sortDirection;
+            return a.dataset.productName.localeCompare(b.dataset.productName, 'pt-BR', { sensitivity: 'base' }) * sortDirection;
+          }).forEach(function(card) {
+            var more = container.querySelector('.catalog-more-card');
+            container.insertBefore(card, more || null);
+          });
+        });
+        if (!search) return;
         var query = search.value.trim().toLocaleLowerCase();
         document.querySelectorAll('[data-catalog-row]').forEach(function(row) {
           var cards = Array.prototype.slice.call(row.querySelectorAll('.catalog-product-card'));
@@ -177,10 +183,14 @@ block content
           }
           if (empty) {
             empty.hidden = visibleCards.length > 0;
-            empty.textContent = productsOnly && !query && !savedFavorites.length ? 'Você ainda não favoritou produtos.' : 'Nenhum produto encontrado.';
+            var currentFavoriteIds = JSON.parse(favoriteState.dataset.favoriteIds || '[]');
+            empty.textContent = productsOnly && !query && !currentFavoriteIds.length ? 'Você ainda não favoritou produtos.' : 'Nenhum produto encontrado.';
           }
         }
-      });
+      }
+      if (search) search.addEventListener('input', renderCatalog);
+      if (sort) sort.addEventListener('change', renderCatalog);
+      renderCatalog();
 
       document.querySelectorAll('[data-favorite-product]').forEach(function(card) {
         card.addEventListener('click', function(event) {
@@ -205,21 +215,6 @@ block content
           var card = button.closest('.catalog-product-card');
           var expanded = card.classList.toggle('is-expanded');
           button.setAttribute('aria-expanded', String(expanded));
-        });
-      });
-      document.querySelectorAll('[data-favorite]').forEach(function(button) {
-        var id = button.dataset.favorite;
-        var active = savedFavorites.indexOf(id) !== -1;
-        button.setAttribute('aria-pressed', String(active));
-        button.classList.toggle('is-favorite', active);
-        button.addEventListener('click', function() {
-          var position = savedFavorites.indexOf(id);
-          if (position === -1) savedFavorites.push(id);
-          else savedFavorites.splice(position, 1);
-          localStorage.setItem('espaco-encantado-favorites', JSON.stringify(savedFavorites));
-          var selected = savedFavorites.indexOf(id) !== -1;
-          button.setAttribute('aria-pressed', String(selected));
-          button.classList.toggle('is-favorite', selected);
         });
       });
     })();

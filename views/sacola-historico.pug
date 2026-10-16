@@ -23,7 +23,7 @@ block content
                 td(data-label='Itens')
                   each item in rental.items
                     div #{item.quantity}x #{item.name}
-                td(data-label='Status')= rental.status === 'active' ? 'Ativo' : rental.status === 'returned' ? 'Devolvido' : rental.status === 'cancelled' ? 'Cancelado' : rental.status
+                td(data-label='Status')= rental.status === 'analysis' ? 'Em análise' : rental.status === 'active' ? 'Ativo' : rental.status === 'returned' ? 'Devolvido' : rental.status === 'cancelled' ? 'Cancelado' : rental.status
                 td(data-label='Comprovante')
                   a.admin-small-button(href='/sacola/comprovante/' + rental._id) Visualizar comprovante
     else

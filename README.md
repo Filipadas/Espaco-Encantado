@@ -77,4 +77,12 @@ Depois do login, o ícone de perfil abre `/perfil` e o ícone de coroa abre `/ad
 
 A autorização é verificada no servidor. Um cliente comum pode acessar a sacola, mas recebe `403` ao tentar acessar `/admin` diretamente.
 
+### Login social e recuperação de senha
+
+Para ativar o login com Google, configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e o callback `http://localhost:3000/auth/google/callback` no console OAuth do Google. Em produção, use o domínio HTTPS do site em `GOOGLE_REDIRECT_URI` e cadastre exatamente a mesma URL como callback autorizado.
+
+Para ativar o login com Apple, configure um identificador de serviço web, Team ID, Key ID e a chave privada `.p8` em `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID` e `APPLE_PRIVATE_KEY`. Cadastre e verifique o domínio HTTPS e o callback `/auth/apple/callback` nas configurações do Sign in with Apple, e informe a URL completa em `APPLE_REDIRECT_URI`. A Apple não aceita `localhost` como domínio de retorno. Como o callback Apple usa um POST externo, atrás de proxy HTTPS defina `TRUST_PROXY=1` para manter o cookie de sessão seguro. Quebras de linha da chave privada podem ser representadas como `\n` no valor da variável.
+
+Os botões sociais usam OAuth e validam o `state` e os tokens de identidade antes de associar a conta. A tela “Esqueci minha senha” solicita e-mail ou telefone e abre uma conversa pré-preenchida com a loja pelo WhatsApp para validação manual. O projeto ainda não tem serviço de e-mail ou SMS para envio automático de códigos ou links de redefinição.
+
 No MongoDB, a estrutura usada é um database `espaco_encantado` com as collections `users` e `products`. As categorias `brinquedos`, `decoracoes`, `kit-montagem` e `festa-infantil` são valores do campo `category` dos produtos, o que mantém o catálogo organizado sem criar bancos separados para cada categoria.

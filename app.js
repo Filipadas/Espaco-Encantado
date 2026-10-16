@@ -6,6 +6,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var createError = require('http-errors');
 var database = require('./config/database');
+var business = require('./config/business');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -16,6 +17,7 @@ var cartRouter = require('./routes/cart');
 var meetingsRouter = require('./routes/meetings');
 
 var app = express();
+if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? true : Number(process.env.TRUST_PROXY));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -29,10 +31,16 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'espaco-encantado-teste',
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, maxAge: 1000 * 60 * 60 * 8 }
+  cookie: {
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 8,
+    sameSite: process.env.APPLE_REDIRECT_URI ? 'none' : 'lax',
+    secure: process.env.APPLE_REDIRECT_URI ? 'auto' : false
+  }
 }));
 app.use(function(req, res, next) {
   res.locals.currentPath = req.path;
+  res.locals.whatsappNumber = business.whatsappNumber;
   res.locals.currentUser = req.session.user || null;
   res.locals.isAdmin = Boolean(req.session.user && req.session.user.role === 'admin');
   res.locals.isAdminPanel = req.path.indexOf('/admin') === 0;
@@ -40,6 +48,7 @@ app.use(function(req, res, next) {
   res.locals.isProductPage = req.path.indexOf('/produto/') === 0;
   res.locals.isLogoutPage = req.path === '/sair';
   res.locals.isDeleteAccountPage = req.path === '/usuarios/excluir';
+  res.locals.isPasswordRecoveryPage = req.path.indexOf('/recuperar-senha') === 0;
   res.locals.isRequestPage = req.path.indexOf('/admin/solicitacoes') === 0;
   res.locals.adminBackUrl = req.path === '/admin' ? '/' : '/admin';
   res.locals.adminBackLabel = req.path === '/admin' ? 'Voltar para a tela inicial' : 'Voltar para o painel administrativo';

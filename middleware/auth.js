@@ -1,3 +1,5 @@
+var User = require('../models/User');
+
 function getReturnTo(req) {
   var referer = req.get('referer');
   if (!referer) return '/';
@@ -13,13 +15,22 @@ function requireLogin(req, res, next) {
   next();
 }
 
-function requireAdmin(req, res, next) {
+async function requireAdmin(req, res, next) {
   var acceptHeader = req.get('Accept') || '';
   var wantsJson = /(^|,)\s*application\/json(?:\s*;|\s*(?:,|$))/i.test(acceptHeader);
   if (!req.session.user) {
     if (wantsJson) return res.status(401).json({ ok: false, message: 'Sua sessão de administrador expirou. Entre novamente para continuar.' });
     return res.redirect('/entrar?returnTo=' + encodeURIComponent(req.originalUrl || '/admin'));
   }
+  try {
+    var user = await User.findById(req.session.user.id).select('role');
+    if (!user) {
+      delete req.session.user;
+      if (wantsJson) return res.status(401).json({ ok: false, message: 'Sua sessão expirou. Entre novamente para continuar.' });
+      return res.redirect('/entrar?returnTo=' + encodeURIComponent(req.originalUrl || '/admin'));
+    }
+    req.session.user.role = user.role;
+  } catch (error) { return next(error); }
   if (req.session.user.role !== 'admin') {
     if (wantsJson) return res.status(403).json({ ok: false, message: 'Esta área é exclusiva para administradores.' });
     return res.status(403).render('erro', {

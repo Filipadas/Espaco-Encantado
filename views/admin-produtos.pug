@@ -16,6 +16,15 @@ block content
       label.admin-product-search
         span Pesquisar produtos
         input(type='search' placeholder='Nome, categoria ou subcategoria' data-admin-product-search)
+      label.admin-product-search
+        span Ordenar por:
+        select(data-admin-product-sort)
+          option(value='name-asc') Nome (A–Z)
+          option(value='name-desc') Nome (Z–A)
+          option(value='price-asc') Preço (menor primeiro)
+          option(value='price-desc') Preço (maior primeiro)
+          option(value='availability-desc') Disponibilidade (maior primeiro)
+          option(value='availability-asc') Disponibilidade (menor primeiro)
       .admin-category-card
         .admin-category-row(aria-label='Categorias de produtos')
           button.admin-category-button.is-active(type='button' data-filter-category='') Todas
@@ -34,7 +43,7 @@ block content
             th Ação
         tbody
           each product in products
-            tr(data-admin-product data-category=product.category data-subcategories=JSON.stringify(product.subcategories || []))
+            tr(data-admin-product data-name=product.name data-price=product.price data-availability=product.availableUnits data-category=product.category data-subcategories=JSON.stringify(product.subcategories || []))
               td(data-label='Foto')
                 .admin-product-photo
                   if product.imageUrl
@@ -70,6 +79,8 @@ block content
       var categoryButtons = filters.querySelectorAll('[data-filter-category]');
       var subcategoryRow = filters.querySelector('[data-subcategory-row]');
       var search = filters.querySelector('[data-admin-product-search]');
+      var sort = filters.querySelector('[data-admin-product-sort]');
+      var body = document.querySelector('.admin-table tbody');
       var empty = document.querySelector('[data-filter-empty]');
       var categoryLabels = { brinquedos: 'Brinquedos', decoracoes: 'Decorações', 'kit-montagem': 'Kits de montagem', 'festa-infantil': 'Festas infantis' };
       var selectedCategory = '';
@@ -95,6 +106,13 @@ block content
       }
       function applyFilters() {
         var term = search.value.trim().toLocaleLowerCase();
+        var parts = sort.value.split('-');
+        var field = parts.slice(0, -1).join('-');
+        var direction = parts[parts.length - 1] === 'desc' ? -1 : 1;
+        items.sort(function(a, b) {
+          if (field === 'name') return a.dataset.name.localeCompare(b.dataset.name, 'pt-BR', { sensitivity: 'base' }) * direction;
+          return (Number(a.dataset[field]) - Number(b.dataset[field])) * direction;
+        }).forEach(function(item) { body.appendChild(item); });
         var visible = 0;
         items.forEach(function(item) {
           var subcategories = [];
@@ -117,5 +135,6 @@ block content
         });
       });
       search.addEventListener('input', applyFilters);
+      sort.addEventListener('change', applyFilters);
       applyFilters();
     })();

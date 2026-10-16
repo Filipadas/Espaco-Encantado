@@ -30,7 +30,7 @@ var rentalSchema = new mongoose.Schema({
   invoiceGenerated: { type: Boolean, default: false },
   invoiceNumber: String,
   invoiceGeneratedAt: Date,
-  status: { type: String, enum: ['active', 'returned', 'cancelled'], default: 'active' }
+  status: { type: String, enum: ['analysis', 'active', 'returned', 'cancelled'], default: 'analysis' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Rental', rentalSchema);

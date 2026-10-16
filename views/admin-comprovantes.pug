@@ -7,6 +7,25 @@ block content
       | Painel administrativo
     p.admin-eyebrow FINANCEIRO
     h1.admin-title Comprovantes de locação
+    section.admin-product-filters(data-invoice-filters)
+      label.admin-product-search
+        span Pesquisar comprovantes
+        input(type='search' placeholder='Cliente, data ou status' data-invoice-search)
+      label.admin-product-search
+        span Ordenar por:
+        select(data-invoice-sort)
+          option(value='created-desc') Cadastro (mais recente)
+          option(value='created-asc') Cadastro (mais antigo)
+          option(value='customer-asc') Cliente (A–Z)
+          option(value='customer-desc') Cliente (Z–A)
+          option(value='status-asc') Status
+      .admin-category-card(data-invoice-status-filters)
+        .admin-category-row(aria-label='Filtrar comprovantes por status')
+          button.admin-category-button.is-active(type='button' data-filter-status='') Todos
+          button.admin-category-button(type='button' data-filter-status='analysis') Em análise
+          button.admin-category-button(type='button' data-filter-status='active') Ativa
+          button.admin-category-button(type='button' data-filter-status='returned') Devolvida
+          button.admin-category-button(type='button' data-filter-status='cancelled') Cancelada
     .admin-table-wrap
       table.admin-table
         thead
@@ -17,10 +36,10 @@ block content
             th Comprovante
         tbody
           each rental in rentals
-            tr
+            tr(data-invoice-row data-customer=rental.user ? rental.user.name : 'Cliente' data-created=rental.createdAt.toISOString() data-status=rental.status)
               td(data-label='Cliente')= rental.user ? rental.user.name : 'Cliente'
               td(data-label='Datas')= (rental.dates || []).join(' | ')
-              td(data-label='Status')= rental.status === 'active' ? 'Ativa' : rental.status === 'returned' ? 'Devolvida' : rental.status === 'cancelled' ? 'Cancelada' : rental.status
+              td(data-label='Status')= rental.status === 'analysis' ? 'Em análise' : rental.status === 'active' ? 'Ativa' : rental.status === 'returned' ? 'Devolvida' : rental.status === 'cancelled' ? 'Cancelada' : rental.status
               td(data-label='Comprovante')
                 if rental.invoiceGenerated
                   a.admin-small-button(href='/admin/comprovantes/' + rental._id + '/visualizar') Visualizar comprovante
@@ -30,3 +49,43 @@ block content
           else
             tr
               td(colspan='4') Nenhuma solicitação registrada.
+      p.admin-empty(data-invoice-empty hidden) Nenhum comprovante corresponde à pesquisa.
+  script.
+    (function() {
+      var filters = document.querySelector('[data-invoice-filters]');
+      if (!filters) return;
+      var body = document.querySelector('.admin-table tbody');
+      var rows = Array.prototype.slice.call(document.querySelectorAll('[data-invoice-row]'));
+      var search = filters.querySelector('[data-invoice-search]');
+      var sort = filters.querySelector('[data-invoice-sort]');
+      var statusButtons = filters.querySelectorAll('[data-filter-status]');
+      var empty = document.querySelector('[data-invoice-empty]');
+      var selectedStatus = '';
+      function render() {
+        var term = search.value.trim().toLocaleLowerCase();
+        var parts = sort.value.split('-');
+        var field = parts.slice(0, -1).join('-');
+        var direction = parts[parts.length - 1] === 'desc' ? -1 : 1;
+        rows.sort(function(a, b) {
+          var left = field === 'created' ? a.dataset.created : field === 'status' ? a.dataset.status : a.dataset.customer;
+          var right = field === 'created' ? b.dataset.created : field === 'status' ? b.dataset.status : b.dataset.customer;
+          return (field === 'customer' || field === 'status' ? left.localeCompare(right, 'pt-BR', { sensitivity: 'base' }) : left.localeCompare(right)) * direction;
+        }).forEach(function(row) { body.appendChild(row); });
+        var visible = 0;
+        rows.forEach(function(row) {
+          var matchesSearch = !term || row.textContent.toLocaleLowerCase().indexOf(term) !== -1;
+          var matchesStatus = !selectedStatus || row.dataset.status === selectedStatus;
+          row.hidden = !(matchesSearch && matchesStatus);
+          if (!row.hidden) visible += 1;
+        });
+        empty.hidden = visible > 0;
+      }
+      statusButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+          selectedStatus = button.dataset.filterStatus;
+          statusButtons.forEach(function(choice) { choice.classList.toggle('is-active', choice === button); });
+          render();
+        });
+      });
+      search.addEventListener('input', render); sort.addEventListener('change', render); render();
+    })();

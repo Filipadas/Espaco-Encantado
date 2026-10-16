@@ -58,16 +58,12 @@ block content
     h3.carousel-title Conheça nossas decorações, clique para saber mais
     #carouselExampleCaptions.carousel.slide(style='margin-top: 24px;')
       .carousel-indicators
-        button.active(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide-to='0' aria-current='true' aria-label='Slide 1')
-        button(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide-to='1' aria-label='Slide 2')
-        button(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide-to='2' aria-label='Slide 3')
+        each image, index in homeCarouselImages
+          button(type='button' class=index === 0 ? 'active' : '' data-bs-target='#carouselExampleCaptions' data-bs-slide-to=index aria-current=index === 0 ? 'true' : undefined aria-label='Slide ' + (index + 1))
       .carousel-inner
-        .carousel-item.active
-          img(src='/images/fotoee1.jpeg' class='d-block w-100' alt='Decoração Espaço Encantado 1')
-        .carousel-item
-          img(src='/images/fotoee2.jpeg' class='d-block w-100' alt='Decoração Espaço Encantado 2')
-        .carousel-item
-          img(src='/images/fotoee3.jpeg' class='d-block w-100' alt='Decoração Espaço Encantado 3')
+        each image, index in homeCarouselImages
+          .carousel-item(class=index === 0 ? 'active' : '')
+            img(src=image class='d-block w-100' alt='Decoração Espaço Encantado ' + (index + 1))
       button.carousel-control-prev(type='button' data-bs-target='#carouselExampleCaptions' data-bs-slide='prev')
         span.carousel-control-prev-icon(aria-hidden='true')
         span.visually-hidden Previous
@@ -88,15 +84,19 @@ block content
           .agenda-card.agenda-card-right
             h3.agenda-card-title Faça seu agendamento:
             if isAdmin
-              p.admin-form-hint Administradores não podem solicitar reuniões.
+              p.admin-form-hint Selecione um ou mais horários para marcar como indisponíveis, ou escolha um horário já bloqueado para liberá-lo.
+              button.btn.btn-agenda(type='button' data-open-scheduler) Gerenciar horários
             else
+              p.admin-form-hint Ao solicitar, o WhatsApp abrirá com uma mensagem pronta para você enviar à loja.
               button.btn.btn-agenda(type='button' data-open-scheduler) Agendar
+          if schedulerMessage
+            p.scheduler-page-feedback(role='status')= schedulerMessage
 
-  .scheduler-modal(aria-hidden='true' data-scheduler-modal)
-    .scheduler-dialog(role='dialog' aria-modal='true' aria-label='Agendamento')
+  .scheduler-modal(aria-hidden='true' data-scheduler-modal data-meeting-hours=JSON.stringify(meetingHours || []) data-scheduler-meetings=JSON.stringify(schedulerMeetings || []) data-scheduler-is-admin=isAdmin ? 'true' : 'false')
+    .scheduler-dialog(role='dialog' aria-modal='true' aria-label=isAdmin ? 'Gerenciar horários indisponíveis' : 'Agendamento')
       button.scheduler-close(type='button' aria-label='Fechar calendário' data-close-scheduler)
         i.bi.bi-x-lg
-      p.scheduler-eyebrow AGENDAMENTO
+      p.scheduler-eyebrow= isAdmin ? 'DISPONIBILIDADE' : 'AGENDAMENTO'
       .scheduler-week-header
         button.scheduler-week-button(type='button' aria-label='Semana anterior' data-previous-week)
           i.bi.bi-chevron-left
@@ -105,10 +105,12 @@ block content
           i.bi.bi-chevron-right
       .scheduler-days(data-scheduler-days)
       .scheduler-times(data-scheduler-times)
-      form.scheduler-form(method='post' action='/reunioes' data-scheduler-form)
+      form.scheduler-form(method='post' action=isAdmin ? '/reunioes/bloquear' : '/reunioes' target=isAdmin ? null : '_blank' data-scheduler-form)
         input#scheduler-date(type='hidden' name='date' required)
-        input#scheduler-time(type='hidden' name='time' required)
-        button.btn.scheduler-submit(type='submit') Solicitar reunião
+        input#scheduler-time(type='hidden' name='time' required=!isAdmin)
+        if isAdmin
+          .scheduler-selected-times(data-selected-times)
+        button.btn.scheduler-submit(type='submit' data-scheduler-submit)= isAdmin ? 'Marcar horário como indisponível' : 'Solicitar reunião'
       p.scheduler-feedback(role='status' data-scheduler-feedback)
 
   section.catalog-start-area
@@ -139,7 +141,7 @@ block content
         p Com o tempo, iniciou sua caminhada como empreendedora, investindo em artigos para festas e montando sua primeira loja na sala de casa. A partir daí, o negócio evoluiu gradualmente até se consolidar e se tornar a grande realizadora de sonhos que é hoje.
 
 
-  section.catalog-area.products-section
+  section.catalog-area.products-section(data-favorite-ids=JSON.stringify(favoriteIds || []))
     h2.products-title Conheça um pouco dos nossos produtos:
     .products-grid
       each product in homeProducts
@@ -194,23 +196,6 @@ block content
             })
             .then(function(data) { if (data && data.result && data.result.message) window.alert(data.result.message); })
             .catch(function() { window.alert('Não foi possível adicionar o produto à sacola.'); });
-        });
-      });
-      var favorites = JSON.parse(localStorage.getItem('espaco-encantado-favorites') || '[]');
-      document.querySelectorAll('[data-favorite]').forEach(function(button) {
-        var id = button.dataset.favorite;
-        var update = function() {
-          var active = favorites.indexOf(id) !== -1;
-          button.setAttribute('aria-pressed', String(active));
-          button.classList.toggle('is-favorite', active);
-        };
-        update();
-        button.addEventListener('click', function() {
-          var position = favorites.indexOf(id);
-          if (position === -1) favorites.push(id);
-          else favorites.splice(position, 1);
-          localStorage.setItem('espaco-encantado-favorites', JSON.stringify(favorites));
-          update();
         });
       });
     })();

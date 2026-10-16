@@ -7,13 +7,13 @@ block content
     p.admin-eyebrow MINHA CONTA
     h1.admin-title Minha sacola
     if rentalSuccess
-      p.admin-success Solicitação registrada. Os itens ficarão indisponíveis até a devolução.
+      p.admin-success Solicitação registrada e enviada para análise. Você pode acompanhar o andamento no histórico.
     if cartError
       p.admin-form-error= cartError
     if cart && cart.length
       .cart-list
         each item in cart
-          .cart-item
+          .cart-item(data-cart-item data-name=item.name data-quantity=item.quantity data-price=item.price data-request-date=item.requestDate)
             a.cart-item-product-link(href='/produto/' + item.productId)
               .cart-item-photo
                 if item.imageUrl
@@ -26,9 +26,10 @@ block content
               label(for='date-' + item.productId) Data disponível
               form.cart-date-form(method='post' action='/sacola/data')
                 input(type='hidden' name='productId' value=item.productId)
-                select.cart-date-select(id='date-' + item.productId name='date' onchange="this.form.submit()")
-                  each date in item.availableDates
-                    option(value=date selected=date === item.requestDate)= date.split('-').reverse().join('/')
+                if item.availableDates.length
+                  input.cart-date-input(id='date-' + item.productId type='date' name='date' value=item.requestDate min=item.availableDates[0] max=item.availableDates[item.availableDates.length - 1] data-available-dates=JSON.stringify(item.availableDates))
+                else
+                  span.cart-date-unavailable Não há datas disponíveis nos próximos 60 dias.
             strong R$ #{(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}
             .cart-quantity-actions
               form(method='post' action='/sacola/ajustar')
@@ -42,7 +43,7 @@ block content
                 input(type='hidden' name='delta' value='1')
                 button.cart-quantity-button(type='submit' aria-label='Adicionar uma unidade' title='Adicionar uma unidade')
                   i.bi.bi-plus-lg(aria-hidden='true')
-      form(method='post' action='/sacola/confirmar')
+      form(method='post' action='/sacola/solicitar' target='_blank' rel='noopener' data-submit-once)
         h2 Dados da entrega
         .auth-field
           label(for='saved-delivery-address') Usar endereço salvo
@@ -61,7 +62,7 @@ block content
             input#delivery-city(type='text' name='deliveryCity' autocomplete='address-level2' required value=(deliveryProfile && deliveryProfile.city) || '')
           .auth-field
             label(for='delivery-state') UF
-            input#delivery-state(type='text' name='deliveryState' maxlength='2' autocomplete='address-level1' required value=(deliveryProfile && deliveryProfile.state) || '')
+            input#delivery-state(type='text' name='deliveryState' maxlength='2' pattern='[A-Za-z]{2}' autocomplete='address-level1' required value=(deliveryProfile && deliveryProfile.state) || '')
           .auth-field
             label(for='delivery-cep') CEP
             input#delivery-cep(type='text' name='deliveryCep' autocomplete='postal-code' required value=(deliveryProfile && deliveryProfile.cep) || '')
@@ -79,9 +80,9 @@ block content
           input#salon-date(type='date' name='salonDate')
           label(for='salon-time') Horário do salão
           input#salon-time(type='time' name='salonTime')
-        button.admin-primary-button(type='submit')
+        button.admin-primary-button(type='submit' data-submit-once-button)
           i.bi.bi-calendar-check(aria-hidden='true')
-          | Fazer solicitação
+          | Enviar solicitação
       form(method='post' action='/sacola/limpar')
         button.admin-danger-button(type='submit') Esvaziar sacola
     else
@@ -109,7 +110,38 @@ block content
       } catch (error) {}
     });
     if (savedAddress && savedAddress.value) savedAddress.dispatchEvent(new Event('change'));
+      document.querySelectorAll('.cart-date-input').forEach(function(dateInput) {
+        var availableDates = JSON.parse(dateInput.dataset.availableDates || '[]');
+        var selectedDate = dateInput.value;
+        dateInput.addEventListener('change', function() {
+          if (availableDates.indexOf(dateInput.value) === -1) {
+            window.alert('Escolha uma das datas disponíveis para este produto.');
+            dateInput.value = selectedDate;
+            return;
+          }
+          selectedDate = dateInput.value;
+          dateInput.form.submit();
+        });
+      });
       var toggle = document.querySelector('[data-salon-toggle]');
       var drawer = document.querySelector('[data-salon-drawer]');
-      if (toggle && drawer) toggle.addEventListener('change', function() { drawer.hidden = !toggle.checked; });
+      var salonDate = document.querySelector('#salon-date');
+      var salonTime = document.querySelector('#salon-time');
+      function updateSalonFields() {
+        if (!toggle || !drawer) return;
+        drawer.hidden = !toggle.checked;
+        salonDate.required = toggle.checked;
+        salonTime.required = toggle.checked;
+      }
+      if (toggle && drawer) {
+        toggle.addEventListener('change', updateSalonFields);
+        updateSalonFields();
+      }
+      var requestForm = document.querySelector('[data-submit-once]');
+      if (requestForm) requestForm.addEventListener('submit', function(event) {
+        if (requestForm.dataset.submitted === 'true') { event.preventDefault(); return; }
+        requestForm.dataset.submitted = 'true';
+        var submitButton = requestForm.querySelector('[data-submit-once-button]');
+        if (submitButton) submitButton.disabled = true;
+      });
     })();

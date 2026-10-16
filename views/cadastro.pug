@@ -20,7 +20,7 @@ html
       button.theme-toggle.auth-theme-toggle(type='button' data-auth-theme-toggle aria-label='Alternar modo escuro' title='Alternar modo escuro')
         i.bi.bi-moon-stars-fill(aria-hidden='true')
       section.register-panel(aria-labelledby='register-title')
-        form.auth-form.register-form(method='post' action='/cadastro')
+        form.auth-form.register-form(method='post' action='/cadastro' enctype='multipart/form-data')
           h1#register-title.auth-title Criar cadastro
           p.auth-subtitle Seus dados ajudam a personalizar sua experiência.
           if registerError
@@ -38,22 +38,31 @@ html
             .auth-field
               label(for='register-birth') Data de nascimento
               input#register-birth(type='date' name='birthDate' value=(formData && formData.birthDate || ''))
+            .auth-field.auth-field-wide.register-photo-field
+              label(for='register-profile-image') Foto de perfil (opcional)
+              input#register-profile-image(type='file' name='profileImage' accept='image/jpeg,image/png,image/webp,image/gif' data-profile-image)
+              small JPG, PNG, WebP ou GIF. Até 5 MB.
+              .register-image-preview(aria-live='polite')
+                i.bi.bi-person-fill(data-profile-placeholder aria-hidden='true')
+                img#register-profile-preview-image(alt='Pré-visualização da foto de perfil' data-profile-preview hidden)
             .auth-field.auth-field-wide
               label(for='register-address') Endereço
               input#register-address(type='text' name='address' autocomplete='street-address' value=(formData && formData.address || ''))
             .register-location-fields
               .auth-field
                 label(for='register-city') Cidade
-                input#register-city(type='text' name='city' autocomplete='address-level2' required disabled value=(formData && formData.city || ''))
+                input#register-city(type='text' name='city' autocomplete='address-level2' required readonly disabled value=(formData && formData.city || '') data-cep-city)
               .auth-field
                 label(for='register-state') Estado
-                select#register-state(name='state' autocomplete='address-level1' required)
+                select#register-state(autocomplete='address-level1' disabled data-cep-state-select)
                   option(value='') UF
                   each stateCode in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']
                     option(value=stateCode selected=(formData && formData.state === stateCode))= stateCode
+                input(type='hidden' name='state' value=(formData && formData.state || '') data-cep-state-value)
               .auth-field
                 label(for='register-cep') CEP
-                input#register-cep(type='text' name='cep' autocomplete='postal-code' inputmode='numeric' maxlength='9' placeholder='00000-000' value=(formData && formData.cep || ''))
+                input#register-cep(type='text' name='cep' autocomplete='postal-code' inputmode='numeric' maxlength='9' pattern='[0-9]{5}-?[0-9]{3}' placeholder='00000-000' required value=(formData && formData.cep || '') data-cep-input aria-describedby='register-cep-message')
+                small#register-cep-message(role='status' data-cep-message) Digite o CEP para preencher cidade e UF.
             .auth-field
               label(for='register-password') Senha
               input#register-password(type='password' name='password' autocomplete='new-password' required)
@@ -64,10 +73,107 @@ html
       script.
         (function() {
           var stateSelect = document.getElementById('register-state');
-          var cityInput = document.getElementById('register-city');
-          function syncCityField() { cityInput.disabled = !stateSelect.value; }
-          stateSelect.addEventListener('change', syncCityField);
-          syncCityField();
+          var cityInput = document.querySelector('[data-cep-city]');
+          var stateValue = document.querySelector('[data-cep-state-value]');
+          var cepInput = document.querySelector('[data-cep-input]');
+          var message = document.querySelector('[data-cep-message]');
+          var form = cepInput && cepInput.form;
+          if (!stateSelect || !cityInput || !stateValue || !cepInput || !message || !form) return;
+          var verifiedCep = '';
+          var requestedCep = '';
+          var pendingLookup = null;
+
+          function digits() { return cepInput.value.replace(/\D/g, ''); }
+          function setMessage(text, state) {
+            message.textContent = text;
+            message.dataset.state = state || '';
+          }
+          function clearLocation() {
+            cityInput.value = '';
+            cityInput.disabled = true;
+            stateSelect.value = '';
+            stateSelect.disabled = true;
+            stateValue.value = '';
+            verifiedCep = '';
+          }
+          function lookupCep() {
+            var cep = digits();
+            if (!/^[0-9]{8}$/.test(cep)) {
+              setMessage('Digite os 8 números do CEP.', 'error');
+              return Promise.resolve(null);
+            }
+            if (verifiedCep === cep) return Promise.resolve({ ok: true });
+            if (pendingLookup && requestedCep === cep) return pendingLookup;
+            requestedCep = cep;
+            setMessage('Consultando CEP…', 'loading');
+            pendingLookup = fetch('/cadastro/cep/' + cep, { headers: { Accept: 'application/json' } })
+              .then(function(response) { return response.json().then(function(result) { return { ok: response.ok, result: result }; }); })
+              .then(function(data) {
+                if (digits() !== cep) return null;
+                if (!data.ok) throw new Error(data.result.message || 'CEP não encontrado.');
+                cepInput.value = data.result.cep;
+                cityInput.value = data.result.city;
+                cityInput.disabled = false;
+                stateSelect.value = data.result.state;
+                stateSelect.disabled = true;
+                stateValue.value = data.result.state;
+                verifiedCep = cep;
+                setMessage('CEP encontrado. Cidade e UF preenchidas.', 'success');
+                return data.result;
+              })
+              .catch(function(error) {
+                if (digits() === cep) {
+                  clearLocation();
+                  setMessage(error.message || 'Não foi possível consultar o CEP. Tente novamente.', 'error');
+                }
+                return null;
+              })
+              .then(function(result) {
+                if (requestedCep === cep) { requestedCep = ''; pendingLookup = null; }
+                return result;
+              });
+            return pendingLookup;
+          }
+
+          cepInput.addEventListener('input', function() {
+            var value = digits().slice(0, 8);
+            cepInput.value = value.length > 5 ? value.slice(0, 5) + '-' + value.slice(5) : value;
+            if (value !== verifiedCep) {
+              clearLocation();
+              requestedCep = '';
+              setMessage(value.length === 8 ? 'Consultando CEP…' : 'Digite o CEP para preencher cidade e UF.', '');
+            }
+            if (value.length === 8) lookupCep();
+          });
+          cepInput.addEventListener('blur', function() { if (digits().length === 8) lookupCep(); });
+          form.addEventListener('submit', function(event) {
+            if (verifiedCep === digits()) return;
+            event.preventDefault();
+            lookupCep().then(function(result) { if (result && verifiedCep === digits()) form.requestSubmit(); });
+          });
+          if (digits().length === 8) lookupCep();
+        })();
+        (function() {
+          var input = document.querySelector('[data-profile-image]');
+          var preview = document.querySelector('[data-profile-preview]');
+          var placeholder = document.querySelector('[data-profile-placeholder]');
+          if (!input || !preview || !placeholder) return;
+          var currentPreviewUrl = '';
+          input.addEventListener('change', function() {
+            var file = input.files && input.files[0];
+            if (!file) {
+              preview.hidden = true;
+              placeholder.hidden = false;
+              if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
+              currentPreviewUrl = '';
+              return;
+            }
+            if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
+            currentPreviewUrl = URL.createObjectURL(file);
+            preview.src = currentPreviewUrl;
+            preview.hidden = false;
+            placeholder.hidden = true;
+          });
         })();
         (function() {
           var toggle = document.querySelector('[data-auth-theme-toggle]');

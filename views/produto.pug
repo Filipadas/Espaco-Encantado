@@ -1,7 +1,7 @@
 extends layout
 
 block content
-  main.product-detail-page
+  main.product-detail-page(data-favorite-ids=JSON.stringify(favoriteIds || []))
     a.admin-back-link(href='/catalogo')
       i.bi.bi-arrow-left
       | Voltar ao catálogo
@@ -46,4 +46,4 @@ block content
                 span Foto
             strong= similar.name
             span R$ #{Number(similar.price).toFixed(2).replace('.', ',')}
-        a.products-more-button(href='/catalogo?estado=' + product.category) Ver mais
+        a.products-more-button(href='/produto/' + product._id + '/semelhantes') Ver mais

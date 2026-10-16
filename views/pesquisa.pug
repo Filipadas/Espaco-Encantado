@@ -30,6 +30,15 @@ block content
           p Não há especificações disponíveis para filtrar estes resultados.
       section.search-results-content(aria-label='Produtos encontrados')
         p.search-results-count #{products.length} produto(s) encontrado(s)
+        label.admin-product-search.search-results-sort
+          span Ordenar por:
+          select(data-search-sort)
+            option(value='relevancia' selected=selectedSortOrder === 'relevancia') Mais relevantes
+            option(value='nome-asc' selected=selectedSortOrder === 'nome-asc') Nome (A–Z)
+            option(value='nome-desc' selected=selectedSortOrder === 'nome-desc') Nome (Z–A)
+            option(value='preco-asc' selected=selectedSortOrder === 'preco-asc') Preço (menor primeiro)
+            option(value='preco-desc' selected=selectedSortOrder === 'preco-desc') Preço (maior primeiro)
+            option(value='disponibilidade' selected=selectedSortOrder === 'disponibilidade') Disponibilidade
         if products.length
           .search-results-grid
             each product in products
@@ -59,3 +68,13 @@ block content
             i.bi.bi-search(aria-hidden='true')
             h2 Nenhum produto encontrado
             p Tente outros termos ou remova alguns filtros de especificação.
+  script.
+    (function() {
+      var select = document.querySelector('[data-search-sort]');
+      if (!select) return;
+      select.addEventListener('change', function() {
+        var params = new URLSearchParams(window.location.search);
+        params.set('ordenar', select.value);
+        window.location.search = params.toString();
+      });
+    })();

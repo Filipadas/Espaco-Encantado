@@ -1,0 +1,50 @@
+extends layout
+
+block content
+  main.admin-page
+    a.admin-back-link(href='/')
+      i.bi.bi-arrow-left
+      | Início
+    p.admin-eyebrow AGENDA
+    h1.admin-title Minhas reuniões
+    p.admin-subtitle Consulte as reuniões que você solicitou.
+    if meetings && meetings.length
+      .admin-table-wrap
+        table.admin-table
+          thead
+            tr
+              th Data
+              th Horário
+              th Status
+          tbody
+            each meeting in meetings
+              tr
+                td(data-label='Data')= meeting.date.split('-').reverse().join('/')
+                td(data-label='Horário')= meeting.time
+                td(data-label='Status')= meeting.status === 'requested' ? 'Solicitada' : meeting.status === 'confirmed' ? 'Confirmada' : meeting.status === 'unavailable' ? 'Indisponível' : 'Cancelada'
+    else
+      .admin-empty
+        i.bi.bi-calendar-event
+        p Você não tem reuniões futuras.
+        a.admin-primary-button(href='/?#agenda') Agendar reunião
+    section.meeting-history-card(aria-labelledby='meeting-history-title')
+      p.admin-eyebrow HISTÓRICO
+      h2#meeting-history-title Histórico das minhas reuniões
+      if meetingHistory && meetingHistory.length
+        .admin-table-wrap
+          table.admin-table
+            thead
+              tr
+                th Data
+                th Horário
+                th Status
+            tbody
+              each meeting in meetingHistory
+                - var scheduledAt = new Date(meeting.date + 'T' + meeting.time)
+                - var historyStatus = meeting.status === 'cancelled' ? 'Cancelada' : (meeting.status === 'confirmed' && scheduledAt < new Date() ? 'Realizada' : meeting.status === 'requested' && scheduledAt < new Date() ? 'Não confirmada' : meeting.status === 'confirmed' ? 'Confirmada' : meeting.status)
+                tr
+                  td(data-label='Data')= meeting.date.split('-').reverse().join('/')
+                  td(data-label='Horário')= meeting.time
+                  td(data-label='Status')= historyStatus
+      else
+        p.meeting-history-empty Nenhuma reunião no histórico.

@@ -10,6 +10,9 @@ var Meeting = require('../models/Meeting');
 var SiteSettings = require('../models/SiteSettings');
 var inventory = require('../services/inventory');
 var receipts = require('../services/receipts');
+var defaultHomeCarouselImages = require('../config/home-carousel-images');
+var meetingHistoryUtils = require('../utils/meeting-history');
+var customerWhatsApp = require('../utils/customer-whatsapp').customerWhatsAppUrl;
 var { requireAdmin } = require('../middleware/auth');
 var router = express.Router();
 var upload = multer({
@@ -24,6 +27,17 @@ var upload = multer({
     callback(null, file.mimetype.indexOf('image/') === 0);
   }
 });
+var carouselUpload = multer({
+  storage: multer.diskStorage({
+    destination: path.join(__dirname, '..', 'public', 'uploads'),
+    filename: function(req, file, callback) {
+      callback(null, 'home-carousel-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname).toLowerCase());
+    }
+  }),
+  limits: { files: 3, fileSize: 5 * 1024 * 1024 },
+  fileFilter: function(req, file, callback) { callback(null, file.mimetype.indexOf('image/') === 0); }
+});
+var carouselImageFields = carouselUpload.fields([{ name: 'carouselImage0', maxCount: 1 }, { name: 'carouselImage1', maxCount: 1 }, { name: 'carouselImage2', maxCount: 1 }]);
 
 router.use(requireAdmin);
 
@@ -178,7 +192,30 @@ router.get('/', function(req, res) {
 
 router.get('/usuarios', async function(req, res, next) {
   try {
-    res.render('admin-usuarios', { title: 'Gerenciar usuários', users: await User.find().sort({ createdAt: -1 }) });
+    res.render('admin-usuarios', { title: 'Gerenciar usuários', users: await User.find().sort({ createdAt: -1 }), currentAdminId: req.session.user.id, userMessage: req.session.userMessage });
+    delete req.session.userMessage;
+  } catch (error) { next(error); }
+});
+
+router.post('/usuarios/:id/perfil', async function(req, res, next) {
+  try {
+    if (['admin', 'user'].indexOf(req.body.role) === -1) {
+      req.session.userMessage = 'Selecione Administrador ou Cliente.';
+      return res.redirect('/admin/usuarios');
+    }
+    var user = await User.findById(req.params.id);
+    if (!user) {
+      req.session.userMessage = 'Esta conta não foi encontrada.';
+      return res.redirect('/admin/usuarios');
+    }
+    if (String(user._id) === String(req.session.user.id)) {
+      req.session.userMessage = 'A função da sua própria conta não pode ser alterada.';
+      return res.redirect('/admin/usuarios');
+    }
+    user.role = req.body.role;
+    await user.save();
+    req.session.userMessage = 'Perfil de ' + user.name + ' atualizado.';
+    res.redirect('/admin/usuarios');
   } catch (error) { next(error); }
 });
 
@@ -414,9 +451,31 @@ router.post('/estoque/:id', async function(req, res, next) {
   }
 });
 
+function isValidCalendarDate(value) {
+  var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+  if (!match) return false;
+  var date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return date.toISOString().slice(0, 10) === value;
+}
+
+async function hasActiveScheduleConflict(rental, exceptId) {
+  var dates = new Set(rental.dates || []);
+  var components = new Set((rental.reservedComponents || []).map(function(item) { return String(item.product); }));
+  if (!dates.size || !components.size) return false;
+  var query = { status: 'active' };
+  if (exceptId) query._id = { $ne: exceptId };
+  var activeRentals = await Rental.find(query).select('dates reservedComponents salonRental salonDate salonTime');
+  return activeRentals.some(function(activeRental) {
+    var dateOverlap = (activeRental.dates || []).some(function(date) { return dates.has(date); });
+    var componentOverlap = (activeRental.reservedComponents || []).some(function(component) { return components.has(String(component.product)); });
+    var salonOverlap = rental.salonRental && activeRental.salonRental && rental.salonDate === activeRental.salonDate && rental.salonTime === activeRental.salonTime;
+    return (dateOverlap && componentOverlap) || salonOverlap;
+  });
+}
+
 router.get('/solicitacoes', async function(req, res, next) {
   try {
-    res.render('admin-solicitacoes', { title: 'Solicitações', rentals: await Rental.find({ status: 'active' }).populate('user').sort({ dates: 1, createdAt: 1 }) });
+    res.render('admin-solicitacoes', { title: 'Solicitações', rentals: await Rental.find({ status: { $in: ['analysis', 'active'] } }).populate('user').sort({ createdAt: -1 }) });
   } catch (error) { next(error); }
 });
 
@@ -424,17 +483,138 @@ router.get('/solicitacoes/:id', async function(req, res, next) {
   try {
     var rental = await Rental.findById(req.params.id).populate('user');
     if (!rental) return res.status(404).render('erro', { title: 'Solicitação não encontrada', message: 'Esta solicitação não existe.', error: {}, status: 404 });
-    res.render('admin-solicitacao-detalhe', { title: 'Detalhes da solicitação', rental: rental });
+    res.render('admin-solicitacao-detalhe', { title: 'Detalhes da solicitação', rental: rental, formError: req.session.rentalFormError, formSuccess: req.session.rentalFormSuccess });
+    delete req.session.rentalFormError;
+    delete req.session.rentalFormSuccess;
   } catch (error) { next(error); }
+});
+
+router.post('/solicitacoes/:id/editar', async function(req, res, next) {
+  try {
+    var rental = await Rental.findById(req.params.id);
+    if (!rental) return res.status(404).render('erro', { title: 'Solicitação não encontrada', message: 'Esta solicitação não existe.', error: {}, status: 404 });
+    if (rental.deliveryChecked || ['returned', 'cancelled'].indexOf(rental.status) !== -1) {
+      req.session.rentalFormError = 'Uma solicitação já entregue, devolvida ou cancelada não pode ser editada.';
+      return res.redirect('/admin/solicitacoes/' + rental._id);
+    }
+    var productIds = Array.isArray(req.body.itemProductId) ? req.body.itemProductId : (req.body.itemProductId ? [req.body.itemProductId] : []);
+    var quantities = Array.isArray(req.body.itemQuantity) ? req.body.itemQuantity : (req.body.itemQuantity ? [req.body.itemQuantity] : []);
+    var itemDates = Array.isArray(req.body.itemDate) ? req.body.itemDate : (req.body.itemDate ? [req.body.itemDate] : []);
+    if (productIds.length !== rental.items.length || quantities.length !== rental.items.length || itemDates.length !== rental.items.length) throw new Error('Confira os produtos, quantidades e datas da solicitação.');
+    var expanded = {};
+    var uniqueDates = [];
+    for (var index = 0; index < rental.items.length; index += 1) {
+      var item = rental.items[index];
+      var quantity = Number(quantities[index]);
+      var date = String(itemDates[index] || '');
+      if (String(productIds[index]) !== String(item.product) || !Number.isInteger(quantity) || quantity < 1 || !isValidCalendarDate(date)) throw new Error('Confira a quantidade e a data de cada item.');
+      var product = await inventory.findProductGraph(item.product);
+      if (!product) throw new Error('Um produto desta solicitação não existe mais.');
+      inventory.expandProduct(product, quantity, expanded);
+      item.quantity = quantity;
+      item.date = date;
+      if (uniqueDates.indexOf(date) === -1) uniqueDates.push(date);
+    }
+    var deliveryAddress = String(req.body.deliveryAddress || '').trim();
+    var deliveryCity = String(req.body.deliveryCity || '').trim();
+    var deliveryState = String(req.body.deliveryState || '').trim().toUpperCase();
+    var deliveryCep = String(req.body.deliveryCep || '').trim();
+    var deliveryDate = String(req.body.deliveryDate || '');
+    var deliveryTime = String(req.body.deliveryTime || '');
+    var salonRental = req.body.salonRental === 'on';
+    var salonDate = String(req.body.salonDate || '');
+    var salonTime = String(req.body.salonTime || '');
+    if (!deliveryAddress || !deliveryCity || !/^[A-Z]{2}$/.test(deliveryState) || !deliveryCep || !isValidCalendarDate(deliveryDate) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(deliveryTime)) throw new Error('Preencha corretamente o endereço e os dados da entrega.');
+    if (salonRental && (!isValidCalendarDate(salonDate) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(salonTime))) throw new Error('Preencha a data e o horário do salão.');
+    var componentIds = Object.keys(expanded);
+    var components = await Product.find({ _id: { $in: componentIds } });
+    if (components.length !== componentIds.length) throw new Error('Um componente do kit não foi encontrado.');
+    for (var componentIndex = 0; componentIndex < components.length; componentIndex += 1) {
+      var component = components[componentIndex];
+      if ((Number(component.stockTotal) || 0) - (Number(component.rentedQuantity) || 0) < expanded[String(component._id)]) throw new Error('A quantidade solicitada excede o estoque disponível para ' + component.name + '.');
+    }
+    rental.dates = uniqueDates;
+    rental.reservedComponents = componentIds.map(function(id) { return { product: id, quantity: expanded[id] }; });
+    rental.deliveryAddress = deliveryAddress;
+    rental.deliveryCity = deliveryCity;
+    rental.deliveryState = deliveryState;
+    rental.deliveryCep = deliveryCep;
+    rental.deliveryDate = deliveryDate;
+    rental.deliveryTime = deliveryTime;
+    rental.salonRental = salonRental;
+    rental.salonDate = salonRental ? salonDate : undefined;
+    rental.salonTime = salonRental ? salonTime : undefined;
+    if (rental.status === 'active' && await hasActiveScheduleConflict(rental, rental._id)) throw new Error('Os itens, as datas ou o horário do salão conflitam com outro aluguel ativo.');
+    await rental.save();
+    await rental.populate('user');
+    var itemSummary = rental.items.map(function(item) { return '- ' + item.quantity + 'x ' + item.name + ' (uso em ' + item.date.split('-').reverse().join('/') + ')'; });
+    var editMessage = [
+      'Sua solicitação de locação foi atualizada pela loja.',
+      '',
+      'Itens:',
+      ...itemSummary,
+      'Entrega prevista: ' + rental.deliveryDate.split('-').reverse().join('/') + ' às ' + rental.deliveryTime,
+      'Endereço: ' + rental.deliveryAddress + ', ' + rental.deliveryCity + '/' + rental.deliveryState + ' — CEP ' + rental.deliveryCep
+    ];
+    if (rental.salonRental) editMessage.push('Salão: ' + rental.salonDate.split('-').reverse().join('/') + ' às ' + rental.salonTime);
+    var editWhatsAppUrl = customerWhatsApp(rental.user, editMessage);
+    if (editWhatsAppUrl) return res.redirect(editWhatsAppUrl);
+    req.session.rentalFormSuccess = 'As alterações foram salvas. Não foi possível abrir o WhatsApp porque o cliente não tem um telefone válido cadastrado.';
+    res.redirect('/admin/solicitacoes/' + rental._id);
+  } catch (error) {
+    req.session.rentalFormError = error.message || 'Não foi possível editar a solicitação.';
+    res.redirect('/admin/solicitacoes/' + req.params.id);
+  }
+});
+
+router.post('/solicitacoes/:id/confirmar', async function(req, res, next) {
+  try {
+    var rental = await Rental.findOne({ _id: req.params.id, status: 'analysis' }).populate('user');
+    if (!rental) {
+      req.session.rentalFormError = 'Esta solicitação não está mais aguardando aprovação.';
+      return res.redirect('/admin/solicitacoes/' + req.params.id);
+    }
+    var componentIds = (rental.reservedComponents || []).map(function(component) { return String(component.product); });
+    var components = await Product.find({ _id: { $in: componentIds } });
+    if (components.length !== componentIds.length) throw new Error('Um componente desta solicitação não foi encontrado.');
+    for (var index = 0; index < components.length; index += 1) {
+      var component = components[index];
+      var requested = rental.reservedComponents.find(function(entry) { return String(entry.product) === String(component._id); });
+      if ((Number(component.stockTotal) || 0) - (Number(component.rentedQuantity) || 0) < requested.quantity) throw new Error('Não há estoque suficiente de ' + component.name + ' para aprovar esta solicitação.');
+    }
+    if (await hasActiveScheduleConflict(rental, rental._id)) throw new Error('Os itens, as datas ou o horário do salão conflitam com outro aluguel ativo.');
+    rental.status = 'active';
+    await rental.save();
+    var approvalMessage = [
+      'Sua solicitação de locação foi aprovada e está ativa.',
+      'Entrega prevista: ' + rental.deliveryDate.split('-').reverse().join('/') + ' às ' + rental.deliveryTime,
+      'Endereço: ' + rental.deliveryAddress + ', ' + rental.deliveryCity + '/' + rental.deliveryState,
+      'Itens: ' + rental.items.map(function(item) { return item.quantity + 'x ' + item.name; }).join(', ')
+    ];
+    var approvalWhatsAppUrl = customerWhatsApp(rental.user, approvalMessage);
+    if (approvalWhatsAppUrl) return res.redirect(approvalWhatsAppUrl);
+    req.session.rentalFormSuccess = 'Solicitação aprovada e marcada como ativa. O cliente não tem um telefone válido cadastrado.';
+    res.redirect('/admin/solicitacoes/' + rental._id);
+  } catch (error) {
+    req.session.rentalFormError = error.message || 'Não foi possível aprovar a solicitação.';
+    res.redirect('/admin/solicitacoes/' + req.params.id);
+  }
 });
 
 async function closeRental(req, res, next, status) {
   try {
-    var rental = await Rental.findOneAndUpdate({ _id: req.params.id, status: 'active' }, { status: status }, { new: true });
+    var rental = await Rental.findOneAndUpdate({ _id: req.params.id, status: { $in: ['analysis', 'active'] } }, { status: status }, { new: true }).populate('user');
     if (rental && rental.deliveryChecked && !rental.returnChecked) {
       await Promise.all(rental.reservedComponents.map(function(component) { return Product.findByIdAndUpdate(component.product, { $inc: { rentedQuantity: -component.quantity } }); }));
       rental.returnChecked = true;
       await rental.save();
+    }
+    if (rental) {
+      var cancelMessage = status === 'cancelled'
+        ? ['Sua solicitação de locação foi cancelada pela loja.', 'Se precisar de ajuda, responda a esta mensagem.']
+        : ['A locação foi encerrada pela loja.'];
+      var cancelWhatsAppUrl = customerWhatsApp(rental.user, cancelMessage);
+      if (cancelWhatsAppUrl) return res.redirect(cancelWhatsAppUrl);
     }
     res.redirect('/admin/solicitacoes');
   } catch (error) { next(error); }
@@ -444,13 +624,14 @@ router.post('/solicitacoes/:id/conferencia', async function(req, res, next) {
   var session = await mongoose.startSession();
   try {
     session.startTransaction();
-    var rental = await Rental.findOne({ _id: req.params.id, status: 'active' }).session(session);
+    var rental = await Rental.findOne({ _id: req.params.id, status: 'active' }).populate('user').session(session);
     if (!rental) {
       await session.abortTransaction();
       return res.redirect('/admin/solicitacoes');
     }
 
-    var submittedItems = rental.deliveryChecked ? req.body.returnedItem : req.body.deliveredItem;
+    var isReturnChecklist = rental.deliveryChecked;
+    var submittedItems = isReturnChecklist ? req.body.returnedItem : req.body.deliveredItem;
     var checkedIds = new Set((Array.isArray(submittedItems) ? submittedItems : (submittedItems ? [submittedItems] : [])).map(String));
     var rentalItemIds = Array.from(new Set(rental.items.map(function(item) { return String(item.product); })));
 
@@ -477,6 +658,13 @@ router.post('/solicitacoes/:id/conferencia', async function(req, res, next) {
 
     await rental.save({ session: session });
     await session.commitTransaction();
+    var checkedItems = isReturnChecklist ? rental.returnedItems : rental.deliveredItems;
+    var checkedNames = rental.items.filter(function(item) { return checkedItems.map(String).indexOf(String(item.product)) !== -1; }).map(function(item) { return item.name; });
+    var checklistMessage = isReturnChecklist
+      ? ['A loja atualizou a conferência de devolução da sua locação.', 'Itens conferidos: ' + (checkedNames.length ? checkedNames.join(', ') : 'nenhum') + ' (' + checkedNames.length + ' de ' + rental.items.length + ').', rental.returnChecked ? 'A devolução foi concluída.' : 'A conferência será concluída quando todos os itens forem recebidos.']
+      : ['A loja atualizou a conferência de entrega da sua locação.', 'Itens entregues: ' + (checkedNames.length ? checkedNames.join(', ') : 'nenhum') + ' (' + checkedNames.length + ' de ' + rental.items.length + ').', rental.deliveryChecked ? 'A entrega foi concluída.' : 'A conferência será concluída quando todos os itens forem entregues.'];
+    var checklistWhatsAppUrl = customerWhatsApp(rental.user, checklistMessage);
+    if (checklistWhatsAppUrl) return res.redirect(checklistWhatsAppUrl);
     res.redirect('/admin/solicitacoes/' + rental._id);
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
@@ -524,7 +712,26 @@ router.get('/comprovantes', async function(req, res, next) {
 
 router.get('/reunioes', async function(req, res, next) {
   try {
-    res.render('admin-reunioes', { title: 'Solicitações de reunião', meetings: await Meeting.find().populate('user').sort({ date: 1, time: 1 }) });
+    var meetingMessages = { confirmada: 'A reunião foi confirmada.' };
+    var allMeetings = await Meeting.find().populate('user').sort({ date: 1, time: 1 });
+    var now = new Date();
+    var meetings = allMeetings.filter(function(meeting) { return !meetingHistoryUtils.isHistorical(meeting, now); });
+    var meetingHistory = allMeetings.filter(function(meeting) { return meetingHistoryUtils.isHistorical(meeting, now); }).sort(function(a, b) {
+      return (b.date + 'T' + b.time).localeCompare(a.date + 'T' + a.time);
+    });
+    res.render('admin-reunioes', { title: 'Solicitações de reunião', meetings: meetings, meetingHistory: meetingHistory, meetingMessage: meetingMessages[req.query.reuniao] || '' });
+  } catch (error) { next(error); }
+});
+
+router.post('/reunioes/:id/confirmar', async function(req, res, next) {
+  try {
+    var meeting = await Meeting.findOneAndUpdate({ _id: req.params.id, status: 'requested' }, { status: 'confirmed' }, { new: true }).populate('user');
+    if (meeting) {
+      var meetingMessage = ['Sua reunião foi confirmada para ' + meeting.date.split('-').reverse().join('/') + ' às ' + meeting.time + '.', 'Esperamos você!'];
+      var meetingWhatsAppUrl = customerWhatsApp(meeting.user, meetingMessage);
+      if (meetingWhatsAppUrl) return res.redirect(meetingWhatsAppUrl);
+    }
+    res.redirect('/admin/reunioes?reuniao=confirmada');
   } catch (error) { next(error); }
 });
 
@@ -538,6 +745,37 @@ router.post('/configuracoes', async function(req, res, next) {
   try {
     await SiteSettings.findOneAndUpdate({ key: 'main' }, { key: 'main', loginWelcome: req.body.loginWelcome, loginSubtitle: req.body.loginSubtitle, meetingHours: req.body.meetingHours, salonHours: req.body.salonHours }, { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true });
     res.redirect('/admin/configuracoes');
+  } catch (error) { next(error); }
+});
+
+router.get('/carrossel', async function(req, res, next) {
+  try {
+    var settings = await SiteSettings.findOne({ key: 'main' });
+    var savedImages = settings && settings.homeCarouselImages && settings.homeCarouselImages.length ? settings.homeCarouselImages : defaultHomeCarouselImages;
+    var images = [0, 1, 2].map(function(index) { return savedImages[index] || ''; });
+    res.render('admin-carrossel', { title: 'Fotos do carrossel', images: images, carouselError: null });
+  } catch (error) { next(error); }
+});
+
+router.post('/carrossel', carouselImageFields, async function(req, res, next) {
+  try {
+    var settings = await SiteSettings.findOne({ key: 'main' });
+    var savedImages = settings && settings.homeCarouselImages && settings.homeCarouselImages.length ? settings.homeCarouselImages : defaultHomeCarouselImages;
+    var existingImages = [0, 1, 2].map(function(index) { return savedImages[index] || ''; });
+    var images = [];
+    for (var index = 0; index < 3; index += 1) {
+      if (req.body['removeCarouselImage' + index] === 'on') continue;
+      var file = req.files && req.files['carouselImage' + index] && req.files['carouselImage' + index][0];
+      var submitted = String(req.body['currentCarouselImage' + index] || existingImages[index] || defaultHomeCarouselImages[index] || '').trim();
+      var safePath = /^\/(images|uploads)\/[A-Za-z0-9_./-]+$/.test(submitted) && submitted.indexOf('..') === -1 ? submitted : '';
+      var image = file ? '/uploads/' + file.filename : safePath;
+      if (image) images.push(image);
+    }
+    if (!images.length) {
+      return res.status(400).render('admin-carrossel', { title: 'Fotos do carrossel', images: existingImages, carouselError: 'Mantenha ou envie pelo menos uma foto para o carrossel.' });
+    }
+    await SiteSettings.findOneAndUpdate({ key: 'main' }, { $set: { homeCarouselImages: images }, $setOnInsert: { key: 'main' } }, { upsert: true, setDefaultsOnInsert: true });
+    res.redirect('/admin/carrossel');
   } catch (error) { next(error); }
 });
 

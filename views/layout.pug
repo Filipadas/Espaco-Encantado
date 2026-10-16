@@ -18,11 +18,6 @@ html
                     .product-search-suggestions(role='listbox' aria-label='Sugestões de produtos' data-product-search-suggestions hidden)
                 .navbar-actions-section
                     if currentUser
-                        a.navbar-login.navbar-login-icon(href="/perfil" aria-label="Meu perfil" title="Meu perfil")
-                            if currentUser.profileImage
-                                img.navbar-profile-image(src=currentUser.profileImage alt='Foto de perfil')
-                            else
-                                i.bi.bi-person-circle(aria-hidden="true")
                         if isAdmin
                             a.navbar-special-action(href="/admin/reunioes" aria-label="Solicitações de reunião" title="Solicitações de reunião")
                                 i.bi.bi-calendar-event-fill(aria-hidden="true")
@@ -39,6 +34,11 @@ html
                                 i.bi.bi-grid-3x3-gap-fill(aria-hidden="true")
                             a.navbar-special-action(href="/sacola" aria-label="Minha sacola" title="Minha sacola")
                                 i.bi.bi-bag-fill(aria-hidden="true")
+                        a.navbar-login.navbar-login-icon(href="/perfil" aria-label="Meu perfil" title="Meu perfil")
+                            if currentUser.profileImage
+                                img.navbar-profile-image(src=currentUser.profileImage alt='Foto de perfil')
+                            else
+                                i.bi.bi-person-circle(aria-hidden="true")
                     else
                         a.navbar-login(href="/entrar" aria-label="Entrar")
                             i.bi.bi-person-circle(aria-hidden="true")
@@ -70,6 +70,10 @@ html
                             a.nav-link(href='/admin/reunioes')
                                 i.bi.bi-calendar-event-fill(aria-hidden='true')
                                 |  Reuniões
+                        li.nav-item
+                            a.nav-link(href='/?#agenda')
+                                i.bi.bi-calendar-minus(aria-hidden='true')
+                                |  Bloquear horários
                     else if currentUser && !isAdmin
                         li.nav-item
                             a.nav-link(href='/favoritos')
@@ -79,6 +83,10 @@ html
                             a.nav-link(href='/?#agenda')
                                 i.bi.bi-calendar-plus(aria-hidden='true')
                                 |  Agendar reunião
+                        li.nav-item
+                            a.nav-link(href='/reunioes/minhas')
+                                i.bi.bi-calendar2-week(aria-hidden='true')
+                                |  Minhas reuniões
                         li.nav-item
                             a.nav-link(href='/sacola/historico')
                                 i.bi.bi-clock-history(aria-hidden='true')
@@ -114,21 +122,26 @@ html
                 span Sacola
             a.mobile-tab-home(href='/' aria-label='Tela inicial Espaço Encantado')
                 img(src='/images/logo_ee.png' alt='Início')
+            if currentUser
+                a.mobile-tab-item(class=activePath === '/perfil' ? 'is-active' : '' href='/perfil' aria-label='Conta')
+                    if currentUser.profileImage
+                        img.mobile-tab-avatar(src=currentUser.profileImage alt='Foto do perfil')
+                    else
+                        i.bi.bi-person-circle(aria-hidden='true')
+                    span Conta
             button.mobile-tab-item(type='button' data-bs-toggle='offcanvas' data-bs-target='#offcanvasNavbar' aria-controls='offcanvasNavbar' aria-label='Outros')
                 i.bi.bi-three-dots(aria-hidden='true')
                 span Outros
-            a.mobile-tab-item(class=activePath === '/perfil' || activePath === '/entrar' ? 'is-active' : '' href=currentUser ? '/perfil' : '/entrar' aria-label='Conta')
-                if currentUser && currentUser.profileImage
-                    img.mobile-tab-avatar(src=currentUser.profileImage alt='Foto do perfil')
-                else
+            unless currentUser
+                a.mobile-tab-item(class=activePath === '/entrar' ? 'is-active' : '' href='/entrar' aria-label='Conta')
                     i.bi.bi-person-circle(aria-hidden='true')
-                span Conta
+                    span Conta
         
         footer.site-footer
             .footer-main
                 .footer-contact
                     span Rua Ricardo Inácio - Praia Grande, SC
-                    a(href='https://wa.me/5548999161551?text=Vim%20pelo%20site!' target='_blank' rel='noopener') +55 48 999161551
+                    a(href='https://wa.me/' + whatsappNumber + '?text=Vim%20pelo%20site!' target='_blank' rel='noopener') +55 48 999161551
                 img.footer-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
                 .footer-socials
                     a(href='https://www.instagram.com/espacoencantadodec/' target='_blank' rel='noopener' aria-label='Instagram' title='Instagram')
@@ -137,7 +150,7 @@ html
                         i.bi.bi-facebook(aria-hidden='true')
             small.footer-copyright Todos os direitos reservados
 
-        a.whatsapp-float(href='https://wa.me/5548999161551?text=Vim%20pelo%20site!' target='_blank' rel='noopener' aria-label='WhatsApp' title='WhatsApp')
+        a.whatsapp-float(href='https://wa.me/' + whatsappNumber + '?text=Vim%20pelo%20site!' target='_blank' rel='noopener' aria-label='WhatsApp' title='WhatsApp')
             i.bi.bi-whatsapp(aria-hidden='true')
         
             
@@ -159,13 +172,18 @@ html
                                                         var timesContainer = modal.querySelector('[data-scheduler-times]');
                                                         var currentWeek = new Date();
                             var feedback = modal.querySelector('[data-scheduler-feedback]');
-
-                                                        var dayNames = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
-                                                        var timeGroups = [
-                                                            { name: 'Manhã', times: ['08:00', '09:00', '10:00', '11:00'] },
-                                                              { name: 'Tarde', times: ['13:00', '14:00', '15:00', '16:00', '17:00'] },
-                                                            { name: 'Noite', times: ['18:00', '19:00', '20:00'] }
-                                                        ];
+                            var meetingHours = JSON.parse(modal.dataset.meetingHours || '[]');
+                            var schedulerMeetings = JSON.parse(modal.dataset.schedulerMeetings || '[]');
+                            var isAdminScheduler = modal.dataset.schedulerIsAdmin === 'true';
+                            var submitButton = modal.querySelector('[data-scheduler-submit]');
+                            var selectedTimesContainer = modal.querySelector('[data-selected-times]');
+                            var selectedTimes = [];
+                            var dayNames = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+                            var timeGroups = [
+                                { name: 'Manhã', times: meetingHours.filter(function(time) { return Number(time.slice(0, 2)) < 12; }) },
+                                { name: 'Tarde', times: meetingHours.filter(function(time) { return Number(time.slice(0, 2)) >= 12 && Number(time.slice(0, 2)) < 18; }) },
+                                { name: 'Noite', times: meetingHours.filter(function(time) { return Number(time.slice(0, 2)) >= 18; }) }
+                            ].filter(function(group) { return group.times.length; });
 
                                                         function formatDate(date) {
                                                             var year = date.getFullYear();
@@ -205,11 +223,15 @@ html
                                                                 dayButton.addEventListener('click', function() {
                                                                     if (this.disabled) return;
                                                                     dateInput.value = this.dataset.date;
+                                                                    selectedTimes = [];
+                                                                    if (selectedTimesContainer) selectedTimesContainer.innerHTML = '';
                                                                     modal.querySelectorAll('.scheduler-day').forEach(function(button) {
                                                                         button.classList.remove('is-selected');
                                                                     });
                                                                     this.classList.add('is-selected');
                                                                     timeInput.value = '';
+                                                                    if (submitButton) submitButton.textContent = isAdminScheduler ? 'Marcar horário como indisponível' : 'Solicitar reunião';
+                                                                    form.action = isAdminScheduler ? '/reunioes/bloquear' : '/reunioes';
                                                                     renderTimes();
                                                                 });
                                                                 daysContainer.appendChild(dayButton);
@@ -229,16 +251,58 @@ html
                                                                     timeButton.className = 'scheduler-time';
                                                                     timeButton.textContent = time;
                                                                     timeButton.dataset.time = time;
+                                                                    var slot = schedulerMeetings.find(function(meeting) { return meeting.date === dateInput.value && meeting.time === time; });
+                                                                    var blockedByAdmin = slot && slot.status === 'unavailable';
+                                                                    var bookedByClient = slot && !blockedByAdmin;
                                                                     var now = new Date();
                                                                     var selectedDate = dateInput.value;
                                                                     var today = formatDate(now);
-                                                                    if (selectedDate < today || (selectedDate === today && time <= now.toTimeString().slice(0, 5))) {
+                                                                    if (selectedDate < today || (selectedDate === today && time <= now.toTimeString().slice(0, 5)) || (bookedByClient && !isAdminScheduler) || (bookedByClient && isAdminScheduler)) {
                                                                         timeButton.disabled = true;
                                                                         timeButton.classList.add('is-disabled');
+                                                                        if (bookedByClient) {
+                                                                            timeButton.textContent = time + ' · Agendado';
+                                                                            timeButton.title = 'Este horário já foi solicitado por um cliente.';
+                                                                        }
+                                                                    }
+                                                                    if (blockedByAdmin) {
+                                                                        if (isAdminScheduler) {
+                                                                            timeButton.classList.add('is-blocked');
+                                                                            timeButton.textContent = time + ' · Liberar';
+                                                                        } else {
+                                                                            timeButton.disabled = true;
+                                                                            timeButton.classList.add('is-disabled');
+                                                                            timeButton.title = 'Este horário está indisponível.';
+                                                                        }
                                                                     }
                                                                     timeButton.addEventListener('click', function() {
                                                                         if (this.disabled) return;
+                                                                        var selectedSlotIsBlocked = Boolean(blockedByAdmin && isAdminScheduler);
+                                                                        if (isAdminScheduler && !selectedSlotIsBlocked) {
+                                                                            var selectedIndex = selectedTimes.indexOf(this.dataset.time);
+                                                                            if (selectedIndex === -1) selectedTimes.push(this.dataset.time);
+                                                                            else selectedTimes.splice(selectedIndex, 1);
+                                                                            this.classList.toggle('is-selected', selectedIndex === -1);
+                                                                            timeInput.value = '';
+                                                                            form.action = '/reunioes/bloquear';
+                                                                            if (selectedTimesContainer) {
+                                                                                selectedTimesContainer.innerHTML = '';
+                                                                                selectedTimes.forEach(function(selectedTime) {
+                                                                                    var input = document.createElement('input');
+                                                                                    input.type = 'hidden'; input.name = 'times'; input.value = selectedTime;
+                                                                                    selectedTimesContainer.appendChild(input);
+                                                                                });
+                                                                            }
+                                                                            if (submitButton) submitButton.textContent = selectedTimes.length ? 'Indisponibilizar ' + selectedTimes.length + ' horário(s)' : 'Marcar horário como indisponível';
+                                                                            return;
+                                                                        }
+                                                                        if (isAdminScheduler) {
+                                                                            selectedTimes = [];
+                                                                            if (selectedTimesContainer) selectedTimesContainer.innerHTML = '';
+                                                                        }
                                                                         timeInput.value = this.dataset.time;
+                                                                        form.action = isAdminScheduler && selectedSlotIsBlocked ? '/reunioes/desbloquear' : (isAdminScheduler ? '/reunioes/bloquear' : '/reunioes');
+                                                                        if (submitButton) submitButton.textContent = isAdminScheduler ? (selectedSlotIsBlocked ? 'Liberar horário' : 'Marcar horário como indisponível') : 'Solicitar reunião';
                                                                         modal.querySelectorAll('.scheduler-time').forEach(function(button) {
                                                                             button.classList.remove('is-selected');
                                                                         });
@@ -261,6 +325,10 @@ html
                                                                 currentWeek = new Date();
                                                                 dateInput.value = formatDate(new Date());
                                                                 timeInput.value = '';
+                                selectedTimes = [];
+                                if (selectedTimesContainer) selectedTimesContainer.innerHTML = '';
+                                form.action = isAdminScheduler ? '/reunioes/bloquear' : '/reunioes';
+                                if (submitButton) submitButton.textContent = isAdminScheduler ? 'Marcar horário como indisponível' : 'Solicitar reunião';
                                 feedback.textContent = '';
                                                                 renderDays();
                                                                 renderTimes();
@@ -287,9 +355,10 @@ html
                                 if (event.key === 'Escape' && modal.classList.contains('is-visible')) closeModal();
                             });
                             form.addEventListener('submit', function(event) {
-                                if (!dateInput.value || !timeInput.value) {
+                                var isBlockingMultiple = isAdminScheduler && form.action.indexOf('/reunioes/bloquear') !== -1 && selectedTimes.length > 0;
+                                if (!dateInput.value || (!isBlockingMultiple && !timeInput.value)) {
                                     event.preventDefault();
-                                    feedback.textContent = 'Escolha uma data e um horário.';
+                                    feedback.textContent = isAdminScheduler ? 'Escolha uma data e pelo menos um horário.' : 'Escolha uma data e um horário.';
                                 }
                             });
                         })();
@@ -410,8 +479,58 @@ html
                                 document.addEventListener('click', function(event) { if (!widget.contains(event.target)) closeDropdown(); });
                             });
                         })();
+                        (function() {
+                            var favoriteState = document.querySelector('[data-favorite-ids]');
+                            if (!favoriteState) return;
+                            var favoriteIds = JSON.parse(favoriteState.dataset.favoriteIds || '[]');
+                            var favoritesOnly = document.querySelector('[data-favorites-only="true"]');
+                            var favoriteGrid = favoritesOnly && document.querySelector('[data-catalog-grid]');
+                            var favoriteButtons = Array.prototype.slice.call(document.querySelectorAll('[data-favorite]'));
 
+                            function setFavoriteButton(button, active) {
+                                button.setAttribute('aria-pressed', String(active));
+                                button.classList.toggle('is-favorite', active);
+                                button.title = active ? 'Remover dos favoritos' : 'Favoritar';
+                            }
 
-
-
+                            favoriteButtons.forEach(function(button) {
+                                setFavoriteButton(button, favoriteIds.indexOf(button.dataset.favorite) !== -1);
+                                button.addEventListener('click', function() {
+                                    var productId = button.dataset.favorite;
+                                    button.disabled = true;
+                                    fetch('/favoritos/toggle', {
+                                        method: 'POST',
+                                        headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+                                        body: new URLSearchParams({ productId: productId, returnTo: window.location.pathname + window.location.search })
+                                    }).then(function(response) {
+                                        return response.json().then(function(result) { return { ok: response.ok, result: result }; });
+                                    }).then(function(data) {
+                                        if (data.result.loginUrl) { window.location.href = data.result.loginUrl; return; }
+                                        if (!data.ok) throw new Error(data.result.message || 'Não foi possível atualizar os favoritos.');
+                                        var active = data.result.favorited;
+                                        favoriteIds = favoriteIds.filter(function(id) { return id !== productId; });
+                                        if (active) favoriteIds.push(productId);
+                                        favoriteState.dataset.favoriteIds = JSON.stringify(favoriteIds);
+                                        favoriteButtons.forEach(function(item) { if (item.dataset.favorite === productId) setFavoriteButton(item, active); });
+                                        if (favoritesOnly && !active) {
+                                            var card = button.closest('[data-favorite-product]');
+                                            if (card) card.remove();
+                                            if (favoriteGrid && !favoriteGrid.querySelector('.catalog-product-card')) {
+                                                var empty = favoriteGrid.querySelector('[data-catalog-empty]');
+                                                if (!empty) {
+                                                    empty = document.createElement('p');
+                                                    empty.className = 'catalog-empty';
+                                                    empty.setAttribute('data-catalog-empty', '');
+                                                    favoriteGrid.appendChild(empty);
+                                                }
+                                                empty.textContent = 'Você ainda não favoritou produtos.';
+                                                empty.hidden = false;
+                                            }
+                                        }
+                                    }).catch(function(error) {
+                                        if (error && error.message) window.alert(error.message);
+                                    }).finally(function() { button.disabled = false; });
+                                });
+                            });
+                        })();
 
