@@ -12,6 +12,16 @@ block content
       a.admin-primary-button(href='/admin/produtos/novo')
         i.bi.bi-plus-lg
         | Novo produto
+    section.admin-product-filters(data-admin-product-filters)
+      label.admin-product-search
+        span Pesquisar produtos
+        input(type='search' placeholder='Nome, categoria ou subcategoria' data-admin-product-search)
+      .admin-category-card
+        .admin-category-row(aria-label='Categorias de produtos')
+          button.admin-category-button.is-active(type='button' data-filter-category='') Todas
+          each category in (categories || [])
+            button.admin-category-button(type='button' data-filter-category=category)= category
+        .admin-subcategory-row(data-subcategory-row hidden)
     .admin-table-wrap
       table.admin-table
         thead
@@ -24,7 +34,7 @@ block content
             th Ação
         tbody
           each product in products
-            tr
+            tr(data-admin-product data-category=product.category data-subcategories=JSON.stringify(product.subcategories || []))
               td(data-label='Foto')
                 .admin-product-photo
                   if product.imageUrl
@@ -49,3 +59,63 @@ block content
           else
             tr
               td(colspan='6') Nenhum produto cadastrado ainda.
+          if products.length
+            tr.admin-filter-empty(data-filter-empty hidden)
+              td(colspan='6') Nenhum produto corresponde aos filtros selecionados.
+  script.
+    (function() {
+      var filters = document.querySelector('[data-admin-product-filters]');
+      if (!filters) return;
+      var items = Array.prototype.slice.call(document.querySelectorAll('[data-admin-product]'));
+      var categoryButtons = filters.querySelectorAll('[data-filter-category]');
+      var subcategoryRow = filters.querySelector('[data-subcategory-row]');
+      var search = filters.querySelector('[data-admin-product-search]');
+      var empty = document.querySelector('[data-filter-empty]');
+      var categoryLabels = { brinquedos: 'Brinquedos', decoracoes: 'Decorações', 'kit-montagem': 'Kits de montagem', 'festa-infantil': 'Festas infantis' };
+      var selectedCategory = '';
+      var selectedSubcategory = '';
+      function labelFor(category) { return categoryLabels[category] || category; }
+      function renderSubcategories() {
+        subcategoryRow.innerHTML = '';
+        if (!selectedCategory) { subcategoryRow.hidden = true; selectedSubcategory = ''; return; }
+        subcategoryRow.hidden = false;
+        var names = [];
+        items.forEach(function(item) {
+          if (item.dataset.category !== selectedCategory) return;
+          try { JSON.parse(item.dataset.subcategories || '[]').forEach(function(name) { if (names.indexOf(name) === -1) names.push(name); }); } catch (error) {}
+        });
+        names.sort(function(a, b) { return a.localeCompare(b, 'pt-BR'); });
+        [['', 'Geral']].concat(names.map(function(name) { return [name, name]; })).forEach(function(entry) {
+          var button = document.createElement('button');
+          button.type = 'button'; button.className = 'admin-subcategory-button' + (entry[0] === selectedSubcategory ? ' is-active' : '');
+          button.textContent = entry[1];
+          button.addEventListener('click', function() { selectedSubcategory = entry[0]; renderSubcategories(); applyFilters(); });
+          subcategoryRow.appendChild(button);
+        });
+      }
+      function applyFilters() {
+        var term = search.value.trim().toLocaleLowerCase();
+        var visible = 0;
+        items.forEach(function(item) {
+          var subcategories = [];
+          try { subcategories = JSON.parse(item.dataset.subcategories || '[]'); } catch (error) {}
+          var matchesCategory = !selectedCategory || item.dataset.category === selectedCategory;
+          var matchesSubcategory = !selectedSubcategory || subcategories.indexOf(selectedSubcategory) !== -1;
+          var matchesSearch = !term || item.textContent.toLocaleLowerCase().indexOf(term) !== -1;
+          item.hidden = !(matchesCategory && matchesSubcategory && matchesSearch);
+          if (!item.hidden) visible += 1;
+        });
+        if (empty) empty.hidden = visible > 0;
+      }
+      categoryButtons.forEach(function(button) {
+        if (button.dataset.filterCategory) button.textContent = labelFor(button.dataset.filterCategory);
+        button.addEventListener('click', function() {
+          selectedCategory = button.dataset.filterCategory;
+          selectedSubcategory = '';
+          categoryButtons.forEach(function(choice) { choice.classList.toggle('is-active', choice === button); });
+          renderSubcategories(); applyFilters();
+        });
+      });
+      search.addEventListener('input', applyFilters);
+      applyFilters();
+    })();

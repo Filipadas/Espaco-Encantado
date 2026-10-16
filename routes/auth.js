@@ -2,6 +2,7 @@ var express = require('express');
 var bcrypt = require('bcryptjs');
 var User = require('../models/User');
 var SiteSettings = require('../models/SiteSettings');
+var database = require('../config/database');
 var router = express.Router();
 
 function safeReturnTo(value) {
@@ -15,11 +16,20 @@ router.get('/sair', function(req, res) {
 });
 
 router.post('/entrar', async function(req, res, next) {
+  var returnTo = safeReturnTo(req.body.returnTo);
+  if (database.getConnectionState() !== 'conectado') {
+    return res.status(503).render('entrar', {
+      title: 'Entrar',
+      settings: {},
+      loginError: 'Não foi possível conectar ao banco de dados. Tente novamente em alguns instantes.',
+      returnTo: returnTo
+    });
+  }
   try {
     var email = String(req.body.email || '').toLowerCase().trim();
     var user = await User.findOne({ email: email });
     if (!user || !bcrypt.compareSync(String(req.body.password || ''), user.password)) {
-      return res.status(401).render('entrar', { title: 'Entrar', settings: await SiteSettings.findOne({ key: 'main' }) || {}, loginError: 'E-mail ou senha inválidos.', returnTo: safeReturnTo(req.body.returnTo) });
+      return res.status(401).render('entrar', { title: 'Entrar', settings: await SiteSettings.findOne({ key: 'main' }) || {}, loginError: 'E-mail ou senha inválidos.', returnTo: returnTo });
     }
     if (req.session.user && req.session.user.id !== user._id.toString()) delete req.session.cart;
     req.session.user = { id: user._id.toString(), name: user.name, email: user.email, role: user.role, profileImage: user.profileImage };

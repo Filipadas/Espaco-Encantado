@@ -1,6 +1,8 @@
 extends layout
 
 block content
+  - var today = new Date()
+  - var todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
   main.admin-page.request-list-page
     a.admin-back-link.request-list-back(href='/admin')
       i.bi.bi-arrow-left
@@ -9,23 +11,36 @@ block content
       p.admin-eyebrow LOCAÇÕES
       h1.admin-title Solicitações pendentes
       p.admin-subtitle As solicitações mais próximas aparecem primeiro.
+      .request-urgency-legend(aria-label='Cores por proximidade da entrega')
+        span.request-urgency-key.request-urgency-key--urgent Até 3 dias
+        span.request-urgency-key.request-urgency-key--soon De 4 a 7 dias
+        span.request-urgency-key.request-urgency-key--upcoming De 8 a 30 dias
+        span.request-urgency-key.request-urgency-key--distant Mais de 30 dias
       if rentals && rentals.length
         .admin-table-wrap
-          table.admin-table
+          table.admin-table.request-list-table
             thead
               tr
                 th Cliente
                 th Itens
-                th Data
+                th Datas
                 th Ação
             tbody
               each rental in rentals
-                tr
+                - var deliveryDate = rental.deliveryDate || ''
+                - var deliveryParts = deliveryDate.split('-').map(Number)
+                - var deliveryTimestamp = /^\d{4}-\d{2}-\d{2}$/.test(deliveryDate) ? Date.UTC(deliveryParts[0], deliveryParts[1] - 1, deliveryParts[2]) : NaN
+                - var validDeliveryDate = Number.isFinite(deliveryTimestamp) && new Date(deliveryTimestamp).toISOString().slice(0, 10) === deliveryDate
+                - var daysUntilDelivery = validDeliveryDate ? Math.ceil((deliveryTimestamp - todayUtc) / 86400000) : null
+                - var urgency = daysUntilDelivery === null || daysUntilDelivery > 30 ? 'distant' : (daysUntilDelivery <= 3 ? 'urgent' : (daysUntilDelivery <= 7 ? 'soon' : 'upcoming'))
+                tr(class='request-urgency-' + urgency)
                   td(data-label='Cliente')= rental.user ? rental.user.name : 'Cliente'
                   td(data-label='Itens')
                     each item in rental.items
                       div #{item.quantity}x #{item.name}
-                  td(data-label='Data')= rental.createdAt.toLocaleDateString('pt-BR')
+                  td(data-label='Datas')
+                    div Data da solicitação: #{rental.createdAt.toLocaleDateString('pt-BR')}
+                    div Data de entrega: #{validDeliveryDate ? deliveryDate.split('-').reverse().join('/') : 'Não informada'}
                   td(data-label='Ação')
                     a.admin-small-button(href='/admin/solicitacoes/' + rental._id)
                       i.bi.bi-eye(aria-hidden='true')

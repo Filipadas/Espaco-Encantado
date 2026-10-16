@@ -1,6 +1,9 @@
 extends layout
 
 block content
+  - var catalogSpecifications = Array.isArray(specificationCatalog) ? specificationCatalog : []
+  - var categorySubcategories = subcategoryCatalog || {}
+  - var selectedProductSubcategories = Array.isArray(product.subcategories) ? product.subcategories : []
   main.admin-page
     a.admin-back-link(href='/admin/produtos')
       i.bi.bi-arrow-left
@@ -23,6 +26,25 @@ block content
           option(value='decoracoes' selected=product.category === 'decoracoes') Decorações
           option(value='kit-montagem' selected=product.category === 'kit-montagem') Kit de montagem
           option(value='festa-infantil' selected=product.category === 'festa-infantil') Festa infantil
+        fieldset.admin-subcategories(data-subcategories-section data-initial-category=product.category || '')
+          legend Subcategorias
+          p.admin-form-hint Selecione uma ou mais subcategorias. Você também pode criar uma nova.
+          input(type='hidden' name='subcategoryPayload' value='[]' data-subcategory-payload)
+          details.admin-subcategory-dropdown
+            summary(data-subcategory-summary) Escolher subcategorias
+            .admin-subcategory-menu
+              each categoryNames, categoryName in categorySubcategories
+                .admin-subcategory-group(data-subcategory-category=categoryName)
+                  each subcategoryName in categoryNames
+                    .admin-subcategory-entry(data-subcategory-entry)
+                      label.admin-subcategory-option
+                        input(type='checkbox' data-subcategory-option value=subcategoryName checked=product.category === categoryName && selectedProductSubcategories.indexOf(subcategoryName) !== -1)
+                        span= subcategoryName
+                      button.admin-icon-button.admin-icon-button-danger.admin-subcategory-delete(type='button' data-delete-subcategory data-subcategory-category=categoryName data-subcategory-name=subcategoryName aria-label='Excluir subcategoria ' + subcategoryName title='Excluir subcategoria')
+                        i.bi.bi-trash3-fill(aria-hidden='true')
+          .admin-subcategory-create
+            input(type='text' data-new-subcategory placeholder='Ex.: Brinquedos educativos')
+            button.admin-small-button(type='button' data-add-subcategory) Criar subcategoria
         label(for='product-price') Preço
         input#product-price(type='number' name='price' min='0' step='0.01' value=product.price required)
         label(for='product-stock') Estoque total
@@ -105,23 +127,42 @@ block content
               | Adicionar componente
         fieldset.admin-specifications
           legend Especificações
-          p.admin-form-hint Crie parâmetros e seus valores separados por vírgulas. Exemplo: Tamanho: pequeno, médio, grande.
+          p.admin-form-hint Marque uma especificação e escolha os valores que se aplicam a este produto. Novas opções ficam disponíveis para os próximos cadastros.
+          input(type='hidden' name='specificationPayload' value='[]' data-specification-payload)
           .admin-specification-list(data-specification-list)
-            if product.specifications && product.specifications.length
-              each specification in product.specifications
-                .admin-specification-row
-                  input(type='text' name='specificationName' value=specification.name placeholder='Especificação')
-                  input(type='text' name='specificationValues' value=specification.values.join(', ') placeholder='Valores separados por vírgulas')
-                  button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-specification aria-label='Remover especificação' title='Remover especificação')
-                    i.bi.bi-trash3-fill(aria-hidden='true')
-            .admin-specification-row(data-specification-template)
-              input(type='text' name='specificationName' placeholder='Especificação')
-              input(type='text' name='specificationValues' placeholder='Ex.: pequeno, médio, grande')
-              button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-specification aria-label='Remover especificação' title='Remover especificação')
-                i.bi.bi-trash3-fill(aria-hidden='true')
-          button.admin-small-button(type='button' data-add-specification)
-            i.bi.bi-plus-lg(aria-hidden='true')
-            | Nova especificação
+            each specification in catalogSpecifications
+              - var selectedSpecificationValues = Array.isArray(specification.selectedValues) ? specification.selectedValues : []
+              - var availableSpecificationValues = Array.isArray(specification.values) ? specification.values : []
+              - var specificationSelected = selectedSpecificationValues.length > 0
+              .admin-specification-card(data-specification-card)
+                .admin-specification-top
+                  label.admin-specification-heading
+                    input(type='checkbox' data-specification-toggle checked=specificationSelected)
+                    span= specification.name
+                  if specification.isSaved
+                    button.admin-icon-button.admin-icon-button-danger(type='button' data-delete-specification data-specification-name=specification.name aria-label='Excluir especificação ' + specification.name title='Excluir especificação')
+                      i.bi.bi-trash3-fill(aria-hidden='true')
+                .admin-specification-options(data-specification-options hidden=!specificationSelected)
+                  .admin-specification-value-list(data-specification-value-list)
+                    each value in availableSpecificationValues
+                      label.admin-specification-option
+                        input(type='checkbox' data-specification-value value=value checked=selectedSpecificationValues.indexOf(value) !== -1)
+                        span= value
+                  .admin-specification-custom
+                    input(type='text' data-custom-values placeholder='Adicionar opção personalizada')
+                    button.admin-small-button(type='button' data-add-specification-value) Adicionar opção
+          .admin-specification-builder
+            strong Cadastrar nova especificação
+            .admin-specification-builder-fields
+              input(type='text' data-new-specification-name placeholder='Ex.: Material')
+              input(type='text' data-new-specification-values placeholder='Opções separadas por vírgulas')
+              button.admin-small-button(type='button' data-create-specification)
+                i.bi.bi-plus-lg(aria-hidden='true')
+                | Adicionar
+          .admin-specification-selection(aria-live='polite')
+            strong Especificações aplicadas ao produto
+            .admin-specification-summary(data-specification-summary)
+              span Nenhuma especificação selecionada
         button.admin-primary-button(type='submit')
           i.bi.bi-check-lg
           = isEditing ? ' Salvar alterações' : ' Salvar produto'
@@ -163,13 +204,328 @@ block content
         updateComponents();
       }
       var specificationList = document.querySelector('[data-specification-list]');
-      var specificationTemplate = document.querySelector('[data-specification-template]');
-      var addSpecification = document.querySelector('[data-add-specification]');
-      if (specificationList && specificationTemplate && addSpecification) {
-        specificationTemplate.removeAttribute('data-specification-template');
-        addSpecification.addEventListener('click', function() { specificationList.appendChild(specificationTemplate.cloneNode(true)); });
-        specificationList.addEventListener('click', function(event) { var remove = event.target.closest('[data-remove-specification]'); if (remove) remove.closest('.admin-specification-row').remove(); });
+      var specificationPayload = document.querySelector('[data-specification-payload]');
+      var specificationSummary = document.querySelector('[data-specification-summary]');
+      var newSpecificationName = document.querySelector('[data-new-specification-name]');
+      var newSpecificationValues = document.querySelector('[data-new-specification-values]');
+      var createSpecificationButton = document.querySelector('[data-create-specification]');
+      function splitSpecificationValues(value) {
+        return value.split(',').map(function(item) { return item.trim(); }).filter(Boolean);
       }
+      function parseAdminJsonResponse(response) {
+        return response.text().then(function(text) {
+          var result;
+          try { result = JSON.parse(text); }
+          catch (error) { result = { ok: false, message: 'O servidor não reconheceu esta operação (HTTP ' + response.status + '). Reinicie o servidor e tente novamente.' }; }
+          return { ok: response.ok, result: result };
+        });
+      }
+      function getCardSpecification(card) {
+        var toggle = card.querySelector('[data-specification-toggle]');
+        if (!toggle.checked) return null;
+        var name = card.querySelector('.admin-specification-heading span').textContent.trim();
+        var selectedValues = Array.from(card.querySelectorAll('[data-specification-value]:checked')).map(function(input) { return input.value; });
+        var availableValues = Array.from(card.querySelectorAll('[data-specification-value]')).map(function(input) { return input.value; });
+        var customInput = card.querySelector('[data-custom-values]');
+        if (customInput) {
+          var customValues = splitSpecificationValues(customInput.value);
+          selectedValues = selectedValues.concat(customValues);
+          availableValues = availableValues.concat(customValues);
+        }
+        selectedValues = selectedValues.filter(function(value, index, values) {
+          return values.findIndex(function(other) { return other.toLocaleLowerCase() === value.toLocaleLowerCase(); }) === index;
+        });
+        availableValues = availableValues.concat(selectedValues).filter(function(value, index, values) {
+          return values.findIndex(function(other) { return other.toLocaleLowerCase() === value.toLocaleLowerCase(); }) === index;
+        });
+        return selectedValues.length ? { name: name, values: selectedValues, availableValues: availableValues } : null;
+      }
+      function updateSpecificationSummary() {
+        if (!specificationList || !specificationSummary) return;
+        var selected = Array.from(specificationList.querySelectorAll('[data-specification-card]')).map(getCardSpecification).filter(Boolean);
+        specificationSummary.innerHTML = '';
+        if (!selected.length) {
+          var empty = document.createElement('span');
+          empty.textContent = 'Nenhuma especificação selecionada';
+          specificationSummary.appendChild(empty);
+          return;
+        }
+        selected.forEach(function(specification) {
+          var item = document.createElement('span');
+          item.className = 'admin-specification-chip';
+          item.textContent = specification.name + ': ' + specification.values.join(', ');
+          specificationSummary.appendChild(item);
+        });
+      }
+      function createSpecificationCard(name, values) {
+        var card = document.createElement('div');
+        card.className = 'admin-specification-card';
+        card.setAttribute('data-specification-card', '');
+        var top = document.createElement('div');
+        top.className = 'admin-specification-top';
+        var heading = document.createElement('label');
+        heading.className = 'admin-specification-heading';
+        var toggle = document.createElement('input');
+        toggle.type = 'checkbox';
+        toggle.checked = true;
+        toggle.value = name;
+        toggle.setAttribute('data-specification-toggle', '');
+        var title = document.createElement('span');
+        title.textContent = name;
+        heading.append(toggle, title);
+        var deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'admin-icon-button admin-icon-button-danger';
+        deleteButton.setAttribute('data-delete-specification', '');
+        deleteButton.dataset.specificationName = name;
+        deleteButton.setAttribute('aria-label', 'Excluir especificação ' + name);
+        deleteButton.title = 'Excluir especificação';
+        deleteButton.innerHTML = '<i class="bi bi-trash3-fill" aria-hidden="true"></i>';
+        top.append(heading, deleteButton);
+        var options = document.createElement('div');
+        options.className = 'admin-specification-options';
+        options.setAttribute('data-specification-options', '');
+        var valueList = document.createElement('div');
+        valueList.className = 'admin-specification-value-list';
+        valueList.setAttribute('data-specification-value-list', '');
+        values.forEach(function(value) {
+          var optionLabel = document.createElement('label');
+          optionLabel.className = 'admin-specification-option';
+          var option = document.createElement('input');
+          option.type = 'checkbox';
+          option.checked = true;
+          option.value = value;
+          option.setAttribute('data-specification-value', '');
+          var optionText = document.createElement('span');
+          optionText.textContent = value;
+          optionLabel.append(option, optionText);
+          valueList.appendChild(optionLabel);
+        });
+        var custom = document.createElement('div');
+        custom.className = 'admin-specification-custom';
+        var customInput = document.createElement('input');
+        customInput.type = 'text';
+        customInput.placeholder = 'Adicionar opção personalizada';
+        customInput.setAttribute('data-custom-values', '');
+        var addValue = document.createElement('button');
+        addValue.type = 'button';
+        addValue.className = 'admin-small-button';
+        addValue.textContent = 'Adicionar opção';
+        addValue.setAttribute('data-add-specification-value', '');
+        custom.append(customInput, addValue);
+        options.append(valueList, custom);
+        card.append(top, options);
+        specificationList.appendChild(card);
+        updateSpecificationSummary();
+      }
+      if (specificationList) {
+        specificationList.addEventListener('change', function(event) {
+          if (event.target.matches('[data-specification-toggle]')) {
+            event.target.closest('[data-specification-card]').querySelector('[data-specification-options]').hidden = !event.target.checked;
+          }
+          updateSpecificationSummary();
+        });
+        specificationList.addEventListener('input', function(event) {
+          if (event.target.matches('[data-custom-values]')) updateSpecificationSummary();
+        });
+        specificationList.addEventListener('click', function(event) {
+          var deleteSpecification = event.target.closest('[data-delete-specification]');
+          if (deleteSpecification) {
+            var specificationName = deleteSpecification.dataset.specificationName;
+            if (!window.confirm('Tem certeza de que deseja excluir a especificação "' + specificationName + '"? Ela deixará de aparecer nos próximos cadastros e edições.')) return;
+            deleteSpecification.disabled = true;
+            fetch('/admin/especificacoes/excluir', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+              body: new URLSearchParams({ name: specificationName })
+            }).then(parseAdminJsonResponse)
+              .then(function(data) {
+                if (!data.ok) throw new Error(data.result.message || 'Não foi possível excluir a especificação.');
+                deleteSpecification.closest('[data-specification-card]').remove();
+                updateSpecificationSummary();
+              })
+              .catch(function(error) {
+                deleteSpecification.disabled = false;
+                window.alert(error.message || 'Não foi possível excluir a especificação.');
+              });
+            return;
+          }
+          var addValue = event.target.closest('[data-add-specification-value]');
+          if (!addValue) return;
+          var card = addValue.closest('[data-specification-card]');
+          var input = card.querySelector('[data-custom-values]');
+          var values = splitSpecificationValues(input.value);
+          var valueList = card.querySelector('[data-specification-value-list]');
+          var newValues = values.filter(function(value) {
+            return !Array.from(valueList.querySelectorAll('[data-specification-value]')).some(function(option) { return option.value.toLocaleLowerCase() === value.toLocaleLowerCase(); });
+          });
+          if (!newValues.length) { input.value = ''; return; }
+          var specificationName = card.querySelector('.admin-specification-heading span').textContent.trim();
+          addValue.disabled = true;
+          fetch('/admin/especificacoes/valores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+            body: new URLSearchParams({ name: specificationName, values: JSON.stringify(newValues) })
+          }).then(parseAdminJsonResponse)
+            .then(function(data) {
+              if (!data.ok) throw new Error(data.result.message || 'Não foi possível salvar as opções.');
+              newValues.forEach(function(value) {
+                var label = document.createElement('label');
+                label.className = 'admin-specification-option';
+                var checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = true;
+                checkbox.value = value;
+                checkbox.setAttribute('data-specification-value', '');
+                var text = document.createElement('span');
+                text.textContent = value;
+                label.append(checkbox, text);
+                valueList.appendChild(label);
+              });
+              input.value = '';
+              updateSpecificationSummary();
+            })
+            .catch(function(error) { window.alert(error.message || 'Não foi possível salvar as opções.'); })
+            .finally(function() { addValue.disabled = false; });
+        });
+        updateSpecificationSummary();
+      }
+      if (createSpecificationButton) createSpecificationButton.addEventListener('click', function() {
+        var name = newSpecificationName.value.trim();
+        var values = splitSpecificationValues(newSpecificationValues.value);
+        if (!name || !values.length) {
+          newSpecificationName.focus();
+          return;
+        }
+        var duplicate = Array.from(specificationList.querySelectorAll('[data-specification-toggle]')).some(function(toggle) {
+          return toggle.closest('[data-specification-card]').querySelector('.admin-specification-heading span').textContent.trim().toLocaleLowerCase() === name.toLocaleLowerCase();
+        });
+        if (duplicate) {
+          newSpecificationName.focus();
+          return;
+        }
+        createSpecificationButton.disabled = true;
+        fetch('/admin/especificacoes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+          body: new URLSearchParams({ name: name, values: JSON.stringify(values) })
+        }).then(parseAdminJsonResponse)
+          .then(function(data) {
+            if (!data.ok) throw new Error(data.result.message || 'Não foi possível salvar a especificação.');
+            createSpecificationCard(name, values);
+            newSpecificationName.value = '';
+            newSpecificationValues.value = '';
+          })
+          .catch(function(error) { window.alert(error.message || 'Não foi possível salvar a especificação.'); })
+          .finally(function() { createSpecificationButton.disabled = false; });
+      });
+      var subcategorySection = document.querySelector('[data-subcategories-section]');
+      var subcategoryPayload = document.querySelector('[data-subcategory-payload]');
+      var subcategorySummary = document.querySelector('[data-subcategory-summary]');
+      var newSubcategoryInput = document.querySelector('[data-new-subcategory]');
+      var addSubcategoryButton = document.querySelector('[data-add-subcategory]');
+      var productCategorySelect = document.querySelector('#product-category');
+      function updateSubcategorySummary() {
+        if (!subcategorySection || !subcategorySummary) return;
+        var selectedNames = Array.from(subcategorySection.querySelectorAll('[data-subcategory-option]:checked')).map(function(option) { return option.value; });
+        subcategorySummary.textContent = selectedNames.length ? selectedNames.join(', ') : 'Escolher subcategorias';
+      }
+      if (subcategorySection && productCategorySelect) {
+        var previousSubcategoryCategory = subcategorySection.dataset.initialCategory || productCategorySelect.value;
+        function updateSubcategoryGroups(clearPrevious) {
+          var category = productCategorySelect.value;
+          if (clearPrevious && previousSubcategoryCategory !== category) {
+            subcategorySection.querySelectorAll('[data-subcategory-option]').forEach(function(option) { option.checked = false; });
+          }
+          subcategorySection.querySelectorAll('[data-subcategory-category]').forEach(function(group) {
+            group.hidden = group.dataset.subcategoryCategory !== category;
+          });
+          previousSubcategoryCategory = category;
+          updateSubcategorySummary();
+        }
+        productCategorySelect.addEventListener('change', function() { updateSubcategoryGroups(true); });
+        subcategorySection.addEventListener('change', function(event) {
+          if (event.target.matches('[data-subcategory-option]')) updateSubcategorySummary();
+        });
+        subcategorySection.addEventListener('click', function(event) {
+          var deleteButton = event.target.closest('[data-delete-subcategory]');
+          if (!deleteButton) return;
+          var category = deleteButton.dataset.subcategoryCategory;
+          var name = deleteButton.dataset.subcategoryName;
+          if (!window.confirm('Tem certeza de que deseja excluir a subcategoria "' + name + '"? Ela será removida dos produtos que a utilizam.')) return;
+          deleteButton.disabled = true;
+          fetch('/admin/subcategorias/excluir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+            body: new URLSearchParams({ category: category, name: name })
+          }).then(parseAdminJsonResponse).then(function(data) {
+            if (!data.ok) throw new Error(data.result.message || 'Não foi possível excluir a subcategoria.');
+            deleteButton.closest('[data-subcategory-entry]').remove();
+            updateSubcategorySummary();
+          }).catch(function(error) {
+            deleteButton.disabled = false;
+            window.alert(error.message || 'Não foi possível excluir a subcategoria.');
+          });
+        });
+        updateSubcategoryGroups(false);
+        if (addSubcategoryButton) addSubcategoryButton.addEventListener('click', function() {
+          var name = newSubcategoryInput.value.trim();
+          if (!name) { newSubcategoryInput.focus(); return; }
+          var category = productCategorySelect.value;
+          var group = Array.from(subcategorySection.querySelectorAll('[data-subcategory-category]')).find(function(item) { return item.dataset.subcategoryCategory === category; });
+          var duplicate = group && Array.from(group.querySelectorAll('[data-subcategory-option]')).some(function(option) { return option.value.toLocaleLowerCase() === name.toLocaleLowerCase(); });
+          if (duplicate) { newSubcategoryInput.focus(); return; }
+          addSubcategoryButton.disabled = true;
+          fetch('/admin/subcategorias', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+            body: new URLSearchParams({ category: category, name: name })
+          }).then(parseAdminJsonResponse).then(function(data) {
+            if (!data.ok) throw new Error(data.result.message || 'Não foi possível salvar a subcategoria.');
+            if (!group) {
+              group = document.createElement('div');
+              group.className = 'admin-subcategory-group';
+              group.setAttribute('data-subcategory-category', category);
+              subcategorySection.querySelector('.admin-subcategory-menu').appendChild(group);
+            }
+            var entry = document.createElement('div');
+            entry.className = 'admin-subcategory-entry';
+            entry.setAttribute('data-subcategory-entry', '');
+            var label = document.createElement('label');
+            label.className = 'admin-subcategory-option';
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = true;
+            checkbox.value = name;
+            checkbox.setAttribute('data-subcategory-option', '');
+            var text = document.createElement('span');
+            text.textContent = name;
+            label.append(checkbox, text);
+            var deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'admin-icon-button admin-icon-button-danger admin-subcategory-delete';
+            deleteButton.setAttribute('data-delete-subcategory', '');
+            deleteButton.dataset.subcategoryCategory = category;
+            deleteButton.dataset.subcategoryName = name;
+            deleteButton.setAttribute('aria-label', 'Excluir subcategoria ' + name);
+            deleteButton.title = 'Excluir subcategoria';
+            deleteButton.innerHTML = '<i class="bi bi-trash3-fill" aria-hidden="true"></i>';
+            entry.append(label, deleteButton);
+            group.appendChild(entry);
+            updateSubcategoryGroups(false);
+            newSubcategoryInput.value = '';
+          }).catch(function(error) {
+            window.alert(error.message || 'Não foi possível salvar a subcategoria.');
+          }).finally(function() { addSubcategoryButton.disabled = false; });
+        });
+      }
+      var productForm = document.querySelector('.admin-form');
+      if (productForm && specificationList && specificationPayload) productForm.addEventListener('submit', function() {
+        specificationPayload.value = JSON.stringify(Array.from(specificationList.querySelectorAll('[data-specification-card]')).map(getCardSpecification).filter(Boolean));
+      });
+      if (productForm && subcategorySection && subcategoryPayload) productForm.addEventListener('submit', function() {
+        subcategoryPayload.value = JSON.stringify(Array.from(subcategorySection.querySelectorAll('[data-subcategory-option]:checked')).map(function(option) { return option.value; }));
+      });
       var imageOrder = document.querySelector('[data-image-order]');
       var imageInput = document.querySelector('#product-images');
       var imageUrlInput = document.querySelector('#product-image');

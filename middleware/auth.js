@@ -14,7 +14,14 @@ function requireLogin(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-  if (!req.session.user || req.session.user.role !== 'admin') {
+  var acceptHeader = req.get('Accept') || '';
+  var wantsJson = /(^|,)\s*application\/json(?:\s*;|\s*(?:,|$))/i.test(acceptHeader);
+  if (!req.session.user) {
+    if (wantsJson) return res.status(401).json({ ok: false, message: 'Sua sessão de administrador expirou. Entre novamente para continuar.' });
+    return res.redirect('/entrar?returnTo=' + encodeURIComponent(req.originalUrl || '/admin'));
+  }
+  if (req.session.user.role !== 'admin') {
+    if (wantsJson) return res.status(403).json({ ok: false, message: 'Esta área é exclusiva para administradores.' });
     return res.status(403).render('erro', {
       title: 'Acesso negado',
       message: 'Esta área é exclusiva para administradores.',

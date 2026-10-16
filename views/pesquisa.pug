@@ -1,0 +1,61 @@
+extends layout
+
+block content
+  main.search-results-page
+    a.admin-back-link(href='/')
+      i.bi.bi-arrow-left(aria-hidden='true')
+      | Início
+    p.admin-eyebrow PESQUISA
+    h1.admin-title Resultados da pesquisa
+    p.search-results-query
+      | Busca por:
+      strong= ' ' + searchQuery
+    .search-results-layout
+      aside.search-filter-panel
+        h2 Filtrar por especificações
+        if specificationFacets.length
+          form(method='get' action='/pesquisa')
+            input(type='hidden' name='q' value=searchQuery)
+            each facet in specificationFacets
+              fieldset.search-filter-group
+                legend= facet.name
+                each option in facet.values
+                  label.search-filter-option
+                    input(type='checkbox' name='spec' value=JSON.stringify([facet.name, option.value]) checked=Boolean(selectedSpecifications[facet.name] && selectedSpecifications[facet.name].indexOf(option.value) !== -1))
+                    span= option.value
+                    small= option.count
+            button.admin-primary-button(type='submit') Aplicar filtros
+            a.search-clear-filters(href='/pesquisa?q=' + encodeURIComponent(searchQuery)) Limpar filtros
+        else
+          p Não há especificações disponíveis para filtrar estes resultados.
+      section.search-results-content(aria-label='Produtos encontrados')
+        p.search-results-count #{products.length} produto(s) encontrado(s)
+        if products.length
+          .search-results-grid
+            each product in products
+              a.search-result-card(href='/produto/' + product._id)
+                .search-result-photo
+                  if product.imageUrl
+                    img(src=product.imageUrl alt='Foto de ' + product.name)
+                  else
+                    i.bi.bi-image(aria-hidden='true')
+                .search-result-info
+                  p.search-result-category= product.category
+                  h2= product.name
+                  if product.description
+                    p= product.description
+                  if product.specifications && product.specifications.length
+                    .search-result-specifications
+                      each specification in product.specifications
+                        each value in specification.values
+                          span= specification.name + ': ' + value
+                  p.search-result-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
+                  if product.availableUnits > 0
+                    span.admin-stock-available #{product.availableUnits} disponível(is)
+                  else
+                    span.admin-stock-unavailable Indisponível
+        else
+          .search-results-empty
+            i.bi.bi-search(aria-hidden='true')
+            h2 Nenhum produto encontrado
+            p Tente outros termos ou remova alguns filtros de especificação.

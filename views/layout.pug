@@ -13,8 +13,9 @@ html
                 .navbar-brand-section
                         a.navbar-brand(href="/")
                             img.navbar-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
-                form.navbar-search(role="search")
-                    input.form-control(type="search" placeholder="Buscar..." aria-label="Search")
+                form.navbar-search(role="search" action='/pesquisa' method='get' data-product-search-widget)
+                    input.form-control(type="search" name='q' placeholder="Buscar..." aria-label="Pesquisar produtos" autocomplete='off' data-product-search-input)
+                    .product-search-suggestions(role='listbox' aria-label='Sugestões de produtos' data-product-search-suggestions hidden)
                 .navbar-actions-section
                     if currentUser
                         a.navbar-login.navbar-login-icon(href="/perfil" aria-label="Meu perfil" title="Meu perfil")
@@ -354,6 +355,59 @@ html
                                 var isDark = !document.body.classList.contains('dark-mode');
                                 applyTheme(isDark);
                                 window.localStorage.setItem('espaco-encantado-theme', isDark ? 'dark' : 'light');
+                            });
+                        })();
+                        (function() {
+                            var widgets = document.querySelectorAll('[data-product-search-widget]');
+                            widgets.forEach(function(widget) {
+                                var input = widget.querySelector('[data-product-search-input]');
+                                var dropdown = widget.querySelector('[data-product-search-suggestions]');
+                                if (!input || !dropdown) return;
+                                var timer;
+                                function closeDropdown() { dropdown.hidden = true; dropdown.innerHTML = ''; }
+                                function render(products) {
+                                    dropdown.innerHTML = '';
+                                    if (!products.length) { closeDropdown(); return; }
+                                    products.slice(0, 3).forEach(function(product) {
+                                        var link = document.createElement('a');
+                                        link.className = 'product-search-suggestion';
+                                        link.href = '/produto/' + encodeURIComponent(product._id);
+                                        link.setAttribute('role', 'option');
+                                        if (product.imageUrl) {
+                                            var image = document.createElement('img');
+                                            image.src = product.imageUrl; image.alt = ''; link.appendChild(image);
+                                        } else {
+                                            var placeholder = document.createElement('span');
+                                            placeholder.className = 'product-search-suggestion-image';
+                                            placeholder.innerHTML = '<i class="bi bi-image" aria-hidden="true"></i>';
+                                            link.appendChild(placeholder);
+                                        }
+                                        var name = document.createElement('span');
+                                        name.className = 'product-search-suggestion-name'; name.textContent = product.name;
+                                        link.appendChild(name);
+                                        var arrow = document.createElement('i');
+                                        arrow.className = 'bi bi-arrow-up-right'; arrow.setAttribute('aria-hidden', 'true');
+                                        link.appendChild(arrow);
+                                        dropdown.appendChild(link);
+                                    });
+                                    var more = document.createElement('button');
+                                    more.type = 'submit'; more.className = 'product-search-suggestion-more'; more.textContent = 'Ver todos os resultados';
+                                    dropdown.appendChild(more);
+                                    dropdown.hidden = false;
+                                }
+                                input.addEventListener('input', function() {
+                                    window.clearTimeout(timer);
+                                    var query = input.value.trim();
+                                    if (query.length < 2) { closeDropdown(); return; }
+                                    timer = window.setTimeout(function() {
+                                        fetch('/pesquisa/sugestoes?q=' + encodeURIComponent(query), { headers: { Accept: 'application/json' } })
+                                            .then(function(response) { return response.json(); })
+                                            .then(function(data) { render(data.products || []); })
+                                            .catch(closeDropdown);
+                                    }, 180);
+                                });
+                                input.addEventListener('focus', function() { if (dropdown.children.length) dropdown.hidden = false; });
+                                document.addEventListener('click', function(event) { if (!widget.contains(event.target)) closeDropdown(); });
                             });
                         })();
 

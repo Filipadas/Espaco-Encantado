@@ -114,8 +114,9 @@ block content
   section.catalog-start-area
     .catalog-section
       h3.catalog-title Acesse nossos catálogos
-      form.catalog-search(role='search')
-        input.form-control(type='search' placeholder='Pesquisar' aria-label='Pesquisar catálogo')
+      form.catalog-search(role='search' action='/pesquisa' method='get' data-product-search-widget)
+        input.form-control(type='search' name='q' placeholder='Pesquisar' aria-label='Pesquisar produtos' autocomplete='off' data-product-search-input)
+        .product-search-suggestions(role='listbox' aria-label='Sugestões de produtos' data-product-search-suggestions hidden)
 
       .catalog-carousel(data-catalog-carousel)
         .catalog-grid(data-catalog-track)

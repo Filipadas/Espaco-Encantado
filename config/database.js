@@ -1,14 +1,12 @@
 var mongoose = require('mongoose');
 var bcrypt = require('bcryptjs');
-var dns = require('dns');
+var childProcess = require('child_process');
 var User = require('../models/User');
 var Product = require('../models/Product');
 
 var mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/espaco_encantado';
 var adminEmail = String(process.env.ADMIN_EMAIL || 'admin@espacoencantado.com').toLowerCase().trim();
 var adminPassword = String(process.env.ADMIN_PASSWORD || 'admin123');
-
-dns.setServers(['1.1.1.1', '8.8.8.8']);
 
 async function seedTestProducts() {
   var definitions = [
@@ -38,8 +36,54 @@ async function seedTestProducts() {
   }));
 }
 
+function resolveWindowsDns(query) {
+  return new Promise(function(resolve, reject) {
+    childProcess.execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', query], {
+      windowsHide: true,
+      maxBuffer: 1024 * 1024,
+      encoding: 'utf8'
+    }, function(error, stdout) {
+      if (error) return reject(error);
+      try { resolve(JSON.parse(stdout.trim() || '[]')); }
+      catch (parseError) { reject(parseError); }
+    });
+  });
+}
+
+async function getMongoConnectionUri() {
+  if (process.platform !== 'win32' || !mongoUri.toLowerCase().startsWith('mongodb+srv://')) return mongoUri;
+
+  var source = new URL(mongoUri);
+  var host = source.hostname.replace(/\.$/, '');
+  if (!/^[a-z0-9.-]+$/i.test(host)) return mongoUri;
+
+  var srvQuery = "Resolve-DnsName -Type SRV -Name '_mongodb._tcp." + host + "' | Select-Object NameTarget,Port | ConvertTo-Json -Compress";
+  var txtQuery = "Resolve-DnsName -Type TXT -Name '" + host + "' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Strings | ConvertTo-Json -Compress";
+  var results = await Promise.all([resolveWindowsDns(srvQuery), resolveWindowsDns(txtQuery)]);
+  var records = Array.isArray(results[0]) ? results[0] : [results[0]];
+  var servers = records.filter(function(record) { return record && record.NameTarget && record.Port; }).map(function(record) {
+    return String(record.NameTarget).replace(/\.$/, '') + ':' + Number(record.Port);
+  });
+  if (!servers.length) throw new Error('Não foi possível localizar os servidores do MongoDB no DNS.');
+
+  var options = new URLSearchParams(source.search);
+  var txtRecords = Array.isArray(results[1]) ? results[1] : [results[1]];
+  String(txtRecords.filter(Boolean).join('&')).split('&').forEach(function(entry) {
+    var separator = entry.indexOf('=');
+    if (separator > 0) {
+      var key = entry.slice(0, separator);
+      if (!options.has(key)) options.set(key, entry.slice(separator + 1));
+    }
+  });
+  if (!options.has('tls') && !options.has('ssl')) options.set('tls', 'true');
+
+  var credentials = source.username ? source.username + (source.password ? ':' + source.password : '') + '@' : '';
+  var queryString = options.toString();
+  return 'mongodb://' + credentials + servers.join(',') + source.pathname + (queryString ? '?' + queryString : '');
+}
+
 function connectDatabase() {
-  return mongoose.connect(mongoUri)
+  return getMongoConnectionUri().then(function(uri) { return mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 }); })
     .then(function() {
       console.log('MongoDB conectado');
       return User.findOne({ email: adminEmail }).then(function(user) {

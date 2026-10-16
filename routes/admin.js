@@ -27,6 +27,151 @@ var upload = multer({
 
 router.use(requireAdmin);
 
+var DEFAULT_PRODUCT_SPECIFICATIONS = [{ name: 'Tamanho', values: ['Pequeno', 'Médio', 'Grande'] }];
+
+function normalizeSpecifications(rawSpecifications) {
+  var seenNames = new Set();
+  return (Array.isArray(rawSpecifications) ? rawSpecifications : []).map(function(specification) {
+    var name = String(specification && specification.name || '').trim();
+    var values = Array.isArray(specification && specification.values) ? specification.values : [];
+    var seenValues = new Set();
+    values = values.map(function(value) { return String(value || '').trim(); }).filter(function(value) {
+      var key = value.toLocaleLowerCase();
+      if (!value || seenValues.has(key)) return false;
+      seenValues.add(key);
+      return true;
+    });
+    var key = name.toLocaleLowerCase();
+    if (!name || seenNames.has(key) || !values.length) return null;
+    seenNames.add(key);
+    return { name: name, values: values };
+  }).filter(Boolean);
+}
+
+function getSubmittedSpecifications(body) {
+  if (body.specificationPayload) {
+    try {
+      var payload = JSON.parse(body.specificationPayload);
+      return normalizeSpecifications(Array.isArray(payload) ? payload : payload.specifications);
+    }
+    catch (error) { return []; }
+  }
+  var names = Array.isArray(body.specificationName) ? body.specificationName : (body.specificationName ? [body.specificationName] : []);
+  var values = Array.isArray(body.specificationValues) ? body.specificationValues : (body.specificationValues ? [body.specificationValues] : []);
+  return normalizeSpecifications(names.map(function(name, index) { return { name: name, values: String(values[index] || '').split(',') }; }));
+}
+
+function getSubmittedSpecificationDefinitions(body) {
+  if (body.specificationPayload) {
+    try {
+      var payload = JSON.parse(body.specificationPayload);
+      var entries = Array.isArray(payload) ? payload : payload.specifications || [];
+      return normalizeSpecifications(entries.map(function(specification) {
+        return { name: specification.name, values: specification.availableValues || specification.values };
+      }));
+    } catch (error) { return []; }
+  }
+  return getSubmittedSpecifications(body);
+}
+
+async function getSpecificationCatalog(product) {
+  var settings = await SiteSettings.findOne({ key: 'main' }).select('productSpecifications productSpecificationsInitialized');
+  var storedDefinitions = settings && settings.productSpecifications || [];
+  var definitions = (settings && settings.productSpecificationsInitialized ? [] : DEFAULT_PRODUCT_SPECIFICATIONS).concat(storedDefinitions);
+  var selectedSpecifications = normalizeSpecifications(product && product.specifications || []);
+  var byName = new Map();
+  definitions.concat(selectedSpecifications).forEach(function(specification) {
+    var key = specification.name.toLocaleLowerCase();
+    if (!byName.has(key)) byName.set(key, { name: specification.name, values: [], selectedValues: [], isSaved: definitions.some(function(definition) { return definition.name.toLocaleLowerCase() === key; }) });
+    var entry = byName.get(key);
+    specification.values.forEach(function(value) {
+      if (!entry.values.some(function(existing) { return existing.toLocaleLowerCase() === value.toLocaleLowerCase(); })) entry.values.push(value);
+    });
+  });
+  selectedSpecifications.forEach(function(specification) {
+    var entry = byName.get(specification.name.toLocaleLowerCase());
+    entry.selectedValues = specification.values.slice();
+  });
+  return Array.from(byName.values());
+}
+
+async function saveSpecificationDefinitions(specifications) {
+  if (!specifications.length) return;
+  var settings = await SiteSettings.findOne({ key: 'main' });
+  var definitions = [];
+  (settings && settings.productSpecificationsInitialized ? [] : DEFAULT_PRODUCT_SPECIFICATIONS).concat(settings && settings.productSpecifications || []).forEach(function(specification) {
+    var existing = definitions.find(function(entry) { return entry.name.toLocaleLowerCase() === specification.name.toLocaleLowerCase(); });
+    if (!existing) {
+      definitions.push({ name: specification.name, values: Array.from(specification.values || []) });
+      return;
+    }
+    Array.from(specification.values || []).forEach(function(value) {
+      if (!existing.values.some(function(existingValue) { return existingValue.toLocaleLowerCase() === value.toLocaleLowerCase(); })) existing.values.push(value);
+    });
+  });
+  specifications.forEach(function(specification) {
+    var existing = definitions.find(function(entry) { return entry.name.toLocaleLowerCase() === specification.name.toLocaleLowerCase(); });
+    if (!existing) {
+      definitions.push({ name: specification.name, values: specification.values.slice() });
+      return;
+    }
+    specification.values.forEach(function(value) {
+      if (!existing.values.some(function(existingValue) { return existingValue.toLocaleLowerCase() === value.toLocaleLowerCase(); })) existing.values.push(value);
+    });
+  });
+  await SiteSettings.findOneAndUpdate({ key: 'main' }, { $set: { productSpecifications: definitions, productSpecificationsInitialized: true }, $setOnInsert: { key: 'main' } }, { upsert: true, setDefaultsOnInsert: true });
+}
+
+async function saveSubcategoryDefinitions(category, subcategories) {
+  if (!category || !subcategories.length) return;
+  var settings = await SiteSettings.findOne({ key: 'main' });
+  var definitions = (settings && settings.productSubcategories || []).map(function(item) { return { category: item.category, name: item.name }; });
+  subcategories.forEach(function(name) {
+    if (!definitions.some(function(item) { return item.category === category && item.name.toLocaleLowerCase() === name.toLocaleLowerCase(); })) definitions.push({ category: category, name: name });
+  });
+  await SiteSettings.findOneAndUpdate({ key: 'main' }, { $set: { productSubcategories: definitions }, $setOnInsert: { key: 'main' } }, { upsert: true, setDefaultsOnInsert: true });
+}
+
+async function deleteSubcategoryDefinition(category, name) {
+  var settings = await SiteSettings.findOne({ key: 'main' });
+  var definitions = (settings && settings.productSubcategories || []).filter(function(item) {
+    return item.category !== category || item.name.toLocaleLowerCase() !== name.toLocaleLowerCase();
+  });
+  await SiteSettings.findOneAndUpdate({ key: 'main' }, { $set: { productSubcategories: definitions }, $setOnInsert: { key: 'main' } }, { upsert: true, setDefaultsOnInsert: true });
+  await Product.updateMany({ category: category, subcategories: name }, { $pull: { subcategories: name } });
+}
+
+async function getSubcategoryCatalog(product) {
+  var settings = await SiteSettings.findOne({ key: 'main' }).select('productSubcategories');
+  var definitions = settings && settings.productSubcategories || [];
+  var catalog = {};
+  definitions.forEach(function(item) {
+    if (!catalog[item.category]) catalog[item.category] = [];
+    if (!catalog[item.category].some(function(name) { return name.toLocaleLowerCase() === item.name.toLocaleLowerCase(); })) catalog[item.category].push(item.name);
+  });
+  if (product && product.category) {
+    (product.subcategories || []).forEach(function(name) {
+      if (!catalog[product.category]) catalog[product.category] = [];
+      if (!catalog[product.category].some(function(existing) { return existing.toLocaleLowerCase() === name.toLocaleLowerCase(); })) catalog[product.category].push(name);
+    });
+  }
+  Object.keys(catalog).forEach(function(category) { catalog[category].sort(function(a, b) { return a.localeCompare(b, 'pt-BR'); }); });
+  return catalog;
+}
+
+function getSubmittedSubcategories(body) {
+  var values = [];
+  if (body.subcategoryPayload) {
+    try { values = JSON.parse(body.subcategoryPayload); }
+    catch (error) { values = []; }
+  } else if (Array.isArray(body.subcategories)) values = body.subcategories;
+  else if (body.subcategories) values = [body.subcategories];
+  if (!Array.isArray(values)) values = [];
+  return values.map(function(value) { return String(value || '').trim(); }).filter(function(value, index, names) {
+    return value && names.findIndex(function(name) { return name.toLocaleLowerCase() === value.toLocaleLowerCase(); }) === index;
+  });
+}
+
 router.get('/', function(req, res) {
   res.render('admin', { title: 'Painel administrativo' });
 });
@@ -40,13 +185,15 @@ router.get('/usuarios', async function(req, res, next) {
 router.get('/produtos', async function(req, res, next) {
   try {
     var products = await Product.find().populate('components.product').sort({ createdAt: -1 });
-    res.render('admin-produtos', { title: 'Gerenciar produtos', products: await inventory.getProductsAvailability(products) });
+    products = await inventory.getProductsAvailability(products);
+    var categories = Array.from(new Set(products.map(function(product) { return product.category; }).filter(Boolean))).sort(function(a, b) { return a.localeCompare(b, 'pt-BR'); });
+    res.render('admin-produtos', { title: 'Gerenciar produtos', products: products, categories: categories });
   } catch (error) { next(error); }
 });
 
 router.get('/produtos/novo', async function(req, res, next) {
   try {
-    res.render('admin-produtos-form', { title: 'Cadastrar produto', product: {}, formError: null, isEditing: false, availableProducts: await Product.find({ $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
+    res.render('admin-produtos-form', { title: 'Cadastrar produto', product: {}, specificationCatalog: await getSpecificationCatalog({}), subcategoryCatalog: await getSubcategoryCatalog({}), formError: null, isEditing: false, availableProducts: await Product.find({ $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
   } catch (error) { next(error); }
 });
 
@@ -54,7 +201,7 @@ router.get('/produtos/:id/editar', async function(req, res, next) {
   try {
     var product = await Product.findById(req.params.id);
     if (!product) return res.status(404).render('erro', { title: 'Produto não encontrado', message: 'O produto solicitado não existe.', error: {}, status: 404 });
-    res.render('admin-produtos-form', { title: 'Editar produto', product: product, formError: null, isEditing: true, availableProducts: await Product.find({ _id: { $ne: product._id }, $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
+    res.render('admin-produtos-form', { title: 'Editar produto', product: product, specificationCatalog: await getSpecificationCatalog(product), subcategoryCatalog: await getSubcategoryCatalog(product), formError: null, isEditing: true, availableProducts: await Product.find({ _id: { $ne: product._id }, $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
   } catch (error) { next(error); }
 });
 
@@ -66,9 +213,8 @@ function getProductData(body) {
     return { product: product, category: componentCategories[index] === 'decoracoes' ? 'decoracoes' : 'brinquedos', quantity: Number(componentQuantities[index]) || 1 };
   }).filter(function(component) { return component.product; });
   var isComposite = ['kit-montagem', 'festa-infantil'].indexOf(body.category) !== -1;
-  var specificationNames = Array.isArray(body.specificationName) ? body.specificationName : (body.specificationName ? [body.specificationName] : []);
-  var specificationValues = Array.isArray(body.specificationValues) ? body.specificationValues : (body.specificationValues ? [body.specificationValues] : []);
-  var specifications = specificationNames.map(function(name, index) { return { name: name, values: String(specificationValues[index] || '').split(',').map(function(value) { return value.trim(); }).filter(Boolean) }; }).filter(function(specification) { return specification.name && specification.values.length; });
+  var specifications = getSubmittedSpecifications(body);
+  var subcategories = getSubmittedSubcategories(body);
   if (isComposite && !components.length) throw new Error('Kits e festas infantis precisam de pelo menos um componente.');
   return {
     name: body.name,
@@ -78,6 +224,7 @@ function getProductData(body) {
     imageUrl: body.imageUrl || (body.imageUrls && body.imageUrls[0]) || '',
     imageUrls: Array.isArray(body.imageUrls) ? body.imageUrls : (body.imageUrls ? [body.imageUrls] : []),
     specifications: specifications,
+    subcategories: subcategories,
     stockTotal: body.stockTotal,
     components: isComposite ? components : []
   };
@@ -96,32 +243,125 @@ function buildOrderedImages(body, uploadedImages, fallbackImages) {
 router.post('/produtos', upload.array('images', 10), async function(req, res, next) {
   try {
     var data = getProductData(req.body);
+    await saveSpecificationDefinitions(getSubmittedSpecificationDefinitions(req.body));
+    await saveSubcategoryDefinitions(req.body.category, data.subcategories);
     var uploadedImages = (req.files || []).map(function(file) { return '/uploads/' + file.filename; });
     data.imageUrls = buildOrderedImages(req.body, uploadedImages, data.imageUrls);
     data.imageUrl = data.imageUrls[0] || data.imageUrl;
     await Product.create(data);
     res.redirect('/admin/produtos');
   } catch (error) {
-    res.status(400).render('admin-produtos-form', { title: 'Cadastrar produto', product: req.body, formError: error.message || 'Preencha os dados do produto corretamente.', isEditing: false, availableProducts: await Product.find({ $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
+    var submittedProduct = Object.assign({}, req.body, { specifications: getSubmittedSpecifications(req.body), subcategories: getSubmittedSubcategories(req.body) });
+    res.status(400).render('admin-produtos-form', { title: 'Cadastrar produto', product: submittedProduct, specificationCatalog: await getSpecificationCatalog(submittedProduct), subcategoryCatalog: await getSubcategoryCatalog(submittedProduct), formError: error.message || 'Preencha os dados do produto corretamente.', isEditing: false, availableProducts: await Product.find({ $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
   }
 });
 
 router.post('/produtos/:id', upload.array('images', 10), async function(req, res, next) {
   try {
     var data = getProductData(req.body);
+    await saveSpecificationDefinitions(getSubmittedSpecificationDefinitions(req.body));
+    await saveSubcategoryDefinitions(req.body.category, data.subcategories);
     var uploadedImages = (req.files || []).map(function(file) { return '/uploads/' + file.filename; });
     data.imageUrls = buildOrderedImages(req.body, uploadedImages, data.imageUrls);
     data.imageUrl = data.imageUrls[0] || data.imageUrl;
     await Product.findByIdAndUpdate(req.params.id, data, { runValidators: true });
     res.redirect('/admin/produtos');
   } catch (error) {
+      var submittedProduct = Object.assign({}, req.body, { _id: req.params.id, specifications: getSubmittedSpecifications(req.body), subcategories: getSubmittedSubcategories(req.body) });
       res.status(400).render('admin-produtos-form', {
       title: 'Editar produto',
-      product: Object.assign({}, req.body, { _id: req.params.id }),
+      product: submittedProduct,
+      specificationCatalog: await getSpecificationCatalog(submittedProduct),
+      subcategoryCatalog: await getSubcategoryCatalog(submittedProduct),
       formError: 'Preencha os dados do produto corretamente.',
       isEditing: true,
       availableProducts: await Product.find({ _id: { $ne: req.params.id }, $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 })
     });
+  }
+});
+
+router.post('/especificacoes/excluir', async function(req, res, next) {
+  try {
+    var name = String(req.body.name || '').trim();
+    if (!name) return res.status(400).json({ ok: false, message: 'Especificação inválida.' });
+    var settings = await SiteSettings.findOne({ key: 'main' });
+    var definitions = (settings && settings.productSpecificationsInitialized ? [] : DEFAULT_PRODUCT_SPECIFICATIONS).concat(settings && settings.productSpecifications || []);
+    definitions = definitions.filter(function(specification) { return specification.name.toLocaleLowerCase() !== name.toLocaleLowerCase(); });
+    await SiteSettings.findOneAndUpdate({ key: 'main' }, { $set: { productSpecifications: definitions, productSpecificationsInitialized: true }, $setOnInsert: { key: 'main' } }, { upsert: true, setDefaultsOnInsert: true });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Erro ao excluir especificação:', error);
+    res.status(500).json({ ok: false, message: 'Não foi possível excluir a especificação. ' + (error.message || '') });
+  }
+});
+
+router.post('/especificacoes', async function(req, res, next) {
+  try {
+    var name = String(req.body.name || '').trim();
+    var values = Array.isArray(req.body.values) ? req.body.values : [];
+    if (!values.length && typeof req.body.values === 'string') {
+      try { values = JSON.parse(req.body.values); }
+      catch (error) { values = req.body.values.split(','); }
+    }
+    if (!Array.isArray(values)) values = [];
+    values = values.map(function(value) { return String(value || '').trim(); }).filter(Boolean);
+    if (!name || name.length > 80 || !values.length || values.some(function(value) { return value.length > 80; })) {
+      return res.status(400).json({ ok: false, message: 'Informe o nome da especificação e pelo menos uma opção (até 80 caracteres).' });
+    }
+    await saveSpecificationDefinitions([{ name: name, values: values }]);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Erro ao salvar especificação:', error);
+    res.status(500).json({ ok: false, message: 'Não foi possível salvar a especificação. ' + (error.message || '') });
+  }
+});
+
+router.post('/subcategorias', async function(req, res) {
+  try {
+    var category = String(req.body.category || '').trim();
+    var name = String(req.body.name || '').trim();
+    var allowedCategories = ['brinquedos', 'decoracoes', 'kit-montagem', 'festa-infantil'];
+    if (allowedCategories.indexOf(category) === -1 || !name || name.length > 80) {
+      return res.status(400).json({ ok: false, message: 'Informe uma categoria e um nome de subcategoria válido (até 80 caracteres).' });
+    }
+    await saveSubcategoryDefinitions(category, [name]);
+    res.json({ ok: true, category: category, name: name });
+  } catch (error) {
+    console.error('Erro ao salvar subcategoria:', error);
+    res.status(500).json({ ok: false, message: 'Não foi possível salvar a subcategoria. ' + (error.message || '') });
+  }
+});
+
+router.post('/subcategorias/excluir', async function(req, res) {
+  try {
+    var category = String(req.body.category || '').trim();
+    var name = String(req.body.name || '').trim();
+    var allowedCategories = ['brinquedos', 'decoracoes', 'kit-montagem', 'festa-infantil'];
+    if (allowedCategories.indexOf(category) === -1 || !name) {
+      return res.status(400).json({ ok: false, message: 'Subcategoria inválida.' });
+    }
+    await deleteSubcategoryDefinition(category, name);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Erro ao excluir subcategoria:', error);
+    res.status(500).json({ ok: false, message: 'Não foi possível excluir a subcategoria. ' + (error.message || '') });
+  }
+});
+
+router.post('/especificacoes/valores', async function(req, res, next) {
+  try {
+    var name = String(req.body.name || '').trim();
+    var values = [];
+    try { values = JSON.parse(String(req.body.values || '[]')); }
+    catch (error) { values = []; }
+    if (!name || !Array.isArray(values) || !values.length) return res.status(400).json({ ok: false, message: 'Selecione ao menos uma opção para salvar.' });
+    values = values.map(function(value) { return String(value || '').trim(); }).filter(function(value) { return value && value.length <= 80; });
+    if (!values.length) return res.status(400).json({ ok: false, message: 'As opções informadas são inválidas.' });
+    await saveSpecificationDefinitions([{ name: name, values: values }]);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Erro ao salvar opções da especificação:', error);
+    res.status(500).json({ ok: false, message: 'Não foi possível salvar as opções. ' + (error.message || '') });
   }
 });
 
@@ -133,7 +373,8 @@ router.get('/estoque', async function(req, res, next) {
     activeRentals.forEach(function(rental) { (rental.reservedComponents || []).forEach(function(component) { requested[String(component.product)] = (requested[String(component.product)] || 0) + component.quantity; }); });
     products = await inventory.getProductsAvailability(products);
     products.forEach(function(product) { product.requestedQuantity = requested[String(product._id)] || 0; });
-    res.render('admin-estoque', { title: 'Controle de estoque', products: products, stockError: null });
+    var categories = Array.from(new Set(products.map(function(product) { return product.category; }).filter(Boolean))).sort(function(a, b) { return a.localeCompare(b, 'pt-BR'); });
+    res.render('admin-estoque', { title: 'Controle de estoque', products: products, categories: categories, stockError: null });
   } catch (error) { next(error); }
 });
 
@@ -142,8 +383,17 @@ router.post('/estoque/:id', async function(req, res, next) {
     var amount = Number(req.body.amount);
     var product = await Product.findById(req.params.id);
     var composite = product && ['kit-montagem', 'festa-infantil'].indexOf(product.category) !== -1;
-    if (!product || composite || !Number.isInteger(amount) || amount === 0) {
-      if (req.get('Accept') && req.get('Accept').indexOf('application/json') !== -1) return res.status(400).json({ ok: false, message: 'A quantidade de kits e festas é calculada pelos componentes.' });
+    var wantsJson = (req.get('Accept') || '').indexOf('application/json') !== -1;
+    if (!product) {
+      if (wantsJson) return res.status(404).json({ ok: false, message: 'Produto não encontrado.' });
+      return res.redirect('/admin/estoque');
+    }
+    if (composite) {
+      if (wantsJson) return res.status(400).json({ ok: false, message: 'A quantidade de kits e festas é calculada pelos componentes.' });
+      return res.redirect('/admin/estoque');
+    }
+    if (!Number.isInteger(amount) || amount === 0) {
+      if (wantsJson) return res.status(400).json({ ok: false, message: 'Ajuste de estoque inválido.' });
       return res.redirect('/admin/estoque');
     }
     var nextStock = (Number(product.stockTotal) || 0) + amount;
