@@ -4,8 +4,7 @@ var childProcess = require('child_process');
 var User = require('../models/User');
 var Product = require('../models/Product');
 
-var mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/espaco_encantado';
-var adminEmail = String(process.env.ADMIN_EMAIL || 'admin@espacoencantado.com').toLowerCase().trim();
+var mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/espaco_encantado';var adminEmail = String(process.env.ADMIN_EMAIL || 'admin@espacoencantado.com').toLowerCase().trim();
 var adminPassword = String(process.env.ADMIN_PASSWORD || 'admin123');
 
 async function seedTestProducts() {
