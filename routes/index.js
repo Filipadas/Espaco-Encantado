@@ -215,6 +215,7 @@ router.get('/catalogo/:estado/:subcategoria', async function(req, res, next) {
       searchQuery: searchQuery,
       searchAction: '/catalogo/' + selectedState + '/' + requestedSubcategory,
       products: selectedProducts,
+      categoryHasProducts: categoryProducts.length > 0,
       favoriteIds: await getFavoriteIds(req),
       subcategoryRows: [],
       listingMode: true,

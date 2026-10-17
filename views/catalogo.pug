@@ -80,7 +80,7 @@ block content
             each product in products
               +catalogProductCard(product)
             else
-              p.catalog-empty(data-catalog-empty)= favoritesOnly ? 'Você ainda não favoritou produtos.' : 'Nenhum produto encontrado.'
+              p.catalog-empty(data-catalog-empty)= favoritesOnly ? 'Você ainda não favoritou produtos.' : (categoryHasProducts ? 'Nenhum produto encontrado.' : 'Ainda não há produtos cadastrados nesta categoria.')
         else
           .catalog-product-rows
             section.catalog-product-row.catalog-product-row-general(data-catalog-row)
@@ -140,15 +140,18 @@ block content
       function renderCatalog() {
         var sortDirection = sort && sort.value.endsWith('desc') ? -1 : 1;
         var sortField = sort ? sort.value.split('-').slice(0, -1).join('-') : 'name';
-        document.querySelectorAll('[data-catalog-row], [data-catalog-grid]').forEach(function(container) {
+        document.querySelectorAll('.catalog-product-row-track, [data-catalog-grid]').forEach(function(container) {
           var cards = Array.prototype.slice.call(container.querySelectorAll('.catalog-product-card'));
+          var more = container.querySelector('.catalog-more-card');
+          // Reordenar move os nós e a trilha reencosta no fim: guardamos e devolvemos a rolagem.
+          var scrollLeft = container.scrollLeft;
           cards.sort(function(a, b) {
             if (sortField === 'price') return (Number(a.dataset.productPrice) - Number(b.dataset.productPrice)) * sortDirection;
             return a.dataset.productName.localeCompare(b.dataset.productName, 'pt-BR', { sensitivity: 'base' }) * sortDirection;
           }).forEach(function(card) {
-            var more = container.querySelector('.catalog-more-card');
             container.insertBefore(card, more || null);
           });
+          container.scrollLeft = scrollLeft;
         });
         if (!search) return;
         var query = search.value.trim().toLocaleLowerCase();
@@ -190,7 +193,8 @@ block content
       }
       if (search) search.addEventListener('input', renderCatalog);
       if (sort) sort.addEventListener('change', renderCatalog);
-      renderCatalog();
+      // A ordenação/pesquisa é um extra: se ela falhar, os cliques do card precisam continuar funcionando.
+      try { renderCatalog(); } catch (error) {}
 
       document.querySelectorAll('[data-favorite-product]').forEach(function(card) {
         card.addEventListener('click', function(event) {

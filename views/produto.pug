@@ -2,6 +2,7 @@ extends layout
 
 block content
   main.product-detail-page(data-favorite-ids=JSON.stringify(favoriteIds || []))
+    img.product-detail-balloons(src='/images/baloes-produtos.png' alt='' aria-hidden='true')
     a.admin-back-link(href='/catalogo')
       i.bi.bi-arrow-left
       | Voltar ao catálogo
@@ -25,7 +26,6 @@ block content
         else
           p.admin-stock-unavailable Este produto já está sendo utilizado.
       .product-detail-visual
-        img.product-detail-balloons(src='/images/baloes-produtos.png' alt='' aria-hidden='true')
         .product-detail-carousel
           if product.imageUrls && product.imageUrls.length
             each image, index in product.imageUrls

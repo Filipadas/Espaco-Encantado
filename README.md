@@ -57,14 +57,13 @@ O schema está em `models/Product.js`. Ele exige `name`, `category` e `price`, e
 
 ## Acesso e gerenciamento
 
-Para testes, a aplicação cria este administrador somente se ele ainda não existir:
+As contas e permissões de administrador são armazenadas no MongoDB. O servidor não cria uma conta administrativa padrão. Para criar ou promover uma conta administrativa com segurança, configure `MONGO_URI` no ambiente do servidor e execute no terminal:
 
 ```text
-E-mail: admin@espacoencantado.com
-Senha: admin123
+npm run admin:create
 ```
 
-Você pode definir a conta inicial no `.env` com `ADMIN_EMAIL` e `ADMIN_PASSWORD`. Depois que a conta for criada, alterar essas variáveis não sobrescreve a senha existente.
+O comando solicita o nome, e-mail e senha sem gravar esses dados no código ou no histórico do terminal. A senha é armazenada no MongoDB como hash.
 
 Depois do login, o ícone de perfil abre `/perfil` e o ícone de coroa abre `/admin`. O painel administrativo possui:
 

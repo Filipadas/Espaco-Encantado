@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon --ext js,pug,json ./bin/www"
+    "start": "nodemon --ext js,pug,json ./bin/www",
+    "admin:create": "node ./scripts/create-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
