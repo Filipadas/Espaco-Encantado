@@ -1,0 +1,26 @@
+doctype html
+html
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title Recuperar senha | Espaço Encantado
+    link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css')
+    link(rel='stylesheet' href='/stylesheets/style.css?v=20261017-produto-mobile')
+  body.delete-account-page
+    main.confirmation-page
+      .confirmation-card
+        img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
+        h1.admin-title Nova senha
+        p.admin-subtitle Crie uma nova senha para sua conta.
+        if formError
+          p.admin-form-error= formError
+        form.admin-form(method='post' action='/recuperar-senha/nova')
+          input(type='hidden' name='email' value=email)
+          input(type='hidden' name='returnTo' value=returnTo || '/')
+          label(for='new-password') Nova senha
+          input#new-password(type='password' name='password' required autocomplete='new-password')
+          label(for='confirm-password') Confirmar nova senha
+          input#confirm-password(type='password' name='confirmPassword' required autocomplete='new-password')
+          .profile-actions
+            a.admin-small-button.confirm-cancel-button(href='/entrar') Voltar ao login
+            button.admin-primary-button(type='submit') Alterar senha

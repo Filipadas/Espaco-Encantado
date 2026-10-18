@@ -1,12 +1,18 @@
-extends layout
-
-block content
-  main.confirmation-page
-    .confirmation-card
-      img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
-      h1.admin-title Deseja mesmo sair?
-      p.admin-subtitle Sua sessão será encerrada neste dispositivo.
-      .profile-actions
-        a.admin-small-button.confirm-cancel-button(href='javascript:history.back()') Cancelar
-        form(method='post' action='/sair')
-          button.admin-danger-button(type='submit') Sair da conta
+doctype html
+html
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title Sair da conta | Espaço Encantado
+    link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css')
+    link(rel='stylesheet' href='/stylesheets/style.css?v=20261017-produto-mobile')
+  body.delete-account-page
+    main.confirmation-page
+      .confirmation-card
+        img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
+        h1.admin-title Sair da conta?
+        p.admin-subtitle Sua sessão será encerrada neste dispositivo.
+        form.admin-form(method='post' action='/sair')
+          .profile-actions
+            a.admin-small-button.confirm-cancel-button(href='javascript:history.back()') Cancelar
+            button.admin-danger-button(type='submit') Sair da conta

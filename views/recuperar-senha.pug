@@ -11,13 +11,13 @@ html
       .confirmation-card
         img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
         h1.admin-title Recuperar senha
-        p.admin-subtitle Informe o e-mail ou telefone da sua conta. Vamos abrir uma conversa com a loja pelo WhatsApp para confirmar sua identidade e ajudar a recuperar o acesso.
+        p.admin-subtitle Informe seu e-mail cadastrado. Enviaremos um código para validar sua identidade.
         if formError
           p.admin-form-error= formError
-        form.admin-form(method='post' action='/recuperar-senha')
+        form.admin-form(method='post' action='/recuperar-senha/enviar')
           input(type='hidden' name='returnTo' value=returnTo || '/')
-          label(for='recovery-contact') E-mail ou telefone
-          input#recovery-contact(type='text' name='contact' required autocomplete='email' placeholder='seu@email.com ou (00) 00000-0000')
+          label(for='recovery-email') E-mail
+          input#recovery-email(type='email' name='email' required autocomplete='email' placeholder='seu@email.com')
           .profile-actions
             a.admin-small-button.confirm-cancel-button(href='/entrar' + (returnTo && returnTo !== '/' ? '?returnTo=' + encodeURIComponent(returnTo) : '')) Voltar ao login
-            button.admin-primary-button(type='submit') Continuar pelo WhatsApp
+            button.admin-primary-button(type='submit') Enviar código

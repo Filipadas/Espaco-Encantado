@@ -40,15 +40,7 @@ html
                 | Lembrar de mim
               a.auth-inline-link(href='/recuperar-senha') Esqueci minha senha
             button.auth-submit(type='submit') Entrar
-          .auth-divider
-            span ou
-          .social-login-group
-            a.auth-social-button(href='/auth/google?returnTo=' + encodeURIComponent(returnTo || '/'))
-              i.bi.bi-google(aria-hidden='true')
-              | Entrar com Google
-            a.auth-social-button(href='/auth/apple?returnTo=' + encodeURIComponent(returnTo || '/'))
-              i.bi.bi-apple(aria-hidden='true')
-              | Entrar com Apple
+
           p.auth-switch Ainda não tem uma conta? 
             a.auth-link(href='/cadastro') Criar cadastro
       script.
