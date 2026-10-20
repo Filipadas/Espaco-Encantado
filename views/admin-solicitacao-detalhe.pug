@@ -28,6 +28,8 @@ block content
               input(id='quantity-' + item._id type='number' name='itemQuantity' min='1' step='1' required value=item.quantity)
               label(for='item-date-' + item._id) Data de utilização
               input(id='item-date-' + item._id type='date' name='itemDate' required value=item.date)
+              label(for='item-custom-text-' + item._id) Texto para personalização
+              input(id='item-custom-text-' + item._id type='text' name='itemCustomText' maxlength='200' value=item.customText || '' placeholder='Texto que o cliente quer personalizar')
           h3 Dados da entrega
           label(for='edit-delivery-address') Endereço
           input#edit-delivery-address(type='text' name='deliveryAddress' required value=rental.deliveryAddress || '')
@@ -67,10 +69,10 @@ block content
             label.request-check
               if rental.deliveryChecked
                 input(type='checkbox' name='returnedItem' value=item.product checked=rental.returnedItems && rental.returnedItems.map(String).indexOf(String(item.product)) !== -1)
-                span Receber devolução de #{item.quantity}x #{item.name}
+                span Receber devolução de #{item.quantity}x #{item.name}#{item.customText ? ' — texto: ' + item.customText : ''}
               else
                 input(type='checkbox' name='deliveredItem' value=item.product checked=rental.deliveredItems && rental.deliveredItems.map(String).indexOf(String(item.product)) !== -1)
-                span Entregar #{item.quantity}x #{item.name} em #{item.date}
+                span Entregar #{item.quantity}x #{item.name} em #{item.date}#{item.customText ? ' — texto: ' + item.customText : ''}
           button.admin-primary-button(type='submit')= rental.deliveryChecked ? 'Confirmar checklist de devolução' : 'Confirmar checklist de entrega'
       else if rental.returnChecked
         h2 Devolução concluída

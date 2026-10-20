@@ -26,7 +26,8 @@ var userSchema = new mongoose.Schema({
     price: Number,
     imageUrl: String,
     quantity: { type: Number, min: 1, default: 1 },
-    requestDate: String
+    requestDate: String,
+    customText: { type: String, default: '' }
   }],
   favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }]
 }, { timestamps: true });

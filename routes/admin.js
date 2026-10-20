@@ -243,6 +243,16 @@ router.get('/produtos/:id/editar', async function(req, res, next) {
   } catch (error) { next(error); }
 });
 
+function normalizeSubcategoryName(name) {
+  return String(name || '').trim().toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Subcategorias de balão personalizado: o produto precisa de um texto (do cliente ou pré-definido).
+function isCustomTextSubcategory(name) {
+  var normalized = normalizeSubcategoryName(name);
+  return normalized.indexOf('balao') === 0 && normalized.indexOf('personaliza') !== -1;
+}
+
 function getProductData(body) {
   var componentProducts = Array.isArray(body.componentProduct) ? body.componentProduct : (body.componentProduct ? [body.componentProduct] : []);
   var componentQuantities = Array.isArray(body.componentQuantity) ? body.componentQuantity : (body.componentQuantity ? [body.componentQuantity] : []);
@@ -254,6 +264,11 @@ function getProductData(body) {
   var specifications = getSubmittedSpecifications(body);
   var subcategories = getSubmittedSubcategories(body);
   if (isComposite && !components.length) throw new Error('Kits e festas infantis precisam de pelo menos um componente.');
+  var allowCustomText = body.allowCustomText === 'on';
+  var predefinedCustomText = allowCustomText ? '' : String(body.predefinedCustomText || '').trim().slice(0, 200);
+  if (subcategories.some(isCustomTextSubcategory) && !allowCustomText && !predefinedCustomText) {
+    throw new Error('Defina se o texto do balão personalizado é escolhido pelo cliente ou informe o texto pré-personalizado.');
+  }
   return {
     name: body.name,
     category: body.category,
@@ -264,6 +279,8 @@ function getProductData(body) {
     imageUrls: Array.isArray(body.imageUrls) ? body.imageUrls : (body.imageUrls ? [body.imageUrls] : []),
     specifications: specifications,
     subcategories: subcategories,
+    allowCustomText: allowCustomText,
+    predefinedCustomText: predefinedCustomText,
     stockTotal: body.stockTotal,
     components: isComposite ? components : []
   };
@@ -502,6 +519,7 @@ router.post('/solicitacoes/:id/editar', async function(req, res, next) {
     var productIds = Array.isArray(req.body.itemProductId) ? req.body.itemProductId : (req.body.itemProductId ? [req.body.itemProductId] : []);
     var quantities = Array.isArray(req.body.itemQuantity) ? req.body.itemQuantity : (req.body.itemQuantity ? [req.body.itemQuantity] : []);
     var itemDates = Array.isArray(req.body.itemDate) ? req.body.itemDate : (req.body.itemDate ? [req.body.itemDate] : []);
+    var itemCustomTexts = Array.isArray(req.body.itemCustomText) ? req.body.itemCustomText : (req.body.itemCustomText ? [req.body.itemCustomText] : []);
     if (productIds.length !== rental.items.length || quantities.length !== rental.items.length || itemDates.length !== rental.items.length) throw new Error('Confira os produtos, quantidades e datas da solicitação.');
     var expanded = {};
     var uniqueDates = [];
@@ -509,12 +527,16 @@ router.post('/solicitacoes/:id/editar', async function(req, res, next) {
       var item = rental.items[index];
       var quantity = Number(quantities[index]);
       var date = String(itemDates[index] || '');
+      var customText = String(itemCustomTexts[index] || '').trim().slice(0, 200);
       if (String(productIds[index]) !== String(item.product) || !Number.isInteger(quantity) || quantity < 1 || !isValidCalendarDate(date)) throw new Error('Confira a quantidade e a data de cada item.');
       var product = await inventory.findProductGraph(item.product);
       if (!product) throw new Error('Um produto desta solicitação não existe mais.');
+      if (!customText && product.predefinedCustomText) customText = String(product.predefinedCustomText).trim().slice(0, 200);
+      if (product.allowCustomText && !customText) throw new Error('Informe o texto de personalização de ' + product.name + '.');
       inventory.expandProduct(product, quantity, expanded);
       item.quantity = quantity;
       item.date = date;
+      item.customText = customText;
       if (uniqueDates.indexOf(date) === -1) uniqueDates.push(date);
     }
     var deliveryAddress = String(req.body.deliveryAddress || '').trim();
@@ -549,7 +571,7 @@ router.post('/solicitacoes/:id/editar', async function(req, res, next) {
     if (rental.status === 'active' && await hasActiveScheduleConflict(rental, rental._id)) throw new Error('Os itens, as datas ou o horário do salão conflitam com outro aluguel ativo.');
     await rental.save();
     await rental.populate('user');
-    var itemSummary = rental.items.map(function(item) { return '- ' + item.quantity + 'x ' + item.name + ' (uso em ' + item.date.split('-').reverse().join('/') + ')'; });
+    var itemSummary = rental.items.map(function(item) { return '- ' + item.quantity + 'x ' + item.name + (item.customText ? ' (texto: ' + item.customText + ')' : '') + ' (uso em ' + item.date.split('-').reverse().join('/') + ')'; });
     var editMessage = [
       'Sua solicitação de locação foi atualizada pela loja.',
       '',

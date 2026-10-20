@@ -53,6 +53,8 @@ block content
                   td(data-label='Itens')
                     each item in rental.items
                       div #{item.quantity}x #{item.name}
+                      if item.customText
+                        div.request-item-custom-text Texto a personalizar: #{item.customText}
                   td(data-label='Datas')
                     div Data da solicitação: #{rental.createdAt.toLocaleDateString('pt-BR')}
                     div Data de entrega: #{validDeliveryDate ? deliveryDate.split('-').reverse().join('/') : 'Não informada'}

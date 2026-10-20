@@ -40,7 +40,8 @@ async function getUserCart(req) {
         price: item.price,
         imageUrl: item.imageUrl,
         quantity: item.quantity,
-        requestDate: item.requestDate || ''
+        requestDate: item.requestDate || '',
+        customText: item.customText || ''
       };
     }) : []);
   req.session.cart = cart;
@@ -57,7 +58,8 @@ async function saveUserCart(req, cart) {
       price: Number(item.price) || 0,
       imageUrl: item.imageUrl || '',
       quantity: Math.max(1, Number(item.quantity) || 1),
-      requestDate: item.requestDate || ''
+      requestDate: item.requestDate || '',
+      customText: String(item.customText || '').trim().slice(0, 200)
     };
   }) } });
 }
@@ -110,7 +112,17 @@ async function addToCart(req, res, next, fromProductPage) {
       return res.redirect(fromProductPage ? '/sacola' : '/catalogo?estado=' + encodeURIComponent(product.category));
     }
     var cart = await getUserCart(req);
-    var existing = cart.find(function(item) { return String(item.productId) === String(product._id); });
+    var customText = String(req.body.customText || '').trim().slice(0, 200);
+    if (product.allowCustomText && !customText) {
+      if (wantsJson) return res.status(409).json({ ok: false, available: available, message: 'Este produto pede um texto de personalização. Abra a página do produto para informar o texto.' });
+      req.session.cartError = 'Este produto pede um texto de personalização. Abra a página do produto para informar o texto.';
+      return res.redirect(fromProductPage ? '/produto/' + product._id : '/catalogo?estado=' + encodeURIComponent(product.category));
+    }
+    if (!product.allowCustomText) {
+      if (!customText && product.predefinedCustomText) customText = String(product.predefinedCustomText).trim().slice(0, 200);
+      if (!product.predefinedCustomText) customText = '';
+    }
+    var existing = cart.find(function(item) { return String(item.productId) === String(product._id) && (item.customText || '') === customText; });
     if (existing) {
       existing.quantity = Math.max(0, Number(existing.quantity) || 0);
       if (existing.quantity >= available) {
@@ -120,7 +132,7 @@ async function addToCart(req, res, next, fromProductPage) {
       }
       existing.quantity += 1;
     } else {
-      cart.push({ productId: product._id.toString(), name: product.name, price: product.price, imageUrl: product.imageUrl, quantity: 1, requestDate: '' });
+      cart.push({ productId: product._id.toString(), name: product.name, price: product.price, imageUrl: product.imageUrl, quantity: 1, requestDate: '', customText: customText });
     }
     await saveUserCart(req, cart);
     if (wantsJson) return res.json({ ok: true, available: available, inCart: existing ? existing.quantity : 1, message: 'Produto adicionado à sacola.' });
@@ -140,7 +152,7 @@ router.post('/ajustar', requireLogin, async function(req, res, next) {
   try {
     var delta = Number(req.body.delta);
     var cart = await getUserCart(req);
-    var item = cart.find(function(entry) { return String(entry.productId) === String(req.body.productId); });
+    var item = cart.find(function(entry) { return String(entry.productId) === String(req.body.productId) && (entry.customText || '') === String(req.body.customText || '').trim(); });
     if (!item || !Number.isInteger(delta) || !delta) return res.redirect('/sacola');
     if (delta > 0) {
       var product = await inventory.findProductGraph(item.productId);
@@ -159,7 +171,7 @@ router.post('/ajustar', requireLogin, async function(req, res, next) {
 router.post('/data', requireLogin, async function(req, res, next) {
   try {
     var cart = await getUserCart(req);
-    var item = cart.find(function(entry) { return String(entry.productId) === String(req.body.productId); });
+    var item = cart.find(function(entry) { return String(entry.productId) === String(req.body.productId) && (entry.customText || '') === String(req.body.customText || '').trim(); });
     if (!item) return res.redirect('/sacola');
     var activeRentals = await Rental.find({ status: 'active' }).select('dates items reservedComponents');
     var unavailable = [];
@@ -229,7 +241,7 @@ router.post('/solicitar', requireLogin, async function(req, res) {
       if (listAvailableDates(unavailableDates[String(item.productId)] || []).indexOf(item.requestDate) === -1) throw new Error('A data escolhida para ' + product.name + ' não está mais disponível. Escolha outra data.');
       if (inventory.availableUnits(product) < quantity) throw new Error('A quantidade solicitada de ' + product.name + ' não está disponível no estoque.');
       inventory.expandProduct(product, quantity, expanded);
-      products.push({ product: product._id, name: product.name, quantity: quantity, price: product.price, date: item.requestDate });
+      products.push({ product: product._id, name: product.name, quantity: quantity, price: product.price, date: item.requestDate, customText: String(item.customText || '').trim().slice(0, 200) });
     }
     var componentIds = Object.keys(expanded);
     var componentProducts = await Product.find({ _id: { $in: componentIds } });
@@ -253,7 +265,9 @@ router.post('/solicitar', requireLogin, async function(req, res) {
     products.forEach(function(item, itemIndex) {
       var subtotal = item.price * item.quantity;
       total += subtotal;
-      lines.push((itemIndex + 1) + '. ' + item.name, '   Quantidade: ' + item.quantity, '   Data de utilização: ' + item.date.split('-').reverse().join('/'), '   Valor unitário: R$ ' + item.price.toFixed(2).replace('.', ','), '   Subtotal: R$ ' + subtotal.toFixed(2).replace('.', ','));
+      lines.push((itemIndex + 1) + '. ' + item.name, '   Quantidade: ' + item.quantity, '   Data de utilização: ' + item.date.split('-').reverse().join('/'));
+      if (item.customText) lines.push('   Texto a personalizar: ' + item.customText);
+      lines.push('   Valor unitário: R$ ' + item.price.toFixed(2).replace('.', ','), '   Subtotal: R$ ' + subtotal.toFixed(2).replace('.', ','));
     });
     lines.push('', 'Total estimado: R$ ' + total.toFixed(2).replace('.', ','), '', '*ENTREGA*', 'Endereço: ' + deliveryAddress, 'Cidade: ' + deliveryCity + ' - ' + deliveryState, 'CEP: ' + deliveryCep, 'Data prevista: ' + deliveryDate.split('-').reverse().join('/'), 'Horário previsto: ' + deliveryTime);
     if (salonRental) lines.push('', '*ALUGUEL DO SALÃO*', 'Sim, desejo alugar o salão.', 'Data do evento: ' + salonDate.split('-').reverse().join('/'), 'Horário: ' + salonTime);
@@ -291,7 +305,7 @@ router.post('/confirmar', requireLogin, async function(req, res) {
       var product = await inventory.findProductGraph(item.productId);
       if (!product) throw new Error('Um produto da sacola não existe mais.');
       inventory.expandProduct(product, Number(item.quantity) || 1, expanded);
-      products.push({ product: product._id, name: product.name, quantity: item.quantity, price: product.price });
+      products.push({ product: product._id, name: product.name, quantity: item.quantity, price: product.price, customText: String(item.customText || '').trim().slice(0, 200) });
       if (!item.requestDate) throw new Error('Escolha uma data para cada produto da solicitação.');
       products[products.length - 1].date = item.requestDate;
     }

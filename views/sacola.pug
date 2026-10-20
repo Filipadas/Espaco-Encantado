@@ -12,7 +12,7 @@ block content
       p.admin-form-error= cartError
     if cart && cart.length
       .cart-list
-        each item in cart
+        each item, cartIndex in cart
           .cart-item(data-cart-item data-name=item.name data-quantity=item.quantity data-price=item.price data-request-date=item.requestDate)
             a.cart-item-product-link(href='/produto/' + item.productId)
               .cart-item-photo
@@ -23,23 +23,28 @@ block content
             .cart-item-info
               a(href='/produto/' + item.productId)
                 strong #{item.quantity}x #{item.name}
-              label(for='date-' + item.productId) Data disponível
+              if item.customText
+                p.cart-item-custom-text Texto a personalizar: #{item.customText}
+              label(for='date-' + cartIndex) Data disponível
               form.cart-date-form(method='post' action='/sacola/data')
                 input(type='hidden' name='productId' value=item.productId)
+                input(type='hidden' name='customText' value=item.customText || '')
                 if item.availableDates.length
-                  input.cart-date-input(id='date-' + item.productId type='date' name='date' value=item.requestDate min=item.availableDates[0] max=item.availableDates[item.availableDates.length - 1] data-available-dates=JSON.stringify(item.availableDates))
+                  input.cart-date-input(id='date-' + cartIndex type='date' name='date' value=item.requestDate min=item.availableDates[0] max=item.availableDates[item.availableDates.length - 1] data-available-dates=JSON.stringify(item.availableDates))
                 else
                   span.cart-date-unavailable Não há datas disponíveis nos próximos 60 dias.
             strong R$ #{(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}
             .cart-quantity-actions
               form(method='post' action='/sacola/ajustar')
                 input(type='hidden' name='productId' value=item.productId)
+                input(type='hidden' name='customText' value=item.customText || '')
                 input(type='hidden' name='delta' value='-1')
                 button.cart-quantity-button(type='submit' aria-label='Remover uma unidade' title='Remover uma unidade')
                   i.bi.bi-dash-lg(aria-hidden='true')
               span= item.quantity
               form(method='post' action='/sacola/ajustar')
                 input(type='hidden' name='productId' value=item.productId)
+                input(type='hidden' name='customText' value=item.customText || '')
                 input(type='hidden' name='delta' value='1')
                 button.cart-quantity-button(type='submit' aria-label='Adicionar uma unidade' title='Adicionar uma unidade')
                   i.bi.bi-plus-lg(aria-hidden='true')

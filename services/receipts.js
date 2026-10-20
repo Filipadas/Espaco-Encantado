@@ -27,6 +27,7 @@ async function getReceiptViewData(rental) {
     return {
       name: item.name,
       quantity: item.quantity,
+      customText: item.customText || '',
       dateFormatted: formatDate(item.date),
       lineTotalFormatted: formatCurrency(Number(item.price || 0) * Number(item.quantity || 0))
     };

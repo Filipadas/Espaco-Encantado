@@ -45,6 +45,16 @@ block content
           .admin-subcategory-create
             input(type='text' data-new-subcategory placeholder='Ex.: Brinquedos educativos')
             button.admin-small-button(type='button' data-add-subcategory) Criar subcategoria
+        fieldset.admin-custom-text-option(data-custom-text-section hidden)
+          legend Texto do balão personalizado
+          label.admin-inline-check
+            input(type='checkbox' name='allowCustomText' checked=product.allowCustomText data-custom-text-toggle)
+            | Caixa para inserir texto
+          p.admin-form-hint Marque para deixar o cliente escrever o texto ao adicionar o produto à sacola. Desmarque para usar um texto pré-personalizado definido por você.
+          .admin-custom-text-predefined(data-predefined-text-section hidden=product.allowCustomText)
+            label(for='product-predefined-text') Texto pré-personalizado
+            input#product-predefined-text(type='text' name='predefinedCustomText' maxlength='200' value=product.predefinedCustomText placeholder='Ex.: Feliz aniversário, Sofia!')
+            p.admin-form-hint Este texto será mostrado ao cliente e enviado junto com a solicitação, sem opção de alteração.
         label(for='product-price') Preço
         input#product-price(type='number' name='price' min='0' step='0.01' value=product.price required)
         label(for='product-stock') Estoque total
@@ -425,7 +435,31 @@ block content
       var newSubcategoryInput = document.querySelector('[data-new-subcategory]');
       var addSubcategoryButton = document.querySelector('[data-add-subcategory]');
       var productCategorySelect = document.querySelector('#product-category');
+      var customTextSection = document.querySelector('[data-custom-text-section]');
+      var predefinedTextSection = document.querySelector('[data-predefined-text-section]');
+      var customTextToggle = customTextSection ? customTextSection.querySelector('[data-custom-text-toggle]') : null;
+      var predefinedTextInput = customTextSection ? customTextSection.querySelector('input[name="predefinedCustomText"]') : null;
+      function isCustomTextSubcategory(name) {
+        var normalized = String(name || '').toLowerCase();
+        if (normalized.normalize) normalized = normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return normalized.indexOf('balao') === 0 && normalized.indexOf('personaliza') !== -1;
+      }
+      function updateCustomTextPredefined() {
+        if (predefinedTextSection) predefinedTextSection.hidden = !!(customTextToggle && customTextToggle.checked);
+      }
+      function updateCustomTextOption() {
+        if (!customTextSection) return;
+        var requiresCustomText = !!(subcategorySection && Array.from(subcategorySection.querySelectorAll('[data-subcategory-option]:checked')).some(function(option) { return isCustomTextSubcategory(option.value); }));
+        customTextSection.hidden = !requiresCustomText;
+        if (!requiresCustomText) {
+          if (customTextToggle) customTextToggle.checked = false;
+          if (predefinedTextInput) predefinedTextInput.value = '';
+        }
+        updateCustomTextPredefined();
+      }
+      if (customTextToggle) customTextToggle.addEventListener('change', updateCustomTextPredefined);
       function updateSubcategorySummary() {
+        updateCustomTextOption();
         if (!subcategorySection || !subcategorySummary) return;
         var selectedNames = Array.from(subcategorySection.querySelectorAll('[data-subcategory-option]:checked')).map(function(option) { return option.value; });
         subcategorySummary.textContent = selectedNames.length ? selectedNames.join(', ') : 'Escolher subcategorias';

@@ -18,6 +18,13 @@ block content
           .product-detail-actions
             form(method='post' action='/sacola/adicionar-do-produto')
               input(type='hidden' name='productId' value=product._id)
+              if product.allowCustomText
+                label(for='product-custom-text') Texto para personalização
+                textarea#product-custom-text(name='customText' rows='3' maxlength='200' required placeholder='Digite aqui o texto que deve aparecer no produto')
+                p.product-detail-note Este produto é personalizado: o texto informado será enviado junto com a sua solicitação e será visto pela loja.
+              else if product.predefinedCustomText
+                p.product-detail-note Texto de personalização: #{product.predefinedCustomText}
+                input(type='hidden' name='customText' value=product.predefinedCustomText)
               button.admin-primary-button(type='submit')
                 i.bi.bi-bag-plus(aria-hidden='true')
                 | Adicionar à sacola

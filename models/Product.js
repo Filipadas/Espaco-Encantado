@@ -32,6 +32,15 @@ var productSchema = new mongoose.Schema({
     values: [{ type: String, trim: true }]
   }],
   subcategories: [{ type: String, trim: true }],
+  allowCustomText: {
+    type: Boolean,
+    default: false
+  },
+  predefinedCustomText: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   stockTotal: {
     type: Number,
     min: 0,

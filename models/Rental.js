@@ -7,7 +7,8 @@ var rentalSchema = new mongoose.Schema({
     name: { type: String, required: true },
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: true, min: 0 },
-    date: { type: String, required: true }
+    date: { type: String, required: true },
+    customText: { type: String, default: '' }
   }],
   reservedComponents: [{
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
