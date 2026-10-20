@@ -29,7 +29,7 @@ block content
               label(for='item-date-' + item._id) Data de utilização
               input(id='item-date-' + item._id type='date' name='itemDate' required value=item.date)
               label(for='item-custom-text-' + item._id) Texto para personalização
-              input(id='item-custom-text-' + item._id type='text' name='itemCustomText' maxlength='200' value=item.customText || '' placeholder='Texto que o cliente quer personalizar')
+              input(id='item-custom-text-' + item._id type='text' name='itemCustomText' maxlength='200' value=item.customText || '' placeholder='Digite aqui')
           h3 Dados da entrega
           label(for='edit-delivery-address') Endereço
           input#edit-delivery-address(type='text' name='deliveryAddress' required value=rental.deliveryAddress || '')

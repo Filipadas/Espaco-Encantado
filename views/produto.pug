@@ -20,7 +20,7 @@ block content
               input(type='hidden' name='productId' value=product._id)
               if product.allowCustomText
                 label(for='product-custom-text') Texto para personalização
-                textarea#product-custom-text(name='customText' rows='3' maxlength='200' required placeholder='Digite aqui o texto que deve aparecer no produto')
+                textarea#product-custom-text(name='customText' rows='1' maxlength='40' required placeholder='Digite aqui')
                 p.product-detail-note Este produto é personalizado: o texto informado será enviado junto com a sua solicitação e será visto pela loja.
               else if product.predefinedCustomText
                 p.product-detail-note Texto de personalização: #{product.predefinedCustomText}

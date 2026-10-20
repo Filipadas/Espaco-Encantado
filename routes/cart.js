@@ -90,7 +90,9 @@ router.get('/', requireLogin, async function(req, res, next) {
     deliveryProfile: deliveryProfile || {},
     whatsappNumber: req.app.locals.whatsappNumber || res.locals.whatsappNumber,
     cartError: req.session.cartError,
-    rentalSuccess: req.query.sucesso === '1'
+    rentalSuccess: req.query.sucesso === '1',
+    pendingRequest: !!(req.session.pendingRental && Array.isArray(req.session.pendingRental.items) && req.session.pendingRental.items.length),
+    pendingWhatsappUrl: req.session.pendingRental ? req.session.pendingRental.whatsappUrl : ''
   });
   } catch (error) { next(error); }
   delete req.session.cartError;
@@ -113,6 +115,7 @@ async function addToCart(req, res, next, fromProductPage) {
     }
     var cart = await getUserCart(req);
     var customText = String(req.body.customText || '').trim().slice(0, 200);
+    if (product.allowCustomText && customText.length > 40) customText = customText.slice(0, 40);
     if (product.allowCustomText && !customText) {
       if (wantsJson) return res.status(409).json({ ok: false, available: available, message: 'Este produto pede um texto de personalização. Abra a página do produto para informar o texto.' });
       req.session.cartError = 'Este produto pede um texto de personalização. Abra a página do produto para informar o texto.';
@@ -195,6 +198,47 @@ router.post('/data', requireLogin, async function(req, res, next) {
   } catch (error) { next(error); }
 });
 
+async function getUnavailableDatesMap() {
+  var unavailableDates = {};
+  var activeRentals = await Rental.find({ status: 'active' }).select('dates items reservedComponents');
+  activeRentals.forEach(function(rental) {
+    var dates = rental.dates || [];
+    (rental.items || []).forEach(function(rentalItem) {
+      unavailableDates[String(rentalItem.product)] = (unavailableDates[String(rentalItem.product)] || []).concat(dates);
+    });
+    (rental.reservedComponents || []).forEach(function(component) {
+      unavailableDates[String(component.product)] = (unavailableDates[String(component.product)] || []).concat(dates);
+    });
+  });
+  return unavailableDates;
+}
+
+// Valida a sacola e monta os itens da solicitação sem gravar nada no banco.
+async function prepareRentalItems(cart) {
+  var expanded = {};
+  var products = [];
+  var unavailableDates = await getUnavailableDatesMap();
+  for (var index = 0; index < cart.length; index += 1) {
+    var item = cart[index];
+    var quantity = Number(item.quantity);
+    var product = await inventory.findProductGraph(item.productId);
+    if (!product) throw new Error('Um produto da sacola não existe mais.');
+    if (!Number.isInteger(quantity) || quantity < 1 || !isValidCalendarDate(item.requestDate)) throw new Error('Confira a quantidade e a data de cada produto da solicitação.');
+    if (listAvailableDates(unavailableDates[String(item.productId)] || []).indexOf(item.requestDate) === -1) throw new Error('A data escolhida para ' + product.name + ' não está mais disponível. Escolha outra data.');
+    if (inventory.availableUnits(product) < quantity) throw new Error('A quantidade solicitada de ' + product.name + ' não está disponível no estoque.');
+    inventory.expandProduct(product, quantity, expanded);
+    products.push({ product: product._id, name: product.name, quantity: quantity, price: product.price, date: item.requestDate, customText: String(item.customText || '').trim().slice(0, 200) });
+  }
+  var componentIds = Object.keys(expanded);
+  var componentProducts = await Product.find({ _id: { $in: componentIds } });
+  if (componentProducts.length !== componentIds.length) throw new Error('Um componente do kit não foi encontrado.');
+  for (var componentIndex = 0; componentIndex < componentProducts.length; componentIndex += 1) {
+    var component = componentProducts[componentIndex];
+    if ((Number(component.stockTotal) || 0) - (Number(component.rentedQuantity) || 0) < expanded[String(component._id)]) throw new Error('Um dos produtos escolhidos já está sendo utilizado.');
+  }
+  return { products: products, componentIds: componentIds, expanded: expanded };
+}
+
 router.post('/solicitar', requireLogin, async function(req, res) {
   try {
     var cart = await getUserCart(req);
@@ -219,40 +263,9 @@ router.post('/solicitar', requireLogin, async function(req, res) {
       req.session.cartError = 'Informe a data e o horário do aluguel do salão.';
       return res.redirect('/sacola');
     }
-    var expanded = {};
-    var products = [];
-    var activeRentals = await Rental.find({ status: 'active' }).select('dates items reservedComponents');
-    var unavailableDates = {};
-    activeRentals.forEach(function(rental) {
-      var dates = rental.dates || [];
-      (rental.items || []).forEach(function(rentalItem) {
-        unavailableDates[String(rentalItem.product)] = (unavailableDates[String(rentalItem.product)] || []).concat(dates);
-      });
-      (rental.reservedComponents || []).forEach(function(component) {
-        unavailableDates[String(component.product)] = (unavailableDates[String(component.product)] || []).concat(dates);
-      });
-    });
-    for (var index = 0; index < cart.length; index += 1) {
-      var item = cart[index];
-      var quantity = Number(item.quantity);
-      var product = await inventory.findProductGraph(item.productId);
-      if (!product) throw new Error('Um produto da sacola não existe mais.');
-      if (!Number.isInteger(quantity) || quantity < 1 || !isValidCalendarDate(item.requestDate)) throw new Error('Confira a quantidade e a data de cada produto da solicitação.');
-      if (listAvailableDates(unavailableDates[String(item.productId)] || []).indexOf(item.requestDate) === -1) throw new Error('A data escolhida para ' + product.name + ' não está mais disponível. Escolha outra data.');
-      if (inventory.availableUnits(product) < quantity) throw new Error('A quantidade solicitada de ' + product.name + ' não está disponível no estoque.');
-      inventory.expandProduct(product, quantity, expanded);
-      products.push({ product: product._id, name: product.name, quantity: quantity, price: product.price, date: item.requestDate, customText: String(item.customText || '').trim().slice(0, 200) });
-    }
-    var componentIds = Object.keys(expanded);
-    var componentProducts = await Product.find({ _id: { $in: componentIds } });
-    if (componentProducts.length !== componentIds.length) throw new Error('Um componente do kit não foi encontrado.');
-    for (var componentIndex = 0; componentIndex < componentProducts.length; componentIndex += 1) {
-      var component = componentProducts[componentIndex];
-      if ((Number(component.stockTotal) || 0) - (Number(component.rentedQuantity) || 0) < expanded[String(component._id)]) throw new Error('Um dos produtos escolhidos já está sendo utilizado.');
-    }
-    var dates = products.map(function(item) { return item.date; }).filter(function(date, index, allDates) { return allDates.indexOf(date) === index; });
+    var prepared = await prepareRentalItems(cart);
+    var products = prepared.products;
     var customer = await User.findById(req.session.user.id).select('name phone');
-    await Rental.create({ user: req.session.user.id, items: products, dates: dates, deliveryAddress: deliveryAddress, deliveryCity: deliveryCity, deliveryState: deliveryState, deliveryCep: deliveryCep, deliveryDate: deliveryDate, deliveryTime: deliveryTime, salonRental: salonRental, salonDate: salonRental ? salonDate : undefined, salonTime: salonRental ? salonTime : undefined, reservedComponents: componentIds.map(function(id) { return { product: id, quantity: expanded[id] }; }), status: 'analysis' });
     var lines = [
       'Olá! Gostaria de enviar uma solicitação para a Espaço Encantado.',
       '', '*DADOS DO CLIENTE*',
@@ -273,11 +286,73 @@ router.post('/solicitar', requireLogin, async function(req, res) {
     if (salonRental) lines.push('', '*ALUGUEL DO SALÃO*', 'Sim, desejo alugar o salão.', 'Data do evento: ' + salonDate.split('-').reverse().join('/'), 'Horário: ' + salonTime);
     lines.push('', 'Gostaria de confirmar a disponibilidade dos itens e, se aplicável, do salão, além dos valores e das condições da solicitação.', '', 'Aguardo o retorno. Obrigado(a)!');
     var whatsappUrl = 'https://wa.me/' + business.whatsappNumber + '?text=' + encodeURIComponent(lines.join('\n'));
+    // A solicitação fica pendente: só é registrada quando o cliente confirmar que enviou a mensagem.
+    req.session.pendingRental = {
+      items: products,
+      dates: products.map(function(item) { return item.date; }).filter(function(date, index, allDates) { return allDates.indexOf(date) === index; }),
+      componentIds: prepared.componentIds,
+      expanded: prepared.expanded,
+      deliveryAddress: deliveryAddress,
+      deliveryCity: deliveryCity,
+      deliveryState: deliveryState,
+      deliveryCep: deliveryCep,
+      deliveryDate: deliveryDate,
+      deliveryTime: deliveryTime,
+      salonRental: salonRental,
+      salonDate: salonDate,
+      salonTime: salonTime,
+      whatsappUrl: whatsappUrl
+    };
     res.redirect(whatsappUrl);
   } catch (error) {
     req.session.cartError = error.message || 'Não foi possível registrar a solicitação.';
     res.redirect('/sacola');
   }
+});
+
+router.post('/solicitar/confirmar', requireLogin, async function(req, res) {
+  try {
+    var pending = req.session.pendingRental;
+    if (!pending || !Array.isArray(pending.items) || !pending.items.length) {
+      req.session.cartError = 'Não encontramos nenhuma solicitação pendente. Envie a solicitação novamente.';
+      return res.redirect('/sacola');
+    }
+    var cart = await getUserCart(req);
+    if (!cart.length) {
+      delete req.session.pendingRental;
+      req.session.cartError = 'Sua sacola está vazia.';
+      return res.redirect('/sacola');
+    }
+    // Revalida estoque e datas no momento da confirmação, porque o estoque pode ter mudado.
+    var prepared = await prepareRentalItems(cart);
+    await Rental.create({
+      user: req.session.user.id,
+      items: prepared.products,
+      dates: prepared.products.map(function(item) { return item.date; }).filter(function(date, index, allDates) { return allDates.indexOf(date) === index; }),
+      deliveryAddress: pending.deliveryAddress,
+      deliveryCity: pending.deliveryCity,
+      deliveryState: pending.deliveryState,
+      deliveryCep: pending.deliveryCep,
+      deliveryDate: pending.deliveryDate,
+      deliveryTime: pending.deliveryTime,
+      salonRental: !!pending.salonRental,
+      salonDate: pending.salonRental ? pending.salonDate : undefined,
+      salonTime: pending.salonRental ? pending.salonTime : undefined,
+      reservedComponents: prepared.componentIds.map(function(id) { return { product: id, quantity: prepared.expanded[id] }; }),
+      status: 'analysis'
+    });
+    delete req.session.pendingRental;
+    await saveUserCart(req, []);
+    res.redirect('/sacola?sucesso=1');
+  } catch (error) {
+    req.session.cartError = error.message || 'Não foi possível registrar a solicitação.';
+    res.redirect('/sacola');
+  }
+});
+
+router.post('/solicitar/cancelar', requireLogin, async function(req, res) {
+  delete req.session.pendingRental;
+  res.redirect('/sacola');
 });
 
 router.post('/confirmar', requireLogin, async function(req, res) {
@@ -321,6 +396,8 @@ router.post('/confirmar', requireLogin, async function(req, res) {
     if (componentProducts.length !== componentIds.length) throw new Error('Um componente do kit não foi encontrado.');
     await Rental.create([{ user: req.session.user.id, items: products, dates: products.map(function(item) { return item.date; }).filter(function(date, index, dates) { return dates.indexOf(date) === index; }), deliveryAddress: deliveryAddress, deliveryCity: deliveryCity, deliveryState: deliveryState, deliveryCep: deliveryCep, deliveryDate: deliveryDate, deliveryTime: deliveryTime, salonRental: req.body.salonRental === 'on', salonDate: req.body.salonDate, salonTime: req.body.salonTime, reservedComponents: componentIds.map(function(id) { return { product: id, quantity: expanded[id] }; }), status: 'analysis' }], { session: session });
     await session.commitTransaction();
+    // Esvazia a sacola somente após o commit, para não perder itens se a transação falhar.
+    await saveUserCart(req, []);
     res.redirect('/sacola?sucesso=1');
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();

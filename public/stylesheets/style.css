@@ -3650,6 +3650,12 @@ body.dark-mode .admin-category-button.is-active, body.dark-mode .admin-subcatego
 .cart-date-input { min-height: 38px; padding: 6px 8px; border: 1px solid #ccdce8; border-radius: 6px; background: #fff; color: #203a55; font: inherit; }
 .cart-date-unavailable { color: #60758a; font-size: 0.85rem; }
 .cart-item-custom-text, .request-item-custom-text { margin: 0; padding: 5px 9px; border-left: 3px solid #2f6ec1; border-radius: 4px; background: #eaf2fb; color: #1f4d80; font-size: 0.8rem; font-weight: 700; overflow-wrap: anywhere; }
+.cart-confirm-overlay { position: fixed; z-index: 1080; inset: 0; display: grid; place-items: center; padding: 24px 16px; overflow-y: auto; background: linear-gradient(135deg, #c62828, #b71c1c 45%, #2f6ec1); }
+.cart-confirm-overlay[hidden] { display: none; }
+.cart-confirm-overlay .confirmation-card { width: min(480px, 100%); }
+.cart-confirm-overlay .admin-subtitle { margin-bottom: 4px; }
+.cart-confirm-whatsapp { display: inline-flex; align-items: center; gap: 8px; margin: 14px auto 0; text-decoration: none; }
+.cart-confirm-overlay .profile-actions { justify-content: center; margin-top: 18px; }
 .invoice-custom-text { display: block; margin-top: 3px; color: #60758a; font-size: 0.72rem; overflow-wrap: anywhere; }
 .cart-quantity-actions { display: flex; align-items: center; gap: 8px; }
 .cart-quantity-actions form { margin: 0; }
@@ -3679,6 +3685,8 @@ body.dark-mode .admin-category-button.is-active, body.dark-mode .admin-subcatego
 .product-detail-description { color: #60758a; line-height: 1.6; }
 .product-detail-note { color: #60758a; font-size: 0.82rem; font-style: italic; }
 .product-detail-actions { display: flex; align-items: center; gap: 10px; }
+.product-detail-actions form { display: grid; flex: 1; gap: 6px; }
+.product-detail-card textarea[name='customText'] { width: 100%; max-width: 340px; min-height: 38px; padding: 8px 10px; font-size: 0.9rem; resize: none; }
 .similar-products { margin-top: 34px; }
 .similar-products h2 { color: #203a55; font-size: 1.4rem; }
 .similar-products-track { display: flex; gap: 14px; overflow-x: auto; padding: 8px 2px 18px; }

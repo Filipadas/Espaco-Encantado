@@ -6,6 +6,20 @@ block content
       i.bi.bi-arrow-left(aria-hidden='true')
     p.admin-eyebrow MINHA CONTA
     h1.admin-title Minha sacola
+    .cart-confirm-overlay(data-cart-confirm-overlay hidden=!pendingRequest)
+      .confirmation-card
+        img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
+        h1.admin-title Você enviou a mensagem de solicitação?
+        p.admin-subtitle A solicitação só será enviada para a loja e os produtos sairão da sacola depois que você confirmar o envio da mensagem no WhatsApp.
+        if pendingWhatsappUrl
+          a.admin-small-button.cart-confirm-whatsapp(href=pendingWhatsappUrl target='_blank' rel='noopener')
+            i.bi.bi-whatsapp(aria-hidden='true')
+            | Abrir WhatsApp novamente
+        .profile-actions
+          form(method='post' action='/sacola/solicitar/cancelar')
+            button.admin-small-button.confirm-cancel-button(type='submit') Não, ainda não
+          form(method='post' action='/sacola/solicitar/confirmar')
+            button.admin-primary-button(type='submit') Sim, já enviei
     if rentalSuccess
       p.admin-success Solicitação registrada e enviada para análise. Você pode acompanhar o andamento no histórico.
     if cartError
@@ -143,10 +157,13 @@ block content
         updateSalonFields();
       }
       var requestForm = document.querySelector('[data-submit-once]');
+      var confirmOverlay = document.querySelector('[data-cart-confirm-overlay]');
       if (requestForm) requestForm.addEventListener('submit', function(event) {
         if (requestForm.dataset.submitted === 'true') { event.preventDefault(); return; }
         requestForm.dataset.submitted = 'true';
         var submitButton = requestForm.querySelector('[data-submit-once-button]');
         if (submitButton) submitButton.disabled = true;
+        // A mensagem abre em outra aba; aqui perguntamos se o cliente conseguiu enviá-la.
+        if (confirmOverlay) confirmOverlay.hidden = false;
       });
     })();
