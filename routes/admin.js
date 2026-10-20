@@ -250,7 +250,9 @@ function normalizeSubcategoryName(name) {
 // Subcategorias de balão personalizado: o produto precisa de um texto (do cliente ou pré-definido).
 function isCustomTextSubcategory(name) {
   var normalized = normalizeSubcategoryName(name);
-  return normalized.indexOf('balao') === 0 && normalized.indexOf('personaliza') !== -1;
+  // "balões" normalizado é "baloes" (não "balao"), por isso a checagem cobre as duas formas.
+  var isBalloon = normalized.indexOf('balao') !== -1 || normalized.indexOf('baloe') !== -1;
+  return isBalloon && normalized.indexOf('personaliza') !== -1;
 }
 
 function getProductData(body) {

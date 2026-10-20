@@ -3294,7 +3294,10 @@ body.dark-mode .cart-item-info label,
 body.dark-mode .product-detail-description,
 body.dark-mode .product-detail-note,
 body.dark-mode .admin-form-hint { color: #cbd9e5; }
-body.dark-mode .admin-custom-text-option { border-color: #45627d; background: #21384d; }
+body.dark-mode .admin-custom-text-option { border-color: #45627d; border-left-color: #4f9cf0; background: #21384d; }
+body.dark-mode .admin-custom-text-option .admin-custom-text-check { color: #e8eef5; }
+body.dark-mode .admin-custom-text-hint,
+body.dark-mode .admin-custom-text-predefined label { color: #cbd9e5; }
 body.dark-mode .cart-item-custom-text,
 body.dark-mode .request-item-custom-text { background: #21384d; color: #cfe3f7; }
 body.dark-mode .invoice-custom-text { color: #cbd9e5; }
@@ -3518,9 +3521,15 @@ body.dark-mode .auth-theme-toggle { background: #243b52; color: #fff; }
 .admin-carousel-image { display: block; width: min(100%, 520px); max-height: 260px; object-fit: contain; border-radius: 10px; background: #eef3f7; }
 .admin-inline-check { display: flex; align-items: center; gap: 8px; }
 .admin-inline-check input { width: auto; }
-.admin-custom-text-option { margin: 2px 0 16px; padding: 12px 14px; border: 1px solid #cfe0ee; border-radius: 10px; background: #f5f9fc; }
-.admin-custom-text-option legend { padding: 0 6px; color: #203a55; font-size: 0.85rem; font-weight: 800; }
-.admin-custom-text-predefined { margin-top: 10px; }
+.admin-custom-text-option { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 2px 0 6px; padding: 10px 12px; border: 1px solid #cfe0ee; border-left: 4px solid #2f6ec1; border-radius: 10px; background: #f5f9fc; }
+.admin-custom-text-option[hidden] { display: none; }
+.admin-custom-text-option .admin-custom-text-check { display: flex; flex: 1 1 100%; align-items: center; gap: 8px; margin: 0; color: #203a55; font-weight: 700; }
+.admin-custom-text-check input[type='checkbox'] { flex: 0 0 auto; width: auto; margin: 0; accent-color: #2f6ec1; cursor: pointer; }
+.admin-custom-text-check span { white-space: nowrap; }
+.admin-custom-text-hint { color: #60758a; font-size: 0.8rem; font-weight: 400; }
+.admin-custom-text-option .admin-custom-text-predefined { display: flex; flex: 1 1 100%; align-items: center; gap: 10px; }
+.admin-custom-text-predefined label { margin: 0; color: #60758a; font-size: 0.8rem; white-space: nowrap; }
+.admin-custom-text-predefined input { flex: 1 1 240px; width: 100%; max-width: 420px; padding: 8px 10px; }
 .admin-components { display: grid; gap: 10px; margin: 12px 0 4px; padding: 14px; border: 1px solid #ccdce8; border-radius: 8px; }
 .admin-image-order { display: grid; gap: 8px; margin: 8px 0 12px; }
 .admin-image-order-row { display: flex; align-items: center; gap: 8px; padding: 6px; border: 1px solid #dbe7f0; border-radius: 8px; }
