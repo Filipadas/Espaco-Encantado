@@ -969,7 +969,6 @@ body:has(.catalog-page) main.container {
   .navbar-brand { min-width: 128px; min-height: 30px; }
   .navbar-logo { top: 50%; left: -22px; width: 190px; height: 72px; transform: translateY(-50%); }
   .site-footer {
-    margin-bottom: -10px;
     flex-direction: column;
     gap: 4px;
     padding: 20px 14px;
@@ -1613,6 +1612,8 @@ body.dark-mode .search-result-specifications span { background: #29445e; color: 
   justify-content: center;
   gap: 0;
   margin: 0 auto;
+  /* Entrega os gestos horizontais ao arrasto com o dedo (sem rolar a página). */
+  touch-action: pan-y;
 }
 
 .catalog-carousel-control {
@@ -2665,7 +2666,6 @@ body.dark-mode .search-result-specifications span { background: #29445e; color: 
 
   .site-footer {
     width: 100vw;
-    margin-bottom: -10px;
   }
 }
 
@@ -2755,7 +2755,6 @@ body.dark-mode .search-result-specifications span { background: #29445e; color: 
 
   .catalog-sidebar {
     top: 0;
-    bottom: 0;
     left: 0;
     width: 54px;
     flex-basis: 54px;
@@ -3831,11 +3830,13 @@ body.dark-mode .admin-components, body.dark-mode .admin-component-row input, bod
   .admin-subcategory-create { grid-template-columns: minmax(0, 1fr); }
   .admin-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .profile-actions { flex-wrap: wrap; }
-  .site-footer { width: 100vw; margin-bottom: -12px; padding-bottom: 18px; }
+  /* O rodapé reserva o próprio respiro no fim da página, para as redes sociais
+     nunca ficarem atrás da bottom tab fixa (68px + safe-area). */
+  .site-footer { width: 100vw; margin-bottom: calc(88px + env(safe-area-inset-bottom)); padding-bottom: 18px; }
   .footer-main { grid-template-columns: 1fr; justify-items: center; gap: 12px; }
   .footer-contact { align-items: center; text-align: center; }
   .footer-socials { justify-self: center; }
-  .catalog-products { padding-bottom: 72px; }
+  .catalog-products { padding-bottom: 144px; }
   .catalog-products-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .catalog-product-card { min-height: 164px; padding: 5px; }
   .products-section .products-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; max-height: 555px; padding: 0 2px 8px; }
@@ -3893,5 +3894,32 @@ body.delete-account-page .mobile-bottom-tab, body.request-page .mobile-bottom-ta
 @media (max-width: 480px) {
   .catalog-product-row-track .catalog-product-card { flex-basis: 178px; min-height: 178px; }
   .catalog-product-row-track .catalog-more-card { flex-basis: 138px; min-height: 168px; }
+}
+
+/* ===== Barra lateral do catálogo em telas menores =====
+   A barra ocupa exatamente a área visível acima da navegação inferior fixa,
+   para o botão Favoritos e a seta de expandir ficarem sempre à mostra,
+   sem precisar rolar a página até o final. */
+@media (max-width: 768px) {
+  .catalog-sidebar {
+    height: calc(100vh - 68px - env(safe-area-inset-bottom));
+    height: calc(100dvh - 68px - env(safe-area-inset-bottom));
+  }
+
+  .catalog-sidebar-nav {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Em telas muito baixas o menu rola sem esconder os primeiros itens. */
+    justify-content: safe center;
+  }
+}
+
+/* Em paisagem / telas muito baixas a navegação inferior fica mais discreta,
+   para não avançar sobre o rodapé. */
+@media (max-width: 768px) and (max-height: 520px) {
+  body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .mobile-bottom-tab { min-height: calc(56px + env(safe-area-inset-bottom)); }
+  .mobile-tab-home { width: 44px; height: 44px; margin-bottom: 4px; }
 }
 

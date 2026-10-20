@@ -55,7 +55,7 @@ block content
               | e serviços — esperamos por você!
 
   section.carousel-area
-    h3.carousel-title Conheça nossas decorações, clique para saber mais
+    h3.carousel-title Conheça nossas decorações
     #carouselExampleCaptions.carousel.slide(style='margin-top: 24px;')
       .carousel-indicators
         each image, index in homeCarouselImages
@@ -154,7 +154,7 @@ block content
           .catalog-product-summary
             h2.catalog-product-name= product.name
             p.catalog-product-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
-            p.catalog-product-description= product.description || 'Produto disponível para sua festa.'
+            p.catalog-product-description= withFinalPeriod(product.description) || 'Produto disponível para sua festa.'
           button.catalog-card-toggle(type='button' aria-label='Ver detalhes de ' + product.name aria-expanded='false')
             i.bi.bi-chevron-up(aria-hidden='true')
           .catalog-product-details

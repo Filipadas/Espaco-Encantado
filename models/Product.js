@@ -1,4 +1,5 @@
 var mongoose = require('mongoose');
+var withFinalPeriod = require('../utils/product-description');
 
 var productSchema = new mongoose.Schema({
   name: {
@@ -60,6 +61,13 @@ var productSchema = new mongoose.Schema({
   }]
 }, {
   timestamps: true
+});
+
+// Garante que a descrição sempre termine com ponto final, mesmo que o admin esqueça de colocar.
+productSchema.pre('save', function() {
+  if (typeof this.description === 'string' && this.description.trim()) {
+    this.description = withFinalPeriod(this.description);
+  }
 });
 
 module.exports = mongoose.model('Product', productSchema);

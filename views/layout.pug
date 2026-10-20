@@ -6,7 +6,7 @@ html
         link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet")
         link(href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet")
         link(rel='icon' type='image/png' href='/images/logo_ee.png')
-        link(rel='stylesheet', href='/stylesheets/style.css?v=20261017-produto-mobile')
+        link(rel='stylesheet', href='/stylesheets/style.css?v=20261019-catalogo-drag')
     body(class=(isLogoutPage || isDeleteAccountPage || isPasswordRecoveryPage) ? 'delete-account-page' : (isRequestPage ? 'request-page' : (isAdminPanel ? 'admin-panel-page' : (isCatalogPage ? 'catalog-page-navbar' : (isProductPage ? 'product-detail-no-navbar' : '')))))
         nav.navbar-encantado
             .navbar-wrapper
@@ -378,6 +378,13 @@ html
 
                             var slides = Array.prototype.slice.call(carousel.querySelectorAll('[data-catalog-slide]'));
                             var currentIndex = 0;
+                            var touchStartX = 0;
+                            var touchStartY = 0;
+                            var isTouching = false;
+                            var isHorizontalDrag = false;
+                            var dragSuppressedUntil = 0;
+                            var DRAG_START_THRESHOLD = 10;
+                            var DRAG_DISTANCE = 40;
 
                             function updateCarousel(nextIndex) {
                                 currentIndex = Math.max(0, Math.min(nextIndex, slides.length - 1));
@@ -394,8 +401,48 @@ html
                                 });
                             }
 
+                            // Arrasto com o dedo (touch) para trocar o card ativo, principalmente em telas menores.
+                            carousel.addEventListener('touchstart', function(event) {
+                                if (event.touches.length !== 1) return;
+                                isTouching = true;
+                                isHorizontalDrag = false;
+                                touchStartX = event.touches[0].clientX;
+                                touchStartY = event.touches[0].clientY;
+                            }, { passive: true });
+
+                            carousel.addEventListener('touchmove', function(event) {
+                                if (!isTouching || event.touches.length !== 1) return;
+                                var deltaX = event.touches[0].clientX - touchStartX;
+                                var deltaY = event.touches[0].clientY - touchStartY;
+                                if (!isHorizontalDrag && Math.abs(deltaX) > DRAG_START_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
+                                    isHorizontalDrag = true;
+                                }
+                                // Só bloqueia a rolagem da página quando o gesto é claramente horizontal.
+                                if (isHorizontalDrag && event.cancelable) event.preventDefault();
+                            }, { passive: false });
+
+                            carousel.addEventListener('touchend', function(event) {
+                                if (!isTouching) return;
+                                isTouching = false;
+                                if (!isHorizontalDrag || !event.changedTouches || !event.changedTouches.length) return;
+                                var deltaX = event.changedTouches[0].clientX - touchStartX;
+                                // Marca o clique que o navegador dispara logo depois do arrasto para não navegar.
+                                dragSuppressedUntil = Date.now() + 500;
+                                if (Math.abs(deltaX) >= DRAG_DISTANCE) updateCarousel(currentIndex + (deltaX < 0 ? 1 : -1));
+                            });
+
+                            carousel.addEventListener('touchcancel', function() {
+                                isTouching = false;
+                                isHorizontalDrag = false;
+                            });
+
                             slides.forEach(function(slide, index) {
                                 slide.addEventListener('click', function(event) {
+                                    if (Date.now() < dragSuppressedUntil) {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        return;
+                                    }
                                     if (this.classList.contains('is-active')) return;
 
                                     event.preventDefault();

@@ -22,6 +22,8 @@ if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY === 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
+// Disponível nas views: garante que a descrição do produto sempre termine com ponto final.
+app.locals.withFinalPeriod = require('./utils/product-description');
 
 app.use(logger('dev'));
 app.use(express.json());

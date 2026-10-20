@@ -52,7 +52,7 @@ block content
                   p.search-result-category= product.category
                   h2= product.name
                   if product.description
-                    p= product.description
+                    p= withFinalPeriod(product.description)
                   if product.specifications && product.specifications.length
                     .search-result-specifications
                       each specification in product.specifications

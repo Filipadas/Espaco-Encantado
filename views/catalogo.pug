@@ -10,7 +10,7 @@ mixin catalogProductCard(product)
     .catalog-product-summary
       h2.catalog-product-name= product.name
       p.catalog-product-price R$ #{Number(product.price).toFixed(2).replace('.', ',')}
-      p.catalog-product-description= product.description || 'Produto disponível para sua festa.'
+      p.catalog-product-description= withFinalPeriod(product.description) || 'Produto disponível para sua festa.'
     button.catalog-card-toggle(type='button' aria-label='Ver detalhes de ' + product.name aria-expanded='false')
       i.bi.bi-chevron-up(aria-hidden='true')
     .catalog-product-details
@@ -25,7 +25,7 @@ mixin catalogProductCard(product)
             i.bi.bi-bag-plus(aria-hidden='true')
 
 block content
-  - var stateCategories = { brinquedos: 'brinquedo', decoracoes: 'decoração', 'kit-montagem': 'kit-mont', infantil: 'infantil' }
+  - var stateCategories = { brinquedos: 'brinquedo', decoracoes: 'decoração', 'kit-montagem': 'kit-mont', 'festa-infantil': 'infantil', infantil: 'infantil' }
   - var activeState = stateCategories[selectedState] ? selectedState : 'brinquedos'
   - var activeCategory = stateCategories[activeState]
   - var categoryTitles = { brinquedo: 'Brinquedos', decoração: 'Decorações', 'kit-mont': 'Kit de montagem', infantil: 'Festa infantil' }

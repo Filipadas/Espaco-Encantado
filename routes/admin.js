@@ -13,6 +13,7 @@ var receipts = require('../services/receipts');
 var defaultHomeCarouselImages = require('../config/home-carousel-images');
 var meetingHistoryUtils = require('../utils/meeting-history');
 var customerWhatsApp = require('../utils/customer-whatsapp').customerWhatsAppUrl;
+var withFinalPeriod = require('../utils/product-description');
 var { requireAdmin } = require('../middleware/auth');
 var router = express.Router();
 var upload = multer({
@@ -257,7 +258,8 @@ function getProductData(body) {
     name: body.name,
     category: body.category,
     price: body.price,
-    description: body.description,
+    // Teste lógico: a descrição precisa terminar com ponto final (o ponto é adicionado se faltar).
+    description: typeof body.description === 'string' ? withFinalPeriod(body.description) : body.description,
     imageUrl: body.imageUrl || (body.imageUrls && body.imageUrls[0]) || '',
     imageUrls: Array.isArray(body.imageUrls) ? body.imageUrls : (body.imageUrls ? [body.imageUrls] : []),
     specifications: specifications,
