@@ -94,14 +94,14 @@ block content
         label.salon-rental-check
           input(type='checkbox' name='salonRental' data-salon-toggle)
           | Desejo alugar também o horário do salão
+        button.admin-primary-button(type='submit' data-submit-once-button)
+          i.bi.bi-calendar-check(aria-hidden='true')
+          | Enviar solicitação
         .salon-rental-drawer(data-salon-drawer hidden)
           label(for='salon-date') Dia do salão
           input#salon-date(type='date' name='salonDate')
           label(for='salon-time') Horário do salão
           input#salon-time(type='time' name='salonTime')
-        button.admin-primary-button(type='submit' data-submit-once-button)
-          i.bi.bi-calendar-check(aria-hidden='true')
-          | Enviar solicitação
       form(method='post' action='/sacola/limpar')
         button.admin-danger-button(type='submit') Esvaziar sacola
     else
