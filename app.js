@@ -52,6 +52,7 @@ app.use(function(req, res, next) {
   res.locals.isDeleteAccountPage = req.path === '/usuarios/excluir';
   res.locals.isPasswordRecoveryPage = req.path.indexOf('/recuperar-senha') === 0;
   res.locals.isRequestPage = req.path.indexOf('/admin/solicitacoes') === 0;
+  res.locals.hideNavbar = req.path.indexOf('/admin/agenda') === 0;
   res.locals.adminBackUrl = req.path === '/admin' ? '/' : '/admin';
   res.locals.adminBackLabel = req.path === '/admin' ? 'Voltar para a tela inicial' : 'Voltar para o painel administrativo';
   next();

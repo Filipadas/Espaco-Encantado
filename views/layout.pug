@@ -19,10 +19,8 @@ html
                 .navbar-actions-section
                     if currentUser
                         if isAdmin
-                            a.navbar-special-action(href="/admin/reunioes" aria-label="Solicitações de reunião" title="Solicitações de reunião")
-                                i.bi.bi-calendar-event-fill(aria-hidden="true")
-                            a.navbar-special-action(href="/admin/solicitacoes" aria-label="Aluguéis ativos" title="Aluguéis ativos")
-                                i.bi.bi-calendar-check-fill(aria-hidden="true")
+                            a.navbar-special-action(href="/admin/agenda" aria-label="Agenda" title="Agenda")
+                                i.bi.bi-calendar-range-fill(aria-hidden="true")
                             if isAdminPanel
                                 a.navbar-special-action(href="/admin" aria-label="Painel administrativo" title="Painel administrativo")
                                     i.bi.bi-award-fill(aria-hidden="true")
@@ -63,13 +61,9 @@ html
                                 i.bi.bi-speedometer2(aria-hidden='true')
                                 |  Painel administrativo
                         li.nav-item
-                            a.nav-link(href='/admin/solicitacoes')
-                                i.bi.bi-calendar-check-fill(aria-hidden='true')
-                                |  Locações
-                        li.nav-item
-                            a.nav-link(href='/admin/reunioes')
-                                i.bi.bi-calendar-event-fill(aria-hidden='true')
-                                |  Reuniões
+                            a.nav-link(href='/admin/agenda')
+                                i.bi.bi-calendar-range-fill(aria-hidden='true')
+                                |  Agenda
                         li.nav-item
                             a.nav-link(href='/?#agenda')
                                 i.bi.bi-calendar-minus(aria-hidden='true')

@@ -749,6 +749,27 @@ router.get('/reunioes', async function(req, res, next) {
   } catch (error) { next(error); }
 });
 
+router.get('/agenda', async function(req, res, next) {
+  try {
+    var meetingMessages = { confirmada: 'A reunião foi confirmada.' };
+    var allMeetings = await Meeting.find().populate('user').sort({ date: 1, time: 1 });
+    var now = new Date();
+    var meetings = allMeetings.filter(function(meeting) { return !meetingHistoryUtils.isHistorical(meeting, now); });
+    var meetingHistory = allMeetings.filter(function(meeting) { return meetingHistoryUtils.isHistorical(meeting, now); }).sort(function(a, b) {
+      return (b.date + 'T' + b.time).localeCompare(a.date + 'T' + a.time);
+    });
+    var rentals = await Rental.find({ status: { $in: ['analysis', 'active'] } }).populate('user').sort({ createdAt: -1 });
+    res.render('admin-agenda', {
+      title: 'Agenda',
+      meetings: meetings,
+      meetingHistory: meetingHistory,
+      meetingMessage: meetingMessages[req.query.reuniao] || '',
+      rentals: rentals,
+      initialView: req.query.view === 'reunioes' ? 'reunioes' : (req.query.view === 'solicitacoes' ? 'solicitacoes' : 'completa')
+    });
+  } catch (error) { next(error); }
+});
+
 router.post('/reunioes/:id/confirmar', async function(req, res, next) {
   try {
     var meeting = await Meeting.findOneAndUpdate({ _id: req.params.id, status: 'requested' }, { status: 'confirmed' }, { new: true }).populate('user');

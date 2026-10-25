@@ -1,49 +1,15 @@
 extends layout
 
 block content
-  main.admin-page
-    a.admin-back-link(href='/admin')
-      i.bi.bi-arrow-left
-      | Painel administrativo
-    p.admin-eyebrow AGENDA
-    h1.admin-title Solicitações de reunião
-    p.admin-subtitle Acompanhe os horários solicitados pelos clientes.
-    if meetingMessage
-      p.admin-success(role='status')= meetingMessage
-    if meetings && meetings.length
-      .admin-table-wrap
-        table.admin-table
-          thead
-            tr
-              th Cliente
-              th E-mail
-              th Data
-              th Horário
-              th Status
-              th Ação
-          tbody
-            each meeting in meetings
-              tr
-                td(data-label='Cliente')= meeting.status === 'unavailable' ? 'Bloqueio administrativo' : (meeting.user ? meeting.user.name : 'Cliente')
-                td(data-label='E-mail')= meeting.status === 'unavailable' ? '-' : (meeting.user ? meeting.user.email : '-')
-                td(data-label='Data')= meeting.date.split('-').reverse().join('/')
-                td(data-label='Horário')= meeting.time
-                td(data-label='Status')
-                  span.admin-role(class=meeting.status === 'requested' ? '' : 'is-admin')= meeting.status === 'requested' ? 'Solicitada' : meeting.status === 'confirmed' ? 'Confirmada' : meeting.status === 'unavailable' ? 'Indisponível' : 'Cancelada'
-                td(data-label='Ação')
-                  if meeting.status === 'requested'
-                    form(method='post' action='/admin/reunioes/' + meeting._id + '/confirmar' target=meeting.user && meeting.user.phone ? '_blank' : undefined)
-                      button.admin-small-button(type='submit') Confirmar reunião
-                  else
-                    span —
-    else
-      .admin-empty
-        i.bi.bi-calendar-event
-        p Nenhuma reunião futura aguardando ou confirmada.
-    section.meeting-history-card(aria-labelledby='meeting-history-title')
-      p.admin-eyebrow HISTÓRICO
-      h2#meeting-history-title Histórico de reuniões e solicitações
-      if meetingHistory && meetingHistory.length
+  if currentPath && currentPath.indexOf('/admin/agenda') === 0
+    .admin-agenda-inner
+      .admin-agenda-inner-header
+        p.admin-eyebrow AGENDA
+        h2.admin-agenda-inner-title Reuniões
+        p.admin-agenda-inner-subtitle Acompanhe os horários solicitados pelos clientes.
+      if meetingMessage
+        p.admin-success(role='status')= meetingMessage
+      if meetings && meetings.length
         .admin-table-wrap
           table.admin-table
             thead
@@ -53,15 +19,113 @@ block content
                 th Data
                 th Horário
                 th Status
+                th Ação
             tbody
-              each meeting in meetingHistory
-                - var scheduledAt = new Date(meeting.date + 'T' + meeting.time)
-                - var historyStatus = meeting.status === 'unavailable' ? 'Indisponível' : meeting.status === 'cancelled' ? 'Cancelada' : (meeting.status === 'confirmed' && scheduledAt < new Date() ? 'Realizada' : meeting.status === 'requested' && scheduledAt < new Date() ? 'Não confirmada' : 'Confirmada')
+              each meeting in meetings
                 tr
                   td(data-label='Cliente')= meeting.status === 'unavailable' ? 'Bloqueio administrativo' : (meeting.user ? meeting.user.name : 'Cliente')
                   td(data-label='E-mail')= meeting.status === 'unavailable' ? '-' : (meeting.user ? meeting.user.email : '-')
                   td(data-label='Data')= meeting.date.split('-').reverse().join('/')
                   td(data-label='Horário')= meeting.time
-                  td(data-label='Status')= historyStatus
+                  td(data-label='Status')
+                    span.admin-role(class=meeting.status === 'requested' ? '' : 'is-admin')= meeting.status === 'requested' ? 'Solicitada' : meeting.status === 'confirmed' ? 'Confirmada' : meeting.status === 'unavailable' ? 'Indisponível' : 'Cancelada'
+                  td(data-label='Ação')
+                    if meeting.status === 'requested'
+                      form(method='post' action='/admin/reunioes/' + meeting._id + '/confirmar' target=meeting.user && meeting.user.phone ? '_blank' : undefined)
+                        button.admin-small-button(type='submit') Confirmar reunião
+                    else
+                      span —
       else
-        p.meeting-history-empty Nenhuma solicitação anterior.
+        .admin-empty
+          i.bi.bi-calendar-event
+          p Nenhuma reunião futura aguardando ou confirmada.
+      section.meeting-history-card(aria-labelledby='meeting-history-title')
+        p.admin-eyebrow HISTÓRICO
+        h2#meeting-history-title Histórico de reuniões e solicitações
+        if meetingHistory && meetingHistory.length
+          .admin-table-wrap
+            table.admin-table
+              thead
+                tr
+                  th Cliente
+                  th E-mail
+                  th Data
+                  th Horário
+                  th Status
+              tbody
+                each meeting in meetingHistory
+                  - var scheduledAt = new Date(meeting.date + 'T' + meeting.time)
+                  - var historyStatus = meeting.status === 'unavailable' ? 'Indisponível' : meeting.status === 'cancelled' ? 'Cancelada' : (meeting.status === 'confirmed' && scheduledAt < new Date() ? 'Realizada' : meeting.status === 'requested' && scheduledAt < new Date() ? 'Não confirmada' : 'Confirmada')
+                  tr
+                    td(data-label='Cliente')= meeting.status === 'unavailable' ? 'Bloqueio administrativo' : (meeting.user ? meeting.user.name : 'Cliente')
+                    td(data-label='E-mail')= meeting.status === 'unavailable' ? '-' : (meeting.user ? meeting.user.email : '-')
+                    td(data-label='Data')= meeting.date.split('-').reverse().join('/')
+                    td(data-label='Horário')= meeting.time
+                    td(data-label='Status')= historyStatus
+        else
+          p.meeting-history-empty Nenhuma solicitação anterior.
+  else
+    main.admin-page
+      a.admin-back-link(href='/admin/agenda')
+        i.bi.bi-arrow-left
+        | Voltar à agenda
+      p.admin-eyebrow AGENDA
+      h1.admin-title Solicitações de reunião
+      p.admin-subtitle Acompanhe os horários solicitados pelos clientes.
+      if meetingMessage
+        p.admin-success(role='status')= meetingMessage
+      if meetings && meetings.length
+        .admin-table-wrap
+          table.admin-table
+            thead
+              tr
+                th Cliente
+                th E-mail
+                th Data
+                th Horário
+                th Status
+                th Ação
+            tbody
+              each meeting in meetings
+                tr
+                  td(data-label='Cliente')= meeting.status === 'unavailable' ? 'Bloqueio administrativo' : (meeting.user ? meeting.user.name : 'Cliente')
+                  td(data-label='E-mail')= meeting.status === 'unavailable' ? '-' : (meeting.user ? meeting.user.email : '-')
+                  td(data-label='Data')= meeting.date.split('-').reverse().join('/')
+                  td(data-label='Horário')= meeting.time
+                  td(data-label='Status')
+                    span.admin-role(class=meeting.status === 'requested' ? '' : 'is-admin')= meeting.status === 'requested' ? 'Solicitada' : meeting.status === 'confirmed' ? 'Confirmada' : meeting.status === 'unavailable' ? 'Indisponível' : 'Cancelada'
+                  td(data-label='Ação')
+                    if meeting.status === 'requested'
+                      form(method='post' action='/admin/reunioes/' + meeting._id + '/confirmar' target=meeting.user && meeting.user.phone ? '_blank' : undefined)
+                        button.admin-small-button(type='submit') Confirmar reunião
+                    else
+                      span —
+      else
+        .admin-empty
+          i.bi.bi-calendar-event
+          p Nenhuma reunião futura aguardando ou confirmada.
+      section.meeting-history-card(aria-labelledby='meeting-history-title')
+        p.admin-eyebrow HISTÓRICO
+        h2#meeting-history-title Histórico de reuniões e solicitações
+        if meetingHistory && meetingHistory.length
+          .admin-table-wrap
+            table.admin-table
+              thead
+                tr
+                  th Cliente
+                  th E-mail
+                  th Data
+                  th Horário
+                  th Status
+              tbody
+                each meeting in meetingHistory
+                  - var scheduledAt = new Date(meeting.date + 'T' + meeting.time)
+                  - var historyStatus = meeting.status === 'unavailable' ? 'Indisponível' : meeting.status === 'cancelled' ? 'Cancelada' : (meeting.status === 'confirmed' && scheduledAt < new Date() ? 'Realizada' : meeting.status === 'requested' && scheduledAt < new Date() ? 'Não confirmada' : 'Confirmada')
+                  tr
+                    td(data-label='Cliente')= meeting.status === 'unavailable' ? 'Bloqueio administrativo' : (meeting.user ? meeting.user.name : 'Cliente')
+                    td(data-label='E-mail')= meeting.status === 'unavailable' ? '-' : (meeting.user ? meeting.user.email : '-')
+                    td(data-label='Data')= meeting.date.split('-').reverse().join('/')
+                    td(data-label='Horário')= meeting.time
+                    td(data-label='Status')= historyStatus
+        else
+          p.meeting-history-empty Nenhuma solicitação anterior.

@@ -1,0 +1,170 @@
+extends layout
+
+block content
+  - var view = initialView || 'completa'
+  - var dayNames = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB']
+  - var monthNames = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
+  - var today = new Date()
+  - var todayKey = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0')
+  main.admin-agenda-page
+    .admin-agenda-shell
+      header.admin-agenda-header
+        .admin-agenda-header-left
+          a.admin-agenda-back(href='/admin')
+            i.bi.bi-arrow-left
+            | Voltar ao painel
+          h1.admin-agenda-title Agenda
+        .admin-agenda-tabs(role='tablist')
+          a.admin-agenda-tab(href='/admin/solicitacoes' role='tab' aria-selected='false') Solicitações
+          a.admin-agenda-tab(href='/admin/reunioes' role='tab' aria-selected='false') Reuniões
+          a.admin-agenda-tab(href='/admin/agenda' role='tab' aria-selected='true') Agenda completa
+      section.admin-agenda-content
+        if view === 'completa'
+          .admin-agenda-controls
+            button.admin-agenda-nav(data-agenda-prev)
+              i.bi.bi-chevron-left
+            .admin-agenda-range(data-agenda-range)
+            button.admin-agenda-nav(data-agenda-next)
+              i.bi.bi-chevron-right
+            .admin-agenda-view-toggle
+              button.admin-agenda-toggle.is-active(data-view-toggle='month') Mês
+              button.admin-agenda-toggle(data-view-toggle='week') Semana
+          .admin-agenda-legend
+            span.admin-agenda-legend-item
+              span.admin-agenda-legend-dot.is-blue
+              | Solicitação
+            span.admin-agenda-legend-item
+              span.admin-agenda-legend-dot.is-red
+              | Reunião
+            span.admin-agenda-legend-item
+              span.admin-agenda-legend-dot.is-mixed
+              | Solicitação + Reunião
+          .admin-agenda-grid-wrap
+            .admin-agenda-weekdays
+              each dn in ['DOM','SEG','TER','QUA','QUI','SEX','SAB']
+                .admin-agenda-weekday= dn
+            .admin-agenda-grid(data-agenda-grid)
+          .admin-agenda-day-details(data-agenda-details hidden)
+            .admin-agenda-day-details-header
+              h2(data-agenda-details-title)
+              button.admin-agenda-details-close(data-agenda-details-close)
+                i.bi.bi-x-lg
+            .admin-agenda-day-details-body
+              .admin-agenda-section
+                h3 Solicitações
+                .admin-agenda-list(data-agenda-solicitacoes)
+              .admin-agenda-section
+                h3 Reuniões
+                .admin-agenda-list(data-agenda-reunioes)
+        else if view === 'solicitacoes'
+          include admin-solicitacoes
+        else if view === 'reunioes'
+          include admin-reunioes
+  style.
+    body.admin-panel-page:has(.admin-agenda-page) nav.navbar-encantado { display: none !important; }
+    body.admin-panel-page:has(.admin-agenda-page) .mobile-bottom-tab { display: none !important; }
+    body.admin-panel-page:has(.admin-agenda-page) .offcanvas { display: none !important; }
+    body.admin-panel-page:has(.admin-agenda-page) .site-footer { display: none !important; }
+    body.admin-panel-page:has(.admin-agenda-page) .whatsapp-float { display: none !important; }
+    body.admin-panel-page:has(.admin-agenda-page) main.container { display: none !important; }
+  script.
+    (function(){
+      var page = document.querySelector('.admin-agenda-page');
+      if(!page) return;
+      var grid = document.querySelector('[data-agenda-grid]');
+      var rangeEl = document.querySelector('[data-agenda-range]');
+      var prev = document.querySelector('[data-agenda-prev]');
+      var next = document.querySelector('[data-agenda-next]');
+      var toggles = document.querySelectorAll('[data-view-toggle]');
+      var details = document.querySelector('[data-agenda-details]');
+      var detailsTitle = document.querySelector('[data-agenda-details-title]');
+      var detailsClose = document.querySelector('[data-agenda-details-close]');
+      var listSols = document.querySelector('[data-agenda-solicitacoes]');
+      var listReu = document.querySelector('[data-agenda-reunioes]');
+      if(!grid) return;
+      var view = 'month';
+      var today = new Date();
+      var cursor = new Date(today.getFullYear(), today.getMonth(), 1);
+      var solicitacoes = !{JSON.stringify((rentals||[]).map(function(r){ return { id: r._id, customer: r.user && r.user.name || 'Cliente', status: r.status, dates: r.dates || [], deliveryDate: r.deliveryDate }; }))};
+      var reunioes = !{JSON.stringify((meetings||[]).map(function(m){ return { id: m._id, customer: m.status === 'unavailable' ? 'Bloqueio administrativo' : (m.user && m.user.name || 'Cliente'), status: m.status, date: m.date, time: m.time }; }))};
+      var dayNames = ['DOM','SEG','TER','QUA','QUI','SEX','SAB'];
+      var monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+      function startOfWeek(d){ var s=new Date(d); s.setHours(0,0,0,0); s.setDate(s.getDate()-s.getDay()); return s; }
+      function fmtKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+      function getSolicKeys(r){ var keys={}; (r.dates||[]).forEach(function(dt){ keys[dt]=true; }); if(r.deliveryDate) keys[r.deliveryDate]=true; return keys; }
+      function render(){
+        grid.innerHTML='';
+        if(view==='month'){
+          rangeEl.textContent = monthNames[cursor.getMonth()] + ' ' + cursor.getFullYear();
+          var first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+          var start = startOfWeek(first);
+          for(var i=0;i<42;i++){
+            var d = new Date(start); d.setDate(start.getDate()+i);
+            var key = fmtKey(d);
+            var inMonth = d.getMonth()===cursor.getMonth();
+            var cell = document.createElement('button');
+            cell.type='button';
+            cell.className='admin-agenda-cell'+(inMonth?'':' is-out')+(key===fmtKey(today)?' is-today':'');
+            cell.innerHTML='<span class="admin-agenda-cell-date">'+d.getDate()+'</span>';
+            var hasSol = solicitacoes.some(function(r){ return getSolicKeys(r)[key]; });
+            var hasReu = reunioes.some(function(m){ return m.date===key; });
+            if(hasSol && hasReu){ cell.classList.add('has-mixed'); }
+            else if(hasSol){ cell.classList.add('has-sol'); }
+            else if(hasReu){ cell.classList.add('has-reu'); }
+            cell.addEventListener('click', function(){ openDay(this.dataset.key); }.bind({dataset:{key:key}}));
+            grid.appendChild(cell);
+          }
+        } else {
+          var s=startOfWeek(today.getMonth()===cursor.getMonth()&&cursor.getFullYear()===today.getFullYear()?today:cursor);
+          rangeEl.textContent = s.getDate()+' '+monthNames[s.getMonth()].toLowerCase()+' - '+new Date(s.getFullYear(),s.getMonth(),s.getDate()+6).getDate()+' '+monthNames[new Date(s.getFullYear(),s.getMonth(),s.getDate()+6).getMonth()].toLowerCase()+' '+s.getFullYear();
+          for(var i=0;i<7;i++){
+            var d=new Date(s); d.setDate(s.getDate()+i);
+            var key=fmtKey(d);
+            var cell=document.createElement('button');
+            cell.type='button';
+            cell.className='admin-agenda-cell is-week'+(key===fmtKey(today)?' is-today':'');
+            cell.innerHTML='<span class="admin-agenda-cell-weekday">'+dayNames[d.getDay()]+'</span><span class="admin-agenda-cell-date">'+d.getDate()+'</span>';
+            var hasSol=solicitacoes.some(function(r){return getSolicKeys(r)[key];});
+            var hasReu=reunioes.some(function(m){return m.date===key;});
+            if(hasSol&&hasReu) cell.classList.add('has-mixed');
+            else if(hasSol) cell.classList.add('has-sol');
+            else if(hasReu) cell.classList.add('has-reu');
+            cell.addEventListener('click',function(){openDay(this.dataset.key);}.bind({dataset:{key:key}}));
+            grid.appendChild(cell);
+          }
+        }
+      }
+      function openDay(key){
+        var p=key.split('-');
+        var d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
+        detailsTitle.textContent = d.getDate()+' '+monthNames[d.getMonth()]+' '+d.getFullYear()+' ('+dayNames[d.getDay()]+')';
+        listSols.innerHTML=''; listReu.innerHTML='';
+        solicitacoes.forEach(function(r){
+          if(getSolicKeys(r)[key]){
+            var a=document.createElement('a');
+            a.className='admin-agenda-item';
+            a.href='/admin/solicitacoes/'+r.id;
+            a.innerHTML='<span class="admin-agenda-item-name">'+r.customer+'</span><span class="admin-agenda-item-meta">'+(r.status==='analysis'?'Em análise':'Ativa')+'</span>';
+            listSols.appendChild(a);
+          }
+        });
+        if(!listSols.children.length){ var em=document.createElement('p'); em.className='admin-agenda-empty'; em.textContent='Nenhuma solicitação'; listSols.appendChild(em); }
+        reunioes.forEach(function(m){
+          if(m.date===key){
+            var b=document.createElement('a');
+            b.className='admin-agenda-item';
+            b.href='/admin/reunioes';
+            b.innerHTML='<span class="admin-agenda-item-name">'+m.customer+'</span><span class="admin-agenda-item-meta">'+m.time+' · '+(m.status==='requested'?'Solicitada':m.status==='confirmed'?'Confirmada':m.status==='unavailable'?'Bloqueio':'Cancelada')+'</span>';
+            listReu.appendChild(b);
+          }
+        });
+        if(!listReu.children.length){ var em2=document.createElement('p'); em2.className='admin-agenda-empty'; em2.textContent='Nenhuma reunião'; listReu.appendChild(em2); }
+        details.hidden=false;
+        details.scrollIntoView({behavior:'smooth',block:'nearest'});
+      }
+      detailsClose.addEventListener('click',function(){details.hidden=true;});
+      prev.addEventListener('click',function(){ if(view==='month'){cursor=new Date(cursor.getFullYear(),cursor.getMonth()-1,1);} else {cursor.setDate(cursor.getDate()-7); cursor=new Date(cursor.getFullYear(),cursor.getMonth(),cursor.getDate());} render();});
+      next.addEventListener('click',function(){ if(view==='month'){cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1);} else {cursor.setDate(cursor.getDate()+7); cursor=new Date(cursor.getFullYear(),cursor.getMonth(),cursor.getDate());} render();});
+      toggles.forEach(function(t){ t.addEventListener('click',function(){ toggles.forEach(function(x){x.classList.remove('is-active');}); t.classList.add('is-active'); view=t.dataset.viewToggle; render();});});
+      render();
+    })();
