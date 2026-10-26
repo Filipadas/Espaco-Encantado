@@ -39,14 +39,37 @@ block content
                 strong #{item.quantity}x #{item.name}
               if item.customText
                 p.cart-item-custom-text Texto a personalizar: #{item.customText}
-              label(for='date-' + cartIndex) Data disponível
-              form.cart-date-form(method='post' action='/sacola/data')
+              label Data de utilização
+              form.cart-date-form(method='post' action='/sacola/data' data-cart-date-form)
                 input(type='hidden' name='productId' value=item.productId)
                 input(type='hidden' name='customText' value=item.customText || '')
-                if item.availableDates.length
-                  input.cart-date-input(id='date-' + cartIndex type='date' name='date' value=item.requestDate min=item.availableDates[0] max=item.availableDates[item.availableDates.length - 1] data-available-dates=JSON.stringify(item.availableDates))
+                input(type='hidden' name='date' value=item.requestDate data-cart-date-value)
+                if item.requestDate
+                  .cart-date-picker(data-cart-date-picker data-unavailable-dates=JSON.stringify(item.unavailableDates || []) data-selected-date=item.requestDate data-min-date=minimumDate)
+                    button.cart-date-trigger(type='button' data-cart-date-trigger aria-haspopup='dialog' aria-expanded='false')
+                      i.bi.bi-calendar-event(aria-hidden='true')
+                      span(data-cart-date-label)= item.requestDate.split('-').reverse().join('/')
+                      i.bi.bi-chevron-down(aria-hidden='true')
+                    .cart-calendar(data-cart-calendar role='dialog' aria-label='Escolha a data de utilização' hidden)
+                      .cart-calendar-header
+                        button.cart-calendar-nav(type='button' data-cart-calendar-prev aria-label='Mês anterior')
+                          i.bi.bi-chevron-left(aria-hidden='true')
+                        strong.cart-calendar-title(data-cart-calendar-title)
+                        button.cart-calendar-nav(type='button' data-cart-calendar-next aria-label='Próximo mês')
+                          i.bi.bi-chevron-right(aria-hidden='true')
+                      .cart-calendar-weekdays
+                        each weekday in ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
+                          span= weekday
+                      .cart-calendar-grid(data-cart-calendar-grid)
+                      p.cart-calendar-legend
+                        span.cart-calendar-legend-item
+                          span.cart-calendar-dot.is-available
+                          | Disponível
+                        span.cart-calendar-legend-item
+                          span.cart-calendar-dot.is-unavailable
+                          | Indisponível
                 else
-                  span.cart-date-unavailable Não há datas disponíveis nos próximos 60 dias.
+                  span.cart-date-unavailable Nenhuma data disponível para este produto.
             strong R$ #{(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}
             .cart-quantity-actions
               form(method='post' action='/sacola/ajustar')
@@ -129,18 +152,117 @@ block content
       } catch (error) {}
     });
     if (savedAddress && savedAddress.value) savedAddress.dispatchEvent(new Event('change'));
-      document.querySelectorAll('.cart-date-input').forEach(function(dateInput) {
-        var availableDates = JSON.parse(dateInput.dataset.availableDates || '[]');
-        var selectedDate = dateInput.value;
-        dateInput.addEventListener('change', function() {
-          if (availableDates.indexOf(dateInput.value) === -1) {
-            window.alert('Escolha uma das datas disponíveis para este produto.');
-            dateInput.value = selectedDate;
-            return;
-          }
-          selectedDate = dateInput.value;
-          dateInput.form.submit();
+      var monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+      function padDatePart(value) { return String(value).padStart(2, '0'); }
+      function localDateKey(date) { return date.getFullYear() + '-' + padDatePart(date.getMonth() + 1) + '-' + padDatePart(date.getDate()); }
+      function parseDateKey(value) {
+        var parts = String(value || '').split('-');
+        return parts.length === 3 ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])) : new Date();
+      }
+      function formatDateKey(value) {
+        var parts = String(value || '').split('-');
+        return parts.length === 3 ? parts[2] + '/' + parts[1] + '/' + parts[0] : '';
+      }
+      var cartDatePickers = document.querySelectorAll('[data-cart-date-picker]');
+      function closeCartCalendars(except) {
+        cartDatePickers.forEach(function(picker) {
+          if (picker === except) return;
+          var calendar = picker.querySelector('[data-cart-calendar]');
+          var trigger = picker.querySelector('[data-cart-date-trigger]');
+          if (calendar) calendar.hidden = true;
+          if (trigger) trigger.setAttribute('aria-expanded', 'false');
         });
+      }
+      cartDatePickers.forEach(function(picker) {
+        var form = picker.closest('form');
+        var trigger = picker.querySelector('[data-cart-date-trigger]');
+        var calendar = picker.querySelector('[data-cart-calendar]');
+        var title = picker.querySelector('[data-cart-calendar-title]');
+        var grid = picker.querySelector('[data-cart-calendar-grid]');
+        var label = picker.querySelector('[data-cart-date-label]');
+        var previous = picker.querySelector('[data-cart-calendar-prev]');
+        var next = picker.querySelector('[data-cart-calendar-next]');
+        var dateInput = form ? form.querySelector('[name="date"]') : null;
+        if (!form || !trigger || !calendar || !title || !grid || !label || !previous || !next || !dateInput) return;
+        var unavailable = [];
+        try { unavailable = JSON.parse(picker.dataset.unavailableDates || '[]'); } catch (error) { unavailable = []; }
+        var selectedDate = picker.dataset.selectedDate || '';
+        var minimumDate = picker.dataset.minDate || localDateKey(new Date());
+        var today = localDateKey(new Date());
+        var viewDate = parseDateKey(selectedDate || minimumDate);
+        viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+
+        function renderCalendar() {
+          title.textContent = monthNames[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
+          grid.innerHTML = '';
+          var firstDay = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+          var startDay = new Date(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate() - firstDay.getDay());
+          for (var index = 0; index < 42; index += 1) {
+            var day = new Date(startDay.getFullYear(), startDay.getMonth(), startDay.getDate() + index);
+            var key = localDateKey(day);
+            var blocked = key < minimumDate || unavailable.indexOf(key) !== -1;
+            var dayButton = document.createElement('button');
+            dayButton.type = 'button';
+            dayButton.className = 'cart-calendar-day';
+            dayButton.textContent = day.getDate();
+            dayButton.dataset.date = key;
+            if (day.getMonth() !== viewDate.getMonth()) dayButton.classList.add('is-outside');
+            if (key === today) dayButton.classList.add('is-today');
+            if (key === selectedDate) dayButton.classList.add('is-selected');
+            if (blocked) {
+              dayButton.disabled = true;
+              dayButton.classList.add(key < minimumDate ? 'is-past' : 'is-unavailable');
+            }
+            dayButton.setAttribute('aria-label', day.getDate() + ' de ' + monthNames[day.getMonth()] + ' de ' + day.getFullYear() + (blocked ? ': indisponível' : ': disponível'));
+            if (key === selectedDate) dayButton.setAttribute('aria-current', 'date');
+            grid.appendChild(dayButton);
+          }
+        }
+
+        function openCalendar() {
+          closeCartCalendars(picker);
+          var base = parseDateKey(selectedDate || minimumDate);
+          viewDate = new Date(base.getFullYear(), base.getMonth(), 1);
+          renderCalendar();
+          calendar.hidden = false;
+          trigger.setAttribute('aria-expanded', 'true');
+        }
+
+        trigger.addEventListener('click', function(event) {
+          event.stopPropagation();
+          if (calendar.hidden) {
+            openCalendar();
+          } else {
+            calendar.hidden = true;
+            trigger.setAttribute('aria-expanded', 'false');
+          }
+        });
+        calendar.addEventListener('click', function(event) { event.stopPropagation(); });
+        previous.addEventListener('click', function() {
+          viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
+          renderCalendar();
+        });
+        next.addEventListener('click', function() {
+          viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
+          renderCalendar();
+        });
+        grid.addEventListener('click', function(event) {
+          var dayButton = event.target.closest('[data-date]');
+          if (!dayButton || dayButton.disabled) return;
+          selectedDate = dayButton.dataset.date;
+          dateInput.value = selectedDate;
+          label.textContent = formatDateKey(selectedDate);
+          calendar.hidden = true;
+          trigger.setAttribute('aria-expanded', 'false');
+          if (typeof form.requestSubmit === 'function') form.requestSubmit();
+          else form.submit();
+        });
+      });
+      document.addEventListener('click', function(event) {
+        closeCartCalendars(event.target.closest ? event.target.closest('[data-cart-date-picker]') : null);
+      });
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') closeCartCalendars();
       });
       var toggle = document.querySelector('[data-salon-toggle]');
       var drawer = document.querySelector('[data-salon-drawer]');

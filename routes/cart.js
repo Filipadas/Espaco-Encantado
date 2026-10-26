@@ -16,16 +16,35 @@ function isValidCalendarDate(value) {
   return date.toISOString().slice(0, 10) === value;
 }
 
-function listAvailableDates(unavailable) {
-  var dates = [];
-  for (var day = 0; day < 60 && dates.length < 30; day += 1) {
-    var date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() + day);
-    var value = date.toISOString().slice(0, 10);
-    if (unavailable.indexOf(value) === -1) dates.push(value);
+function padNumber(value) {
+  return String(value).padStart(2, '0');
+}
+
+// Monta a data no fuso local (evita pular um dia em fusos positivos).
+function localDateKey(date) {
+  return date.getFullYear() + '-' + padNumber(date.getMonth() + 1) + '-' + padNumber(date.getDate());
+}
+
+function todayDateKey() {
+  return localDateKey(new Date());
+}
+
+function isDateAvailable(value, unavailable) {
+  if (!isValidCalendarDate(value)) return false;
+  if (value < todayDateKey()) return false;
+  return (unavailable || []).indexOf(value) === -1;
+}
+
+function firstAvailableDate(unavailable) {
+  var date = new Date();
+  date.setHours(0, 0, 0, 0);
+  // Sem limite de 30 datas/60 dias: procura a primeira data livre no futuro.
+  for (var attempt = 0; attempt < 3660; attempt += 1) {
+    var value = localDateKey(date);
+    if (isDateAvailable(value, unavailable)) return value;
+    date.setDate(date.getDate() + 1);
   }
-  return dates;
+  return '';
 }
 
 async function getUserCart(req) {
@@ -81,12 +100,13 @@ router.get('/', requireLogin, async function(req, res, next) {
     });
     cart.forEach(function(item) {
       var unavailable = blocked[String(item.productId)] || [];
-      item.availableDates = listAvailableDates(unavailable);
-      if (!item.requestDate || item.availableDates.indexOf(item.requestDate) === -1) item.requestDate = item.availableDates[0];
+      item.unavailableDates = Array.from(new Set(unavailable)).sort();
+      if (!isDateAvailable(item.requestDate, item.unavailableDates)) item.requestDate = firstAvailableDate(item.unavailableDates);
     });
   res.render('sacola', {
     title: 'Minha sacola',
     cart: cart,
+    minimumDate: todayDateKey(),
     deliveryProfile: deliveryProfile || {},
     whatsappNumber: req.app.locals.whatsappNumber || res.locals.whatsappNumber,
     cartError: req.session.cartError,
@@ -188,7 +208,7 @@ router.post('/data', requireLogin, async function(req, res, next) {
       });
     });
     var requestedDate = String(req.body.date || '');
-    if (listAvailableDates(unavailable).indexOf(requestedDate) === -1) {
+    if (!isDateAvailable(requestedDate, unavailable)) {
       req.session.cartError = 'Escolha uma data disponível para este produto.';
       return res.redirect('/sacola');
     }
@@ -224,7 +244,7 @@ async function prepareRentalItems(cart) {
     var product = await inventory.findProductGraph(item.productId);
     if (!product) throw new Error('Um produto da sacola não existe mais.');
     if (!Number.isInteger(quantity) || quantity < 1 || !isValidCalendarDate(item.requestDate)) throw new Error('Confira a quantidade e a data de cada produto da solicitação.');
-    if (listAvailableDates(unavailableDates[String(item.productId)] || []).indexOf(item.requestDate) === -1) throw new Error('A data escolhida para ' + product.name + ' não está mais disponível. Escolha outra data.');
+    if (!isDateAvailable(item.requestDate, unavailableDates[String(item.productId)] || [])) throw new Error('A data escolhida para ' + product.name + ' não está mais disponível. Escolha outra data.');
     if (inventory.availableUnits(product) < quantity) throw new Error('A quantidade solicitada de ' + product.name + ' não está disponível no estoque.');
     inventory.expandProduct(product, quantity, expanded);
     products.push({ product: product._id, name: product.name, quantity: quantity, price: product.price, date: item.requestDate, customText: String(item.customText || '').trim().slice(0, 200) });

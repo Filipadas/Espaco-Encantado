@@ -15,17 +15,58 @@ block content
       p Telefone: #{profile.phone || 'Não informado'}
       p Endereço: #{profile.address || 'Não informado'}
       p Cidade/Estado: #{[profile.city, profile.state].filter(Boolean).join(' - ') || 'Não informado'}
-      if profile.addresses && profile.addresses.length
-        h2 Outros endereços
-        each address in profile.addresses
-          p #{address.label}: #{address.address}, #{address.city} - #{address.state}
-    .profile-actions
+    .profile-actions(style='margin-top:18px; margin-bottom:18px;')
       a.admin-primary-button(href='/usuarios/perfil')
         i.bi.bi-pencil-fill
         | Editar meu perfil
-      a.admin-primary-button(href=isAdmin ? '/admin' : '/sacola')
-        i.bi(class=isAdmin ? 'bi-award-fill' : 'bi-bag-fill')
-        = isAdmin ? ' Abrir área administrativa' : ' Abrir minha sacola'
+      if isAdmin
+        a.admin-primary-button(href='/admin')
+          i.bi.bi-award-fill
+          | Abrir área administrativa
+    if !isAdmin
+      form.admin-form.profile-form(method='post' action='/usuarios/perfil' enctype='multipart/form-data' style='margin-top:10px; margin-bottom:48px;')
+        input(type='hidden' name='name' value=profile.name)
+        input(type='hidden' name='phone' value=profile.phone || '')
+        input(type='hidden' name='address' value=profile.address || '')
+        input(type='hidden' name='city' value=profile.city || '')
+        input(type='hidden' name='state' value=profile.state || '')
+        input(type='hidden' name='cep' value=profile.cep || '')
+        fieldset.admin-components
+          legend Outros endereços
+          each address in profile.addresses || []
+            .address-row
+              input(type='text' name='addressLabel' value=address.label placeholder='Nome do endereço')
+              input(type='text' name='addressValue' value=address.address placeholder='Endereço')
+              input(type='text' name='addressCity' value=address.city placeholder='Cidade')
+              input(type='text' name='addressState' value=address.state placeholder='Estado')
+              input(type='text' name='addressCep' value=address.cep placeholder='CEP')
+          .address-row
+            input(type='text' name='addressLabel' placeholder='Nome do endereço')
+            input(type='text' name='addressValue' placeholder='Endereço')
+            input(type='text' name='addressCity' placeholder='Cidade')
+            input(type='text' name='addressState' placeholder='Estado')
+            input(type='text' name='addressCep' placeholder='CEP')
+          button.admin-small-button(type='button' data-add-address)
+            i.bi.bi-plus-lg(aria-hidden='true')
+            | Adicionar endereço
+        button.admin-primary-button(type='submit' style='margin-top:22px;')
+          i.bi.bi-check-lg
+          | Salvar endereços
+      script.
+        (function() {
+          var form = document.querySelector('form.profile-form[action="/usuarios/perfil"]');
+          if (!form) return;
+          var fieldset = form.querySelector('fieldset');
+          var addButton = form.querySelector('[data-add-address]');
+          if (!fieldset || !addButton) return;
+          addButton.addEventListener('click', function() {
+            var row = document.createElement('div');
+            row.className = 'address-row';
+            row.innerHTML = '<input type="text" name="addressLabel" placeholder="Nome do endereço"><input type="text" name="addressValue" placeholder="Endereço"><input type="text" name="addressCity" placeholder="Cidade"><input type="text" name="addressState" placeholder="Estado"><input type="text" name="addressCep" placeholder="CEP">';
+            fieldset.insertBefore(row, addButton);
+          });
+        })();
+    .profile-actions(style='margin-top:56px;')
       a.admin-danger-button(href='/sair') Sair da conta
       if !isAdmin
         a.admin-danger-button(href='/usuarios/excluir') Excluir minha conta

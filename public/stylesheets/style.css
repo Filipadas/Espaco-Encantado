@@ -3301,9 +3301,21 @@ body.dark-mode .admin-custom-text-predefined label { color: #cbd9e5; }
 body.dark-mode .cart-item-custom-text,
 body.dark-mode .request-item-custom-text { background: #21384d; color: #cfe3f7; }
 body.dark-mode .invoice-custom-text { color: #cbd9e5; }
-body.dark-mode .cart-date-input,
+body.dark-mode .cart-date-trigger,
+body.dark-mode .cart-calendar,
 body.dark-mode .salon-rental-drawer,
 body.dark-mode .admin-specifications { border-color: #45627d; background: #21384d; color: #e8eef5; }
+body.dark-mode .cart-calendar-title,
+body.dark-mode .cart-calendar-day { color: #e8eef5; }
+body.dark-mode .cart-calendar-day.is-outside { color: #8095aa; }
+body.dark-mode .cart-calendar-day.is-unavailable { background: #3a2b2b; color: #e2b6b6; }
+body.dark-mode .cart-calendar-day.is-past { color: #6f8194; }
+body.dark-mode .cart-calendar-day.is-selected { background: #2f6ec1; color: #fff; }
+body.dark-mode .cart-calendar-day:hover:not(:disabled) { border-color: #4f9cf0; background: #2b4760; }
+body.dark-mode .cart-calendar-weekdays span,
+body.dark-mode .cart-calendar-legend { color: #cbd9e5; }
+body.dark-mode .cart-calendar-nav { color: #8ec5ff; }
+body.dark-mode .cart-calendar-nav:hover { border-color: #45627d; background: #2b4760; }
 body.dark-mode .admin-specification-card { border-color: #45627d; background: #1b2a3a; }
 body.dark-mode .admin-specification-options { border-color: #45627d; }
 body.dark-mode .admin-specification-heading,
@@ -3641,6 +3653,8 @@ body.dark-mode .admin-category-button.is-active, body.dark-mode .admin-subcatego
 .confirm-cancel-button:hover { background: #d5e8f8; color: #173f70; }
 .cart-list { display: grid; gap: 10px; margin: 24px 0; }
 .cart-page > form[action="/sacola/confirm"] { display: flex; flex-direction: column; align-items: flex-end; }
+.cart-page form[action="/sacola/solicitar"] { position: relative; padding: 16px 16px 72px; border: 1px solid #dbe7f0; border-radius: 8px; background: #fff; margin-top: 16px; }
+.cart-page form[action="/sacola/solicitar"] [data-submit-once-button] { position: absolute; right: 16px; bottom: 16px; margin: 0; }
 .cart-item { display: flex; align-items: center; gap: 14px; justify-content: space-between; padding: 16px; border: 1px solid #dbe7f0; border-radius: 8px; }
 .cart-item-photo { flex: 0 0 64px; }
 .cart-item > span { flex: 1; }
@@ -3648,9 +3662,36 @@ body.dark-mode .admin-category-button.is-active, body.dark-mode .admin-subcatego
 .cart-item-product-link { display: flex; flex: 1; align-items: center; gap: 14px; color: inherit; }
 .cart-item-product-link:hover { color: #245899; }
 .cart-item-info label { color: #60758a; font-size: 0.78rem; font-weight: 700; }
-.cart-date-form { display: inline-block; }
-.cart-date-input { min-height: 38px; padding: 6px 8px; border: 1px solid #ccdce8; border-radius: 6px; background: #fff; color: #203a55; font: inherit; }
+.cart-date-form { display: inline-block; position: relative; }
+.cart-date-picker { position: relative; }
+.cart-date-trigger { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 6px 10px; border: 1px solid #ccdce8; border-radius: 6px; background: #fff; color: #203a55; font: inherit; cursor: pointer; }
+.cart-date-trigger:hover { border-color: #2f6ec1; color: #245899; }
+.cart-date-trigger i:last-child { font-size: 0.7rem; }
+.cart-calendar { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; width: 310px; max-width: calc(100vw - 32px); padding: 12px; border: 1px solid #dbe7f0; border-radius: 12px; background: #fff; box-shadow: 0 18px 42px rgba(23, 50, 77, 0.22); }
+.cart-calendar[hidden] { display: none; }
+.cart-calendar-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.cart-calendar-title { color: #203a55; font-size: 0.95rem; }
+.cart-calendar-nav { display: inline-grid; width: 30px; height: 30px; place-items: center; border: 1px solid transparent; border-radius: 6px; background: transparent; color: #245899; cursor: pointer; }
+.cart-calendar-nav:hover { border-color: #ccdce8; background: #f1f6fc; }
+.cart-calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 2px; }
+.cart-calendar-weekdays span { padding: 4px 0; color: #60758a; font-size: 0.66rem; font-weight: 800; text-align: center; }
+.cart-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cart-calendar-day { min-height: 34px; padding: 0; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #203a55; font: inherit; font-weight: 600; cursor: pointer; }
+.cart-calendar-day:hover:not(:disabled) { border-color: #2f6ec1; background: #eaf2fb; }
+.cart-calendar-day.is-outside { color: #b3c1cf; }
+.cart-calendar-day.is-today { border-color: #9fc1e6; }
+.cart-calendar-day.is-selected { background: #2f6ec1; color: #fff; }
+.cart-calendar-day.is-unavailable { color: #c6a3a3; background: #fdf1f1; text-decoration: line-through; cursor: not-allowed; }
+.cart-calendar-day.is-past { color: #c3ccd5; cursor: not-allowed; }
+.cart-calendar-legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #e4edf3; color: #60758a; font-size: 0.7rem; }
+.cart-calendar-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.cart-calendar-dot { width: 9px; height: 9px; border-radius: 50%; }
+.cart-calendar-dot.is-available { background: #2f6ec1; }
+.cart-calendar-dot.is-unavailable { background: #d8b4b4; }
 .cart-date-unavailable { color: #60758a; font-size: 0.85rem; }
+@media (max-width: 760px) {
+  .cart-calendar { position: fixed; z-index: 1090; top: 50%; left: 50%; width: min(330px, calc(100vw - 24px)); max-width: none; transform: translate(-50%, -50%); }
+}
 .cart-item-custom-text, .request-item-custom-text { margin: 0; padding: 5px 9px; border-left: 3px solid #2f6ec1; border-radius: 4px; background: #eaf2fb; color: #1f4d80; font-size: 0.8rem; font-weight: 700; overflow-wrap: anywhere; }
 .cart-confirm-overlay { position: fixed; z-index: 1080; inset: 0; display: grid; place-items: center; padding: 24px 16px; overflow-y: auto; background: linear-gradient(135deg, #c62828, #b71c1c 45%, #2f6ec1); }
 .cart-confirm-overlay[hidden] { display: none; }

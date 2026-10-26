@@ -24,36 +24,6 @@ block content
       input#profile-state(type='text' name='state' value=profile.state)
       label(for='profile-cep') CEP principal
       input#profile-cep(type='text' name='cep' value=profile.cep autocomplete='postal-code')
-      fieldset.admin-components
-        legend Outros endereços
-        each address in profile.addresses || []
-          .address-row
-            input(type='text' name='addressLabel' value=address.label placeholder='Nome do endereço')
-            input(type='text' name='addressValue' value=address.address placeholder='Endereço')
-            input(type='text' name='addressCity' value=address.city placeholder='Cidade')
-            input(type='text' name='addressState' value=address.state placeholder='Estado')
-            input(type='text' name='addressCep' value=address.cep placeholder='CEP')
-        .address-row
-          input(type='text' name='addressLabel' placeholder='Nome do endereço')
-          input(type='text' name='addressValue' placeholder='Endereço')
-          input(type='text' name='addressCity' placeholder='Cidade')
-          input(type='text' name='addressState' placeholder='Estado')
-          input(type='text' name='addressCep' placeholder='CEP')
-        button.admin-small-button(type='button' data-add-address)
-          i.bi.bi-plus-lg(aria-hidden='true')
-          | Adicionar endereço
       button.admin-primary-button(type='submit')
         i.bi.bi-check-lg
         | Salvar perfil
-  script.
-    (function() {
-      var fieldset = document.querySelector('.profile-form fieldset');
-      var addButton = document.querySelector('[data-add-address]');
-      if (!fieldset || !addButton) return;
-      addButton.addEventListener('click', function() {
-        var row = document.createElement('div');
-        row.className = 'address-row';
-        row.innerHTML = '<input type="text" name="addressLabel" placeholder="Nome do endereço"><input type="text" name="addressValue" placeholder="Endereço"><input type="text" name="addressCity" placeholder="Cidade"><input type="text" name="addressState" placeholder="Estado"><input type="text" name="addressCep" placeholder="CEP">';
-        fieldset.insertBefore(row, addButton);
-      });
-    })();
