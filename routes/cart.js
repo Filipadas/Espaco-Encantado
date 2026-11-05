@@ -6,7 +6,6 @@ var receipts = require('../services/receipts');
 var User = require('../models/User');
 var inventory = require('../services/inventory');
 var { requireLogin } = require('../middleware/auth');
-var business = require('../config/business');
 var router = express.Router();
 
 function isValidCalendarDate(value) {
@@ -305,7 +304,7 @@ router.post('/solicitar', requireLogin, async function(req, res) {
     lines.push('', 'Total estimado: R$ ' + total.toFixed(2).replace('.', ','), '', '*ENTREGA*', 'Endereço: ' + deliveryAddress, 'Cidade: ' + deliveryCity + ' - ' + deliveryState, 'CEP: ' + deliveryCep, 'Data prevista: ' + deliveryDate.split('-').reverse().join('/'), 'Horário previsto: ' + deliveryTime);
     if (salonRental) lines.push('', '*ALUGUEL DO SALÃO*', 'Sim, desejo alugar o salão.', 'Data do evento: ' + salonDate.split('-').reverse().join('/'), 'Horário: ' + salonTime);
     lines.push('', 'Gostaria de confirmar a disponibilidade dos itens e, se aplicável, do salão, além dos valores e das condições da solicitação.', '', 'Aguardo o retorno. Obrigado(a)!');
-    var whatsappUrl = 'https://wa.me/' + business.whatsappNumber + '?text=' + encodeURIComponent(lines.join('\n'));
+    var whatsappUrl = 'https://wa.me/' + res.locals.whatsappNumber + '?text=' + encodeURIComponent(lines.join('\n'));
     // A solicitação fica pendente: só é registrada quando o cliente confirmar que enviou a mensagem.
     req.session.pendingRental = {
       items: products,

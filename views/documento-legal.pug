@@ -1,0 +1,25 @@
+extends layout
+
+block content
+  main.legal-page
+    article.legal-document
+      header.legal-header
+        p.legal-eyebrow= document.eyebrow
+        h1.legal-title= document.title
+        p.legal-meta Versão #{document.version} · Última atualização: #{document.updatedAt}
+        p.legal-intro= document.summary
+      each section in document.sections
+        section.legal-section
+          h2= section.title
+          if section.paragraphs
+            each paragraph in section.paragraphs
+              p= paragraph
+          if section.items
+            ul
+              each item in section.items
+                li= item
+      footer.legal-footer
+        p Ao utilizar os serviços do Espaço Encantado, você declara ter lido este documento. Em caso de dúvidas, fale com nossa equipe pelos canais oficiais de atendimento.
+        a.legal-back-link(href='/')
+          i.bi.bi-arrow-left(aria-hidden='true')
+          | Voltar para a página inicial

@@ -15,7 +15,7 @@ block content
         p.admin-form-error= formError
       if formSuccess
         p.admin-success= formSuccess
-      if ['analysis', 'active'].indexOf(rental.status) !== -1 && !rental.deliveryChecked
+      if rental.status === 'analysis' && !rental.deliveryChecked
         h2 Editar solicitação
         p.admin-subtitle Ajuste os itens e os dados da entrega antes de concluir a entrega.
         form.admin-form(method='post' action='/admin/solicitacoes/' + rental._id + '/editar' target=rental.user && rental.user.phone ? '_blank' : undefined)
@@ -60,11 +60,11 @@ block content
       else if rental.status === 'active' && !rental.returnChecked
         if rental.deliveryChecked
           h2 Checklist de devolução
-          p.admin-subtitle Confirme cada item devolvido. O estoque será atualizado ao concluir a checklist.
+          p.admin-subtitle Marque todos os produtos devolvidos para concluir a checklist. O estoque será atualizado ao confirmar.
         else
           h2 Checklist de entrega
-          p.admin-subtitle Confirme cada item entregue. O estoque será atualizado ao concluir a checklist.
-        form(method='post' action='/admin/solicitacoes/' + rental._id + '/conferencia' target=rental.user && rental.user.phone ? '_blank' : undefined)
+          p.admin-subtitle Marque todos os produtos entregues para liberar a checklist de devolução. O estoque será atualizado ao confirmar.
+        form(method='post' action='/admin/solicitacoes/' + rental._id + '/conferencia' target=rental.user && rental.user.phone ? '_blank' : undefined data-request-checklist-form data-checklist-label=rental.deliveryChecked ? 'devolução' : 'entrega')
           each item in rental.items
             label.request-check
               if rental.deliveryChecked
@@ -88,3 +88,16 @@ block content
         else
           form(method='post' action='/admin/comprovantes/' + rental._id + '/criar')
             button.admin-small-button(type='submit') Criar comprovante
+  script.
+    (function() {
+      document.querySelectorAll('[data-request-checklist-form]').forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+          var checkboxes = Array.prototype.slice.call(form.querySelectorAll('input[type="checkbox"]'));
+          var missing = checkboxes.filter(function(checkbox) { return !checkbox.checked; });
+          if (!missing.length) return;
+          event.preventDefault();
+          window.alert('Assinale todos os produtos da checklist de ' + form.dataset.checklistLabel + ' antes de continuar.');
+          missing[0].focus();
+        });
+      });
+    })();

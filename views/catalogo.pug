@@ -57,6 +57,8 @@ block content
       button.catalog-sidebar-toggle(type='button' aria-label='Expandir categorias' aria-expanded='false' data-catalog-sidebar-toggle)
         i.bi.bi-chevron-right(aria-hidden='true')
 
+    .catalog-category-tooltip(data-catalog-category-tooltip role='tooltip' aria-hidden='true')
+
     section.catalog-page-content
       img.catalog-hero-image(src='/images/baloes_catalogo.png' alt='Balões decorativos do catálogo')
       section.catalog-products(aria-labelledby='catalog-products-title' data-favorites-only=favoritesOnly ? 'true' : 'false' data-favorite-ids=JSON.stringify(favoriteIds || []))
@@ -117,6 +119,7 @@ block content
       });
 
       var categoryButtons = Array.prototype.slice.call(document.querySelectorAll('[data-catalog-state]'));
+      var categoryTooltip = document.querySelector('[data-catalog-category-tooltip]');
       var title = document.querySelector('.catalog-products-title');
       var catalogCategories = {
         brinquedos: { category: 'brinquedo', title: 'Brinquedos' },
@@ -124,6 +127,43 @@ block content
         'kit-montagem': { category: 'kit-mont', title: 'Kit de montagem' },
         'festa-infantil': { category: 'infantil', title: 'Festa infantil' }
       };
+
+      function positionCategoryTooltip(event) {
+        if (!categoryTooltip) return;
+        var offset = 14;
+        var rect = categoryTooltip.getBoundingClientRect();
+        var left = event.clientX + offset;
+        var top = event.clientY - rect.height - offset;
+        if (left + rect.width > window.innerWidth - 8) left = event.clientX - rect.width - offset;
+        if (top < 8) top = event.clientY + offset + 4;
+        categoryTooltip.style.left = Math.max(8, left) + 'px';
+        categoryTooltip.style.top = Math.max(8, top) + 'px';
+      }
+
+      function showCategoryTooltip(button, event) {
+        if (!categoryTooltip || sidebar.classList.contains('is-expanded')) return;
+        categoryTooltip.textContent = button.getAttribute('aria-label') || button.textContent.trim();
+        categoryTooltip.classList.add('is-visible');
+        categoryTooltip.setAttribute('aria-hidden', 'false');
+        positionCategoryTooltip(event);
+      }
+
+      function hideCategoryTooltip() {
+        if (!categoryTooltip) return;
+        categoryTooltip.classList.remove('is-visible');
+        categoryTooltip.setAttribute('aria-hidden', 'true');
+      }
+
+      categoryButtons.forEach(function(button) {
+        button.addEventListener('mouseenter', function(event) { showCategoryTooltip(button, event); });
+        button.addEventListener('mousemove', function(event) { showCategoryTooltip(button, event); });
+        button.addEventListener('mouseleave', hideCategoryTooltip);
+        button.addEventListener('focus', function() { hideCategoryTooltip(); });
+        button.addEventListener('click', hideCategoryTooltip);
+      });
+      window.addEventListener('scroll', hideCategoryTooltip, true);
+      toggle.addEventListener('click', hideCategoryTooltip);
+
       categoryButtons.forEach(function(button) {
         button.addEventListener('click', function() { window.location.href = '/catalogo?estado=' + encodeURIComponent(this.dataset.catalogState); });
       });

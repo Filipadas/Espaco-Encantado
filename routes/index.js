@@ -7,6 +7,7 @@ var Meeting = require('../models/Meeting');
 var meetingHoursConfig = require('../utils/meeting-hours');
 var database = require('../config/database');
 var defaultHomeCarouselImages = require('../config/home-carousel-images');
+var legalDocuments = require('../config/legal-documents');
 var router = express.Router();
 var catalogStates = {
   brinquedos: { categories: ['brinquedos', 'brinquedo'], label: 'brinquedo', title: 'Brinquedos' },
@@ -317,5 +318,16 @@ router.get('/perfil', async function(req, res, next) {
   if (!req.session.user) return res.redirect('/entrar');
   try { res.render('perfil', { title: 'Meu perfil', profile: await User.findById(req.session.user.id) }); } catch (error) { next(error); }
 });
+
+function renderLegalDocument(slug) {
+  return function(req, res) {
+    var document = legalDocuments.getDocument(slug);
+    res.render('documento-legal', { title: document.title, document: document });
+  };
+}
+
+router.get('/termos-de-uso', renderLegalDocument('termos-de-uso'));
+router.get('/politica-de-privacidade', renderLegalDocument('politica-de-privacidade'));
+router.get('/consentimento-lgpd', renderLegalDocument('consentimento-lgpd'));
 
 module.exports = router;

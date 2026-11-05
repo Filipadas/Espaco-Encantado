@@ -8,6 +8,7 @@ var SiteSettings = require('../models/SiteSettings');
 var database = require('../config/database');
 var business = require('../config/business');
 var cepLookup = require('../utils/cep').lookupCep;
+var legalDocuments = require('../config/legal-documents');
 var router = express.Router();
 var profileImageUpload = multer({
   storage: multer.diskStorage({
@@ -146,7 +147,22 @@ router.get('/cadastro/cep/:cep', async function(req, res) {
 
 router.post('/cadastro', uploadRegistrationImage, async function(req, res, next) {
   try {
-    var formData = { name: req.body.name, email: req.body.email, phone: req.body.phone, birthDate: req.body.birthDate, address: req.body.address, city: req.body.city, state: req.body.state, cep: req.body.cep };
+    var formData = {
+      name: req.body.name,
+      email: req.body.email,
+      phone: req.body.phone,
+      birthDate: req.body.birthDate,
+      address: req.body.address,
+      city: req.body.city,
+      state: req.body.state,
+      cep: req.body.cep,
+      acceptTerms: req.body.acceptTerms === 'on',
+      acceptDataProcessing: req.body.acceptDataProcessing === 'on',
+      acceptPrivacyPolicy: req.body.acceptPrivacyPolicy === 'on'
+    };
+    if (!formData.acceptTerms || !formData.acceptDataProcessing || !formData.acceptPrivacyPolicy) {
+      return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'Para criar sua conta, é necessário aceitar os Termos de Uso, o Consentimento LGPD e a Política de Privacidade.', formData: formData });
+    }
     if (req.body.password !== req.body.confirmPassword) {
       return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'As senhas não coincidem.', formData: formData });
     }
@@ -157,6 +173,7 @@ router.post('/cadastro', uploadRegistrationImage, async function(req, res, next)
     catch (error) { return res.status(503).render('cadastro', { title: 'Criar conta', registerError: 'Não foi possível consultar o CEP agora. Tente novamente.', formData: formData }); }
     if (!location) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'CEP não encontrado. Confira o número digitado.', formData: formData });
     var password = bcrypt.hashSync(String(req.body.password || ''), 10);
+    var acceptedAt = new Date();
     var user = await User.create({
       name: req.body.name,
       email: req.body.email,
@@ -166,13 +183,19 @@ router.post('/cadastro', uploadRegistrationImage, async function(req, res, next)
       city: location.city,
       state: location.state,
       cep: location.cep,
-      profileImage: req.file ? '/uploads/' + req.file.filename : ''
+      profileImage: req.file ? '/uploads/' + req.file.filename : '',
+      termsAcceptedAt: acceptedAt,
+      privacyPolicyAcceptedAt: acceptedAt,
+      dataConsentAcceptedAt: acceptedAt,
+      termsVersion: legalDocuments.documents['termos-de-uso'].version,
+      privacyPolicyVersion: legalDocuments.documents['politica-de-privacidade'].version,
+      dataConsentVersion: legalDocuments.documents['consentimento-lgpd'].version
     });
     if (req.session.user && req.session.user.id !== user._id.toString()) delete req.session.cart;
     req.session.user = { id: user._id.toString(), name: user.name, email: user.email, role: user.role, profileImage: user.profileImage };
     res.redirect('/');
   } catch (error) {
-    if (error.code === 11000) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'Este e-mail já está cadastrado.', formData: req.body });
+    if (error.code === 11000) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'Este e-mail já está cadastrado.', formData: formData });
     next(error);
   }
 });

@@ -6,12 +6,31 @@ block content
       i.bi.bi-arrow-left
       | Painel administrativo
     p.admin-eyebrow CONFIGURAÇÕES
-    h1.admin-title Site e horários
+    h1.admin-title Site, contato e horários
+    if formSuccess
+      p.admin-success= formSuccess
+    if formError
+      p.admin-form-error= formError
     form.admin-form(method='post' action='/admin/configuracoes')
+      h2.admin-form-section Contato e redes sociais
+      label(for='whatsapp-number') Número do WhatsApp
+      input#whatsapp-number(type='tel' name='whatsappNumber' value=whatsappDisplay placeholder='+55 (48) 99999-9999' required)
+      p.admin-form-hint Esse número é usado no rodapé, no botão flutuante e em todos os links de WhatsApp da loja.
+      label(for='instagram-url') Link do Instagram
+      input#instagram-url(type='text' name='instagramUrl' value=settings.instagramUrl placeholder='https://www.instagram.com/sua-loja/')
+      label(for='facebook-url') Link do Facebook
+      input#facebook-url(type='text' name='facebookUrl' value=settings.facebookUrl placeholder='https://www.facebook.com/sua-loja/')
+      p.admin-form-hint Deixe um campo de rede social em branco para ocultar o link do rodapé.
+      label(for='store-address') Endereço exibido no rodapé
+      input#store-address(type='text' name='storeAddress' value=settings.storeAddress placeholder='Rua, número - Cidade, UF')
+
+      h2.admin-form-section Textos do login
       label(for='login-welcome') Texto principal do login
       input#login-welcome(type='text' name='loginWelcome' value=settings.loginWelcome required)
       label(for='login-subtitle') Subtítulo do login
       input#login-subtitle(type='text' name='loginSubtitle' value=settings.loginSubtitle required)
+
+      h2.admin-form-section Horários
       label(for='meeting-hours') Horários disponíveis para reuniões
       input#meeting-hours(type='text' name='meetingHours' value=settings.meetingHours required)
       p.admin-form-hint Separe os horários por vírgula.

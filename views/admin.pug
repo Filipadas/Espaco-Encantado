@@ -33,7 +33,7 @@ block content
       a.admin-dashboard-card(href='/admin/configuracoes')
         i.bi.bi-sliders
         h2 Configurações
-        p Edite textos de login e horários disponíveis.
+        p Troque o WhatsApp, redes sociais, textos de login e horários.
       a.admin-dashboard-card(href='/admin/carrossel')
         i.bi.bi-images
         h2 Fotos da tela inicial
@@ -42,3 +42,103 @@ block content
         i.bi.bi-receipt
         h2 Comprovantes de locação
         p Consulte o status das notas das solicitações.
+
+    section.admin-monthly-dashboard
+      .admin-monthly-head
+        div
+          p.admin-eyebrow DASHBOARD MENSAL
+          h2.admin-monthly-title Desempenho da loja
+          p.admin-monthly-subtitle Resumo de #{dashboard.label}.
+        .admin-monthly-controls
+          a.admin-month-arrow(href='/admin?mes=' + dashboard.previousKey aria-label='Mês anterior' title='Mês anterior')
+            i.bi.bi-chevron-left(aria-hidden='true')
+          form.admin-month-form(method='get' action='/admin')
+            label.sr-only(for='dashboard-month') Mês
+            input#dashboard-month(type='month' name='mes' value=dashboard.selectedKey max=dashboard.currentKey)
+            button.admin-small-button(type='submit') Ver mês
+          if dashboard.canGoNext
+            a.admin-month-arrow(href='/admin?mes=' + dashboard.nextKey aria-label='Próximo mês' title='Próximo mês')
+              i.bi.bi-chevron-right(aria-hidden='true')
+          else
+            span.admin-month-arrow.is-disabled(aria-hidden='true')
+              i.bi.bi-chevron-right
+      .admin-monthly-metrics
+        article.admin-metric-card
+          span.admin-metric-icon.is-revenue
+            i.bi.bi-cash-stack(aria-hidden='true')
+          div
+            span.admin-metric-label Faturamento estimado
+            strong.admin-metric-value= dashboard.stats.revenueFormatted
+            small.admin-metric-hint= dashboard.stats.validRentalCount + (dashboard.stats.validRentalCount === 1 ? ' locação no mês' : ' locações no mês')
+        article.admin-metric-card
+          span.admin-metric-icon.is-rentals
+            i.bi.bi-calendar2-check(aria-hidden='true')
+          div
+            span.admin-metric-label Solicitações de locação
+            strong.admin-metric-value= dashboard.stats.rentalCount
+            small.admin-metric-hint= dashboard.stats.analysisCount + (dashboard.stats.analysisCount === 1 ? ' solicitação em análise' : ' solicitações em análise')
+        article.admin-metric-card
+          span.admin-metric-icon.is-ticket
+            i.bi.bi-ticket-perforated(aria-hidden='true')
+          div
+            span.admin-metric-label Ticket médio
+            strong.admin-metric-value= dashboard.stats.averageTicketFormatted
+            small.admin-metric-hint= dashboard.stats.approvalRate + '% de aprovação'
+        article.admin-metric-card
+          span.admin-metric-icon.is-items
+            i.bi.bi-boxes(aria-hidden='true')
+          div
+            span.admin-metric-label Itens alugados
+            strong.admin-metric-value= dashboard.stats.itemCount
+            small.admin-metric-hint= dashboard.stats.itemCount === 1 ? 'unidade no mês' : 'unidades no mês'
+        article.admin-metric-card
+          span.admin-metric-icon.is-customers
+            i.bi.bi-person-plus(aria-hidden='true')
+          div
+            span.admin-metric-label Novos clientes
+            strong.admin-metric-value= dashboard.stats.newCustomers
+            small.admin-metric-hint= dashboard.stats.newCustomers === 1 ? 'cadastro no mês' : 'cadastros no mês'
+        article.admin-metric-card
+          span.admin-metric-icon.is-meetings
+            i.bi.bi-calendar-heart(aria-hidden='true')
+          div
+            span.admin-metric-label Reuniões
+            strong.admin-metric-value= dashboard.stats.meetings
+            small.admin-metric-hint= dashboard.stats.confirmedMeetings + (dashboard.stats.confirmedMeetings === 1 ? ' confirmada' : ' confirmadas')
+      .admin-monthly-panels
+        article.admin-panel-card.admin-chart-card
+          h3 Faturamento dos últimos 6 meses
+          .admin-bar-chart
+            each point in dashboard.series
+              .admin-bar
+                span.admin-bar-value= point.valueFormatted
+                .admin-bar-track
+                  if point.height
+                    .admin-bar-fill(class=point.isCurrent ? 'is-current' : '' style='height: ' + point.height + '%')
+                  else
+                    .admin-bar-empty
+                span.admin-bar-label(title=point.title)= point.label
+                span.admin-bar-count= point.count
+        article.admin-panel-card
+          h3 Produtos mais alugados
+          if dashboard.topProducts.length
+            ol.admin-top-products
+              each product, index in dashboard.topProducts
+                li
+                  span.admin-top-rank= index + 1
+                  div
+                    strong= product.name
+                    small= product.quantity + ' un. · ' + product.revenueFormatted
+          else
+            p.admin-panel-empty Nenhum produto alugado neste mês.
+      article.admin-panel-card.admin-status-card
+        h3 Situação das solicitações
+        .admin-status-list
+          each status in dashboard.statusBreakdown
+            .admin-status-row
+              .admin-status-row-head
+                span= status.label
+                strong= status.count
+              .admin-status-track
+                .admin-status-fill(class=status.modifier style='width: ' + status.percent + '%')
+        p.admin-panel-note Estatísticas calculadas pela data de criação das solicitações e reuniões.

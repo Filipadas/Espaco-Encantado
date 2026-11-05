@@ -13,6 +13,12 @@ var userSchema = new mongoose.Schema({
   state: String,
   cep: String,
   profileImage: { type: String, default: '' },
+  termsAcceptedAt: Date,
+  privacyPolicyAcceptedAt: Date,
+  dataConsentAcceptedAt: Date,
+  termsVersion: String,
+  privacyPolicyVersion: String,
+  dataConsentVersion: String,
   addresses: [{
     label: String,
     address: String,

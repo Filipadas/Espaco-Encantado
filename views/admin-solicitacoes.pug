@@ -11,6 +11,10 @@ block content
       p.admin-eyebrow LOCAÇÕES
       h1.admin-title Solicitações de locação
       p.admin-subtitle Revise as solicitações em análise e acompanhe os aluguéis ativos.
+      if rentalHistory && rentalHistory.length
+        a.admin-small-button.request-history-link(href='#historico-solicitacoes')
+          i.bi.bi-clock-history(aria-hidden='true')
+          | Ver histórico de solicitações
       .request-urgency-legend(aria-label='Cores por proximidade da entrega')
         span.request-urgency-key.request-urgency-key--urgent Até 3 dias
         span.request-urgency-key.request-urgency-key--soon De 4 a 7 dias
@@ -70,6 +74,41 @@ block content
           p Nenhuma solicitação em análise ou aluguel ativo.
       if rentals && rentals.length
         p.admin-empty(data-rental-empty hidden) Nenhuma solicitação corresponde à pesquisa.
+    section.request-history-card#historico-solicitacoes(aria-labelledby='rental-history-title')
+      p.admin-eyebrow HISTÓRICO
+      h2#rental-history-title Solicitações finalizadas
+      p.request-history-subtitle Locações devolvidas e solicitações canceladas.
+      if rentalHistory && rentalHistory.length
+        .admin-table-wrap
+          table.admin-table.request-history-table
+            thead
+              tr
+                th Cliente
+                th Itens
+                th Datas
+                th Status
+                th Ação
+            tbody
+              each rental in rentalHistory
+                - var historyDelivery = rental.deliveryDate || ''
+                - var finishedAt = rental.updatedAt || rental.createdAt
+                tr
+                  td(data-label='Cliente')= rental.user ? rental.user.name : 'Cliente'
+                  td(data-label='Itens')
+                    each item in rental.items
+                      div #{item.quantity}x #{item.name}
+                  td(data-label='Datas')
+                    div Data da entrega: #{historyDelivery ? historyDelivery.split('-').reverse().join('/') : 'Não informada'}
+                    if finishedAt
+                      div= (rental.status === 'returned' ? 'Finalizada em: ' : 'Cancelada em: ') + finishedAt.toLocaleDateString('pt-BR')
+                  td(data-label='Status')
+                    span.admin-role(class=rental.status === 'returned' ? 'is-complete' : 'is-cancelled')= rental.status === 'returned' ? 'Finalizada' : 'Cancelada'
+                  td(data-label='Ação')
+                    a.admin-small-button(href='/admin/solicitacoes/' + rental._id)
+                      i.bi.bi-eye(aria-hidden='true')
+                      | Abrir solicitação
+      else
+        p.request-history-empty Nenhuma solicitação finalizada até o momento.
   script.
     (function() {
       var filters = document.querySelector('[data-rental-filters]');

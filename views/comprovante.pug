@@ -17,9 +17,9 @@ block content
         .invoice-party
           strong Emitente
           | Espaço Encantado<br>
-          | Rua Ricardo Inácio - Praia Grande, SC<br>
+          | #{storeAddress}<br>
           | CNPJ não cadastrado<br>
-          | +55 48 999161551
+          | #{whatsappDisplayNumber}
         .invoice-party
           strong Cliente
           | #{rental.user ? rental.user.name : 'Cliente'}

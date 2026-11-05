@@ -14,6 +14,7 @@ var defaultHomeCarouselImages = require('../config/home-carousel-images');
 var meetingHistoryUtils = require('../utils/meeting-history');
 var customerWhatsApp = require('../utils/customer-whatsapp').customerWhatsAppUrl;
 var withFinalPeriod = require('../utils/product-description');
+var siteSettings = require('../utils/site-settings');
 var { requireAdmin } = require('../middleware/auth');
 var router = express.Router();
 var upload = multer({
@@ -187,8 +188,176 @@ function getSubmittedSubcategories(body) {
   });
 }
 
-router.get('/', function(req, res) {
-  res.render('admin', { title: 'Painel administrativo' });
+function dashboardMonthKey(year, month) {
+  return year + '-' + String(month + 1).padStart(2, '0');
+}
+
+function shiftDashboardMonth(year, month, amount) {
+  var date = new Date(year, month + amount, 1);
+  return { year: date.getFullYear(), month: date.getMonth() };
+}
+
+function parseDashboardMonth(value) {
+  var now = new Date();
+  var selected = { year: now.getFullYear(), month: now.getMonth() };
+  var match = /^(\d{4})-(\d{2})$/.exec(String(value || ''));
+  if (!match) return selected;
+  var year = Number(match[1]);
+  var month = Number(match[2]) - 1;
+  if (year >= 2000 && year <= 2100 && month >= 0 && month <= 11) {
+    selected.year = year;
+    selected.month = month;
+  }
+  return selected;
+}
+
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function formatCompactCurrency(value) {
+  if (Number(value || 0) >= 1000) {
+    return 'R$ ' + (Number(value) / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil';
+  }
+  return 'R$ ' + Math.round(Number(value || 0)).toLocaleString('pt-BR');
+}
+
+function capitalizeFirst(value) {
+  var text = String(value || '');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function rentalDashboardRevenue(rental) {
+  return (rental.items || []).reduce(function(total, item) {
+    return total + (Number(item.price) || 0) * (Number(item.quantity) || 0);
+  }, 0);
+}
+
+function rentalDashboardItemCount(rental) {
+  return (rental.items || []).reduce(function(total, item) {
+    return total + (Number(item.quantity) || 0);
+  }, 0);
+}
+
+async function getMonthlyDashboard(selected) {
+  var selectedStart = new Date(selected.year, selected.month, 1);
+  var selectedEnd = new Date(selected.year, selected.month + 1, 1);
+  var rangeStart = new Date(selected.year, selected.month - 5, 1);
+  var now = new Date();
+  var currentKey = dashboardMonthKey(now.getFullYear(), now.getMonth());
+  var selectedKey = dashboardMonthKey(selected.year, selected.month);
+
+  var data = await Promise.all([
+    Rental.find({ createdAt: { $gte: rangeStart, $lt: selectedEnd } }).select('status items createdAt').lean(),
+    Meeting.find({ createdAt: { $gte: selectedStart, $lt: selectedEnd }, status: { $in: ['requested', 'confirmed'] } }).select('status').lean(),
+    User.countDocuments({ role: 'user', createdAt: { $gte: selectedStart, $lt: selectedEnd } })
+  ]);
+
+  var rangeRentals = data[0];
+  var meetings = data[1];
+  var newCustomers = data[2];
+  var monthRentals = rangeRentals.filter(function(rental) {
+    return rental.createdAt >= selectedStart && rental.createdAt < selectedEnd;
+  });
+  var validRentals = monthRentals.filter(function(rental) { return rental.status !== 'cancelled'; });
+  var revenue = validRentals.reduce(function(total, rental) { return total + rentalDashboardRevenue(rental); }, 0);
+  var itemCount = validRentals.reduce(function(total, rental) { return total + rentalDashboardItemCount(rental); }, 0);
+  var approvedCount = monthRentals.filter(function(rental) { return rental.status === 'active' || rental.status === 'returned'; }).length;
+  var analysisCount = monthRentals.filter(function(rental) { return rental.status === 'analysis'; }).length;
+  var confirmedMeetings = meetings.filter(function(meeting) { return meeting.status === 'confirmed'; }).length;
+
+  var productTotals = {};
+  validRentals.forEach(function(rental) {
+    (rental.items || []).forEach(function(item) {
+      var key = String(item.product || item.name || 'produto');
+      if (!productTotals[key]) productTotals[key] = { name: item.name || 'Produto', quantity: 0, revenue: 0 };
+      productTotals[key].quantity += Number(item.quantity) || 0;
+      productTotals[key].revenue += (Number(item.price) || 0) * (Number(item.quantity) || 0);
+    });
+  });
+  var topProducts = Object.keys(productTotals).map(function(key) { return productTotals[key]; })
+    .sort(function(a, b) { return b.quantity - a.quantity || b.revenue - a.revenue; })
+    .slice(0, 5)
+    .map(function(product) {
+      return { name: product.name, quantity: product.quantity, revenueFormatted: formatCurrency(product.revenue) };
+    });
+
+  var totalForStatus = monthRentals.length;
+  var statusDefinitions = [
+    { key: 'analysis', label: 'Em análise', modifier: 'is-analysis' },
+    { key: 'active', label: 'Ativas', modifier: 'is-active' },
+    { key: 'returned', label: 'Devolvidas', modifier: 'is-returned' },
+    { key: 'cancelled', label: 'Canceladas', modifier: 'is-cancelled' }
+  ];
+  var statusBreakdown = statusDefinitions.map(function(status) {
+    var count = monthRentals.filter(function(rental) { return rental.status === status.key; }).length;
+    return {
+      label: status.label,
+      modifier: status.modifier,
+      count: count,
+      percent: totalForStatus ? Math.round(count / totalForStatus * 100) : 0
+    };
+  });
+
+  var series = [];
+  for (var offset = 5; offset >= 0; offset -= 1) {
+    var monthStart = new Date(selected.year, selected.month - offset, 1);
+    var monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+    var monthRentalsInSeries = rangeRentals.filter(function(rental) {
+      return rental.createdAt >= monthStart && rental.createdAt < monthEnd && rental.status !== 'cancelled';
+    });
+    var monthRevenue = monthRentalsInSeries.reduce(function(total, rental) { return total + rentalDashboardRevenue(rental); }, 0);
+    series.push({
+      label: capitalizeFirst(monthStart.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')),
+      title: capitalizeFirst(monthStart.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })),
+      revenue: monthRevenue,
+      valueFormatted: formatCompactCurrency(monthRevenue),
+      count: monthRentalsInSeries.length,
+      isCurrent: monthStart.getTime() === selectedStart.getTime()
+    });
+  }
+  var maxRevenue = series.reduce(function(max, point) { return Math.max(max, point.revenue); }, 0);
+  series.forEach(function(point) {
+    point.height = point.revenue > 0 && maxRevenue > 0 ? Math.max(6, Math.round(point.revenue / maxRevenue * 100)) : 0;
+  });
+
+  var previous = shiftDashboardMonth(selected.year, selected.month, -1);
+  var next = shiftDashboardMonth(selected.year, selected.month, 1);
+  var nextKey = dashboardMonthKey(next.year, next.month);
+
+  return {
+    selectedKey: selectedKey,
+    currentKey: currentKey,
+    previousKey: dashboardMonthKey(previous.year, previous.month),
+    nextKey: nextKey,
+    canGoNext: nextKey <= currentKey,
+    label: capitalizeFirst(selectedStart.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })),
+    stats: {
+      rentalCount: monthRentals.length,
+      validRentalCount: validRentals.length,
+      revenue: revenue,
+      revenueFormatted: formatCurrency(revenue),
+      averageTicketFormatted: formatCurrency(validRentals.length ? revenue / validRentals.length : 0),
+      itemCount: itemCount,
+      newCustomers: newCustomers,
+      meetings: meetings.length,
+      confirmedMeetings: confirmedMeetings,
+      approvalRate: monthRentals.length ? Math.round(approvedCount / monthRentals.length * 100) : 0,
+      analysisCount: analysisCount
+    },
+    statusBreakdown: statusBreakdown,
+    series: series,
+    topProducts: topProducts
+  };
+}
+
+router.get('/', async function(req, res, next) {
+  try {
+    res.render('admin', {
+      title: 'Painel administrativo',
+      dashboard: await getMonthlyDashboard(parseDashboardMonth(req.query.mes))
+    });
+  } catch (error) { next(error); }
 });
 
 router.get('/usuarios', async function(req, res, next) {
@@ -496,7 +665,9 @@ async function hasActiveScheduleConflict(rental, exceptId) {
 
 router.get('/solicitacoes', async function(req, res, next) {
   try {
-    res.render('admin-solicitacoes', { title: 'Solicitações', rentals: await Rental.find({ status: { $in: ['analysis', 'active'] } }).populate('user').sort({ createdAt: -1 }) });
+    var rentals = await Rental.find({ status: { $in: ['analysis', 'active'] } }).populate('user').sort({ createdAt: -1 });
+    var rentalHistory = await Rental.find({ status: { $in: ['returned', 'cancelled'] } }).populate('user').sort({ updatedAt: -1, createdAt: -1 });
+    res.render('admin-solicitacoes', { title: 'Solicitações', rentals: rentals, rentalHistory: rentalHistory });
   } catch (error) { next(error); }
 });
 
@@ -660,26 +831,33 @@ router.post('/solicitacoes/:id/conferencia', async function(req, res, next) {
     var submittedItems = isReturnChecklist ? req.body.returnedItem : req.body.deliveredItem;
     var checkedIds = new Set((Array.isArray(submittedItems) ? submittedItems : (submittedItems ? [submittedItems] : [])).map(String));
     var rentalItemIds = Array.from(new Set(rental.items.map(function(item) { return String(item.product); })));
+    var allItemsChecked = rentalItemIds.length > 0 && rentalItemIds.every(function(id) { return checkedIds.has(id); });
+
+    if (!allItemsChecked) {
+      await session.abortTransaction();
+      req.session.rentalFormError = isReturnChecklist
+        ? 'Assinale todos os produtos antes de confirmar a devolução.'
+        : 'Assinale todos os produtos antes de confirmar a entrega.';
+      return res.redirect('/admin/solicitacoes/' + rental._id);
+    }
 
     if (!rental.deliveryChecked) {
-      rental.deliveredItems = rentalItemIds.filter(function(id) { return checkedIds.has(id); });
-      if (rentalItemIds.length && rental.deliveredItems.length === rentalItemIds.length) {
-        for (var deliveryIndex = 0; deliveryIndex < rental.reservedComponents.length; deliveryIndex += 1) {
-          var deliveredComponent = rental.reservedComponents[deliveryIndex];
-          await Product.updateOne({ _id: deliveredComponent.product }, { $inc: { rentedQuantity: deliveredComponent.quantity } }).session(session);
-        }
-        rental.deliveryChecked = true;
+      rental.deliveredItems = rentalItemIds;
+      rental.returnedItems = [];
+      rental.returnChecked = false;
+      for (var deliveryIndex = 0; deliveryIndex < rental.reservedComponents.length; deliveryIndex += 1) {
+        var deliveredComponent = rental.reservedComponents[deliveryIndex];
+        await Product.updateOne({ _id: deliveredComponent.product }, { $inc: { rentedQuantity: deliveredComponent.quantity } }).session(session);
       }
+      rental.deliveryChecked = true;
     } else {
-      rental.returnedItems = rentalItemIds.filter(function(id) { return checkedIds.has(id); });
-      if (rentalItemIds.length && rental.returnedItems.length === rentalItemIds.length) {
-        for (var returnIndex = 0; returnIndex < rental.reservedComponents.length; returnIndex += 1) {
-          var returnedComponent = rental.reservedComponents[returnIndex];
-          await Product.updateOne({ _id: returnedComponent.product }, { $inc: { rentedQuantity: -returnedComponent.quantity } }).session(session);
-        }
-        rental.returnChecked = true;
-        rental.status = 'returned';
+      rental.returnedItems = rentalItemIds;
+      for (var returnIndex = 0; returnIndex < rental.reservedComponents.length; returnIndex += 1) {
+        var returnedComponent = rental.reservedComponents[returnIndex];
+        await Product.updateOne({ _id: returnedComponent.product }, { $inc: { rentedQuantity: -returnedComponent.quantity } }).session(session);
       }
+      rental.returnChecked = true;
+      rental.status = 'returned';
     }
 
     await rental.save({ session: session });
@@ -782,16 +960,67 @@ router.post('/reunioes/:id/confirmar', async function(req, res, next) {
   } catch (error) { next(error); }
 });
 
+function renderConfigForm(res, settings, options) {
+  options = options || {};
+  var whatsappNumber = settings.whatsappNumber || siteSettings.defaultSettings.whatsappNumber;
+  res.status(options.status || 200).render('admin-configuracoes', {
+    title: 'Configurações do site',
+    settings: settings,
+    whatsappDisplay: siteSettings.formatWhatsAppNumber(whatsappNumber) || whatsappNumber,
+    formError: options.formError || null,
+    formSuccess: options.formSuccess || null
+  });
+}
+
 router.get('/configuracoes', async function(req, res, next) {
   try {
-    res.render('admin-configuracoes', { title: 'Configurações do site', settings: await SiteSettings.findOne({ key: 'main' }) || new SiteSettings(), formError: null });
+    var settings = await SiteSettings.findOne({ key: 'main' }) || new SiteSettings();
+    renderConfigForm(res, settings, {
+      formSuccess: req.query.salvo === '1' ? 'Configurações salvas com sucesso.' : null
+    });
   } catch (error) { next(error); }
 });
 
 router.post('/configuracoes', async function(req, res, next) {
   try {
-    await SiteSettings.findOneAndUpdate({ key: 'main' }, { key: 'main', loginWelcome: req.body.loginWelcome, loginSubtitle: req.body.loginSubtitle, meetingHours: req.body.meetingHours, salonHours: req.body.salonHours }, { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true });
-    res.redirect('/admin/configuracoes');
+    var whatsappNumber = siteSettings.normalizeWhatsAppNumber(req.body.whatsappNumber);
+    var instagramUrl = siteSettings.sanitizeSocialUrl(req.body.instagramUrl);
+    var facebookUrl = siteSettings.sanitizeSocialUrl(req.body.facebookUrl);
+    var storeAddress = String(req.body.storeAddress || '').trim();
+    var submittedSettings = {
+      loginWelcome: req.body.loginWelcome,
+      loginSubtitle: req.body.loginSubtitle,
+      meetingHours: req.body.meetingHours,
+      salonHours: req.body.salonHours,
+      whatsappNumber: whatsappNumber || req.body.whatsappNumber,
+      instagramUrl: instagramUrl === null ? req.body.instagramUrl : instagramUrl,
+      facebookUrl: facebookUrl === null ? req.body.facebookUrl : facebookUrl,
+      storeAddress: storeAddress
+    };
+    var formError = '';
+    if (!whatsappNumber || whatsappNumber.length < 12 || whatsappNumber.length > 13) {
+      formError = 'Informe um número de WhatsApp válido, com DDD.';
+    } else if (instagramUrl === null) {
+      formError = 'Informe um link válido para o Instagram.';
+    } else if (facebookUrl === null) {
+      formError = 'Informe um link válido para o Facebook.';
+    }
+    if (formError) return renderConfigForm(res, submittedSettings, { status: 400, formError: formError });
+
+    await SiteSettings.findOneAndUpdate({ key: 'main' }, {
+      $set: {
+        whatsappNumber: whatsappNumber,
+        instagramUrl: instagramUrl,
+        facebookUrl: facebookUrl,
+        storeAddress: storeAddress,
+        loginWelcome: req.body.loginWelcome,
+        loginSubtitle: req.body.loginSubtitle,
+        meetingHours: req.body.meetingHours,
+        salonHours: req.body.salonHours
+      },
+      $setOnInsert: { key: 'main' }
+    }, { upsert: true, setDefaultsOnInsert: true });
+    res.redirect('/admin/configuracoes?salvo=1');
   } catch (error) { next(error); }
 });
 

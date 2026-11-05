@@ -6,7 +6,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var createError = require('http-errors');
 var database = require('./config/database');
-var business = require('./config/business');
+var siteSettings = require('./utils/site-settings');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -42,7 +42,11 @@ app.use(session({
 }));
 app.use(function(req, res, next) {
   res.locals.currentPath = req.path;
-  res.locals.whatsappNumber = business.whatsappNumber;
+  res.locals.whatsappNumber = siteSettings.defaultSettings.whatsappNumber;
+  res.locals.whatsappDisplayNumber = siteSettings.formatWhatsAppNumber(siteSettings.defaultSettings.whatsappNumber);
+  res.locals.instagramUrl = siteSettings.defaultSettings.instagramUrl;
+  res.locals.facebookUrl = siteSettings.defaultSettings.facebookUrl;
+  res.locals.storeAddress = siteSettings.defaultSettings.storeAddress;
   res.locals.currentUser = req.session.user || null;
   res.locals.isAdmin = Boolean(req.session.user && req.session.user.role === 'admin');
   res.locals.isAdminPanel = req.path.indexOf('/admin') === 0;
@@ -58,6 +62,21 @@ app.use(function(req, res, next) {
   next();
 });
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Carrega os dados de contato configurados pelo administrador (WhatsApp e redes sociais).
+app.use(async function(req, res, next) {
+  try {
+    var settings = await siteSettings.getSiteSettings();
+    res.locals.whatsappNumber = settings.whatsappNumber;
+    res.locals.whatsappDisplayNumber = siteSettings.formatWhatsAppNumber(settings.whatsappNumber);
+    res.locals.instagramUrl = settings.instagramUrl;
+    res.locals.facebookUrl = settings.facebookUrl;
+    res.locals.storeAddress = settings.storeAddress;
+  } catch (error) {
+    console.error('Não foi possível carregar os dados de contato do site:', error.message);
+  }
+  next();
+});
 
 database.connectDatabase();
 

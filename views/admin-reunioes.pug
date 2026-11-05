@@ -7,6 +7,10 @@ block content
         p.admin-eyebrow AGENDA
         h2.admin-agenda-inner-title Reuniões
         p.admin-agenda-inner-subtitle Acompanhe os horários solicitados pelos clientes.
+        if meetingHistory && meetingHistory.length
+          a.admin-small-button.request-history-link(href='#historico-reunioes')
+            i.bi.bi-clock-history(aria-hidden='true')
+            | Ver histórico de reuniões
       if meetingMessage
         p.admin-success(role='status')= meetingMessage
       if meetings && meetings.length
@@ -39,9 +43,10 @@ block content
         .admin-empty
           i.bi.bi-calendar-event
           p Nenhuma reunião futura aguardando ou confirmada.
-      section.meeting-history-card(aria-labelledby='meeting-history-title')
+      section.meeting-history-card#historico-reunioes(aria-labelledby='meeting-history-title')
         p.admin-eyebrow HISTÓRICO
-        h2#meeting-history-title Histórico de reuniões e solicitações
+        h2#meeting-history-title Reuniões finalizadas
+        p.request-history-subtitle Reuniões realizadas, canceladas, não confirmadas ou bloqueios administrativos.
         if meetingHistory && meetingHistory.length
           .admin-table-wrap
             table.admin-table
@@ -72,6 +77,10 @@ block content
       p.admin-eyebrow AGENDA
       h1.admin-title Solicitações de reunião
       p.admin-subtitle Acompanhe os horários solicitados pelos clientes.
+      if meetingHistory && meetingHistory.length
+        a.admin-small-button.request-history-link(href='#historico-reunioes')
+          i.bi.bi-clock-history(aria-hidden='true')
+          | Ver histórico de reuniões
       if meetingMessage
         p.admin-success(role='status')= meetingMessage
       if meetings && meetings.length
@@ -104,9 +113,10 @@ block content
         .admin-empty
           i.bi.bi-calendar-event
           p Nenhuma reunião futura aguardando ou confirmada.
-      section.meeting-history-card(aria-labelledby='meeting-history-title')
+      section.meeting-history-card#historico-reunioes(aria-labelledby='meeting-history-title')
         p.admin-eyebrow HISTÓRICO
-        h2#meeting-history-title Histórico de reuniões e solicitações
+        h2#meeting-history-title Reuniões finalizadas
+        p.request-history-subtitle Reuniões realizadas, canceladas, não confirmadas ou bloqueios administrativos.
         if meetingHistory && meetingHistory.length
           .admin-table-wrap
             table.admin-table

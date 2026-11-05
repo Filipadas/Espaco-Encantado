@@ -5,7 +5,7 @@ html
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
     title Criar conta | Espaço Encantado
     link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css')
-    link(rel='stylesheet' href='/stylesheets/style.css?v=20261017-produto-mobile')
+    link(rel='stylesheet' href='/stylesheets/style.css?v=20261105-legal-history')
   body.auth-page
     main.register-screen
       section.register-header
@@ -69,6 +69,17 @@ html
             .auth-field
               label(for='register-confirm-password') Confirmar senha
               input#register-confirm-password(type='password' name='confirmPassword' autocomplete='new-password' required)
+          fieldset.auth-consents
+            legend Consentimentos obrigatórios
+            label.auth-consent(for='register-accept-terms')
+              input#register-accept-terms(type='checkbox' name='acceptTerms' required checked=(formData && formData.acceptTerms))
+              span Li e aceito os #[a(href='/termos-de-uso' target='_blank' rel='noopener') Termos de Uso].
+            label.auth-consent(for='register-accept-data')
+              input#register-accept-data(type='checkbox' name='acceptDataProcessing' required checked=(formData && formData.acceptDataProcessing))
+              span Consinto com o tratamento dos meus dados pessoais para as finalidades descritas no #[a(href='/consentimento-lgpd' target='_blank' rel='noopener') Consentimento LGPD].
+            label.auth-consent(for='register-accept-privacy')
+              input#register-accept-privacy(type='checkbox' name='acceptPrivacyPolicy' required checked=(formData && formData.acceptPrivacyPolicy))
+              span Declaro que li e compreendi a #[a(href='/politica-de-privacidade' target='_blank' rel='noopener') Política de Privacidade].
           button.auth-submit(type='submit') Criar minha conta
       script.
         (function() {

@@ -4,7 +4,6 @@ var User = require('../models/User');
 var SiteSettings = require('../models/SiteSettings');
 var meetingHoursConfig = require('../utils/meeting-hours');
 var meetingHistoryUtils = require('../utils/meeting-history');
-var business = require('../config/business');
 var { requireLogin, requireAdmin } = require('../middleware/auth');
 var router = express.Router();
 
@@ -59,7 +58,7 @@ router.post('/', requireLogin, async function(req, res, next) {
       user.phone ? 'Telefone: ' + user.phone : null,
       'A solicitação foi enviada pelo site e aguarda confirmação.'
     ].filter(Boolean).join('\n');
-    res.redirect('https://wa.me/' + business.whatsappNumber + '?text=' + encodeURIComponent(message));
+    res.redirect('https://wa.me/' + res.locals.whatsappNumber + '?text=' + encodeURIComponent(message));
   } catch (error) { next(error); }
 });
 
