@@ -5,9 +5,9 @@ block content
   - var categorySubcategories = subcategoryCatalog || {}
   - var selectedProductSubcategories = Array.isArray(product.subcategories) ? product.subcategories : []
   main.admin-page
-    a.admin-back-link(href='/admin/produtos')
+    a.admin-back-link(href='/admin')
       i.bi.bi-arrow-left
-      | Gerenciamento de produtos
+      | Painel administrativo
     .admin-form-panel
       p.admin-eyebrow= isEditing ? 'EDITAR ITEM' : 'NOVO ITEM'
       h1.admin-title= isEditing ? 'Editar produto' : 'Cadastrar produto'

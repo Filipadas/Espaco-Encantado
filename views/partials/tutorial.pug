@@ -1,0 +1,414 @@
+button.tutorial-float(type='button' data-open-tutorial aria-label='Abrir tutorial de uso' title='Tutorial de uso')
+  i.bi.bi-question-lg(aria-hidden='true')
+
+.tutorial-modal(aria-hidden='true' data-tutorial-modal)
+  .tutorial-dialog(role='dialog' aria-modal='true' aria-labelledby='tutorial-title')
+    header.tutorial-header
+      div
+        p.tutorial-eyebrow= isAdmin ? 'ÁREA DO ADMINISTRADOR' : 'ÁREA DO CLIENTE'
+        h2#tutorial-title.tutorial-title= isAdmin ? 'Tutorial do administrador' : 'Tutorial do cliente'
+        p.tutorial-subtitle= isAdmin ? 'Passo a passo das funções exclusivas da loja.' : 'Passo a passo das funções que você pode usar no site.'
+      button.tutorial-close(type='button' aria-label='Fechar tutorial' data-close-tutorial)
+        i.bi.bi-x-lg(aria-hidden='true')
+    .tutorial-body
+      p.tutorial-intro Toque em uma função abaixo para abrir o passo a passo.
+      .tutorial-alert
+        i.bi.bi-exclamation-circle(aria-hidden='true')
+        p
+          strong Balões personalizados são para venda, não para locação.
+          |  Para encomendar, fale com a loja pelo WhatsApp.
+
+      if isAdmin
+        .tutorial-accordion
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-speedometer2(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Acessar o painel
+                small Entrada e visão geral
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Entre com uma conta de administrador.
+                li Toque no ícone de coroa no topo ou abra Administração &gt; Painel administrativo no menu.
+                li Use os atalhos do painel para abrir cada função da loja.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-graph-up-arrow(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Dashboard mensal
+                small Desempenho da loja
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Confira faturamento estimado, solicitações, ticket médio, itens alugados, novos clientes e reuniões.
+                li Use as setas ou o seletor de mês para consultar outro período.
+                li Veja o gráfico dos últimos 6 meses, os produtos mais alugados e a situação das solicitações.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-people-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Gerenciar usuários
+                small Contas e permissões
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Gerenciamento de usuários.
+                li Pesquise por nome, e-mail ou perfil e ordene a lista.
+                li Altere o perfil entre Cliente e Administrador e toque em Salvar.
+                li Sua própria conta não pode ter o perfil alterado por essa tela.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-box-seam-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Gerenciar produtos
+                small Catálogo da loja
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Gerenciamento de produtos.
+                li Pesquise, filtre por categoria ou subcategoria e ordene por nome, preço ou disponibilidade.
+                li Use o lápis para editar ou a lixeira para excluir um produto.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-plus-circle-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Cadastrar ou editar produto
+                small Fotos, preço, estoque e personalização
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Cadastrar produto ou edite um item existente.
+                li Envie as fotos, defina a ordem e escolha a categoria e as subcategorias.
+                li Informe nome, preço, estoque total e descrição.
+                li Para personalização, marque Caixa para inserir texto ou cadastre um Texto pré-personalizado.
+                li Em kits e festas, adicione os componentes e as quantidades.
+                li Marque as especificações aplicáveis e salve.
+                li
+                  strong Lembrete:
+                  |  balões personalizados são para venda, não para locação.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-boxes(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Controle de estoque
+                small Unidades disponíveis
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Controle de estoque.
+                li Pesquise e filtre por categoria ou subcategoria.
+                li Use os botões + e - para ajustar as unidades físicas.
+                li Em kits e festas, a disponibilidade é calculada automaticamente pelos componentes.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-calendar-range-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Agenda
+                small Solicitações, reuniões e calendário
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Agenda no painel ou no topo do site.
+                li Use as abas Solicitações, Reuniões e Agenda completa.
+                li Na agenda completa, alterne entre mês e semana e toque em um dia para ver os detalhes.
+                li As cores indicam solicitação, reunião ou os dois no mesmo dia.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-calendar-minus(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Bloquear horários
+                small Disponibilidade para reuniões
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Na tela inicial, na seção Agenda, toque em Gerenciar horários.
+                li Escolha a data e os horários que deseja indisponibilizar.
+                li Toque em Marcar horário como indisponível.
+                li Para liberar, selecione um horário já bloqueado e confirme.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-clipboard-check-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Solicitações de locação
+                small Aprovação, entrega e devolução
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Solicitações na agenda.
+                li Pesquise, ordene e use as cores de urgência para priorizar as entregas.
+                li Abra uma solicitação para editar itens, textos de personalização e dados da entrega.
+                li Em Aprovação, confirme a solicitação para ativá-la.
+                li Na entrega e na devolução, marque todos os itens da checklist e confirme.
+                li Se necessário, cancele a solicitação pelo botão correspondente.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-calendar-heart(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Reuniões
+                small Confirmação e histórico
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Reuniões na agenda.
+                li Veja as reuniões solicitadas e confirme as que estiverem pendentes.
+                li O WhatsApp do cliente abrirá com a mensagem de confirmação, quando houver telefone cadastrado.
+                li Consulte o histórico de reuniões finalizadas na mesma página.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-receipt(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Comprovantes de locação
+                small Criação e consulta
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Comprovantes de locação.
+                li Pesquise, ordene e filtre por status.
+                li Toque em Criar comprovante para gerar ou em Visualizar comprovante para abrir.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-sliders(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Configurações do site
+                small Contato, login e horários
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Configurações.
+                li Atualize WhatsApp, Instagram, Facebook, endereço e textos do login.
+                li Defina os horários disponíveis para reuniões e o horário de funcionamento do salão.
+                li Salve as configurações.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-images(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Fotos da tela inicial
+                small Carrossel do site
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Fotos da tela inicial.
+                li Substitua ou remova as imagens do carrossel.
+                li Use arquivos JPG, PNG ou WebP de até 5 MB e salve.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-person-circle(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Perfil e saída
+                small Sua conta de administrador
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Toque na sua foto no topo para abrir o perfil.
+                li Edite seus dados ou use Abrir área administrativa.
+                li Para sair, use Sair da conta no perfil.
+
+      else
+        .tutorial-accordion
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-person-plus-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Criar conta e entrar
+                small Acesso ao site
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Toque em Login no topo ou em Conta na barra inferior.
+                li Se ainda não tem conta, escolha Criar conta e preencha seus dados. Você também pode entrar com Google ou Apple.
+                li Esqueceu a senha? Use Esqueci minha senha e siga as orientações para falar com a loja.
+                li Com a conta pronta, mantenha telefone e endereço atualizados no perfil.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-search(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Encontrar e pesquisar produtos
+                small Catálogo e busca
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Use a barra de busca no topo para procurar pelo nome.
+                li Abra o Catálogo e escolha Brinquedos, Decorações, Kit de montagem ou Festa infantil.
+                li Use os filtros de subcategoria e a ordenação por nome ou preço.
+                li Toque no produto para ver fotos, descrição, preço e unidades disponíveis.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-heart-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Favoritos
+                small Guarde os produtos preferidos
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Toque no coração do produto para salvar.
+                li Abra Favoritos no menu ou na lateral do catálogo.
+                li Toque no coração novamente para remover.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-bag-plus-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Adicionar à sacola
+                small Escolha os itens
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li No produto, confira a disponibilidade e o campo de personalização, quando existir.
+                li Se o produto permitir, digite o texto desejado e toque em Adicionar à sacola.
+                li Na sacola, use os botões + e - para ajustar a quantidade.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-calendar-check-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Escolher a data e enviar a solicitação
+                small Sacola e WhatsApp
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Na sacola, selecione a data de utilização de cada item. Dias indisponíveis aparecem bloqueados.
+                li Preencha o endereço de entrega ou escolha um endereço salvo.
+                li Informe a data e o horário previstos da entrega.
+                li Marque Desejo alugar também o horário do salão se precisar e informe data e horário.
+                li Toque em Enviar solicitação. O WhatsApp abrirá com a mensagem pronta.
+                li Envie a mensagem no WhatsApp e, ao voltar ao site, confirme em Sim, já enviei. A solicitação só é registrada depois dessa confirmação.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-clock-history(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Acompanhar solicitações
+                small Histórico e status
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Histórico de solicitações no menu.
+                li Acompanhe o status: Em análise, Ativa, Devolvida ou Cancelada.
+                li A loja combina os detalhes da entrega e da devolução pelo WhatsApp.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-calendar-plus-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Agendar uma reunião
+                small Atendimento na loja
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Na tela inicial, vá até a seção Agenda e toque em Agendar.
+                li Escolha uma data e um horário disponíveis.
+                li Toque em Solicitar reunião e envie a mensagem que abrir no WhatsApp.
+                li Acompanhe em Minhas reuniões.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-person-circle(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Perfil, endereços e conta
+                small Seus dados
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Abra Conta/Perfil no topo ou na barra inferior.
+                li Edite nome, telefone, foto e endereços.
+                li Salve as alterações.
+                li No fim da página você pode sair da conta ou excluir sua conta.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-balloon-heart-fill(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Balões personalizados
+                small Compra, não locação
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Os balões personalizados são para venda, não para locação.
+                li Escolha o modelo e o texto e fale com a loja pelo WhatsApp para combinar o pedido.
+                li Não adicione balões personalizados à sacola de locação; a compra é combinada diretamente com a loja.
+
+          details.tutorial-item
+            summary.tutorial-summary
+              span.tutorial-item-icon
+                i.bi.bi-whatsapp(aria-hidden='true')
+              span.tutorial-item-heading
+                strong Precisa de ajuda?
+                small Contato e documentos
+              i.bi.bi-chevron-down.tutorial-chevron(aria-hidden='true')
+            .tutorial-item-content
+              ol.tutorial-steps
+                li Use o botão do WhatsApp no canto da tela para falar com a loja.
+                li Consulte os documentos legais no rodapé: Termos de Uso, Política de Privacidade e Consentimento LGPD.
+
+script.
+  (function() {
+    var modal = document.querySelector('[data-tutorial-modal]');
+    var openButton = document.querySelector('[data-open-tutorial]');
+    if (!modal || !openButton) return;
+
+    var closeButton = modal.querySelector('[data-close-tutorial]');
+    var lastFocused = null;
+
+    function openTutorial() {
+      lastFocused = document.activeElement;
+      modal.classList.add('is-visible');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('tutorial-open');
+      if (closeButton) closeButton.focus();
+    }
+
+    function closeTutorial() {
+      modal.classList.remove('is-visible');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('tutorial-open');
+      if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    }
+
+    openButton.addEventListener('click', openTutorial);
+    if (closeButton) closeButton.addEventListener('click', closeTutorial);
+    modal.addEventListener('click', function(event) {
+      if (event.target === modal) closeTutorial();
+    });
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape' && modal.classList.contains('is-visible')) closeTutorial();
+    });
+  })();

@@ -4763,3 +4763,303 @@ body.dark-mode .admin-monthly-dashboard .admin-eyebrow { color: #ff9c9c; }
 
 .admin-page > .admin-success,
 .admin-page > .admin-form-error { margin: 0 0 16px; }
+
+/* ===== Botão flutuante e tutorial de uso ===== */
+body.tutorial-open { overflow: hidden; }
+
+.tutorial-float {
+  position: fixed;
+  right: 24px;
+  bottom: 94px;
+  z-index: 1000;
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #2f6ec1;
+  color: #fff;
+  font-size: 1.9rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.tutorial-float:hover,
+.tutorial-float:focus-visible {
+  background: #24579a;
+  color: #fff;
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.tutorial-float:focus-visible {
+  outline: 3px solid rgba(47, 110, 193, 0.38);
+  outline-offset: 3px;
+}
+
+.tutorial-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(23, 50, 77, 0.62);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.tutorial-modal.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tutorial-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 680px);
+  max-height: min(86vh, 760px);
+  overflow: hidden;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(23, 50, 77, 0.35);
+}
+
+.tutorial-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 26px 18px;
+  border-bottom: 1px solid #e6eef7;
+  background: linear-gradient(135deg, #f7fbff 0%, #eef4fb 100%);
+}
+
+.tutorial-eyebrow {
+  margin: 0 0 4px;
+  color: #2f6ec1;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.tutorial-title {
+  margin: 0;
+  color: #17324d;
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  line-height: 1.1;
+}
+
+.tutorial-subtitle {
+  margin: 6px 0 0;
+  color: #52677a;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.tutorial-close {
+  display: grid;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #eef4fb;
+  color: #17324d;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.tutorial-close:hover,
+.tutorial-close:focus-visible {
+  background: #dce9f7;
+  color: #2f6ec1;
+}
+
+.tutorial-body {
+  padding: 18px 26px 26px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.tutorial-intro {
+  margin: 0 0 14px;
+  color: #52677a;
+  line-height: 1.5;
+}
+
+.tutorial-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #f0c36d;
+  border-left: 5px solid #d69e00;
+  border-radius: 14px;
+  background: #fff8e6;
+  color: #5c4a12;
+}
+
+.tutorial-alert i {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  font-size: 1.1rem;
+}
+
+.tutorial-alert p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.tutorial-accordion {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.tutorial-item {
+  overflow: hidden;
+  border: 1px solid #dbe7f3;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.tutorial-item[open] {
+  border-color: #b7d2ec;
+  box-shadow: 0 8px 18px rgba(23, 50, 77, 0.06);
+}
+
+.tutorial-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.tutorial-summary::-webkit-details-marker { display: none; }
+
+.tutorial-summary:focus-visible {
+  outline: 3px solid rgba(47, 110, 193, 0.35);
+  outline-offset: -3px;
+}
+
+.tutorial-item-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: #eef4fb;
+  color: #2f6ec1;
+  font-size: 1.1rem;
+}
+
+.tutorial-item[open] .tutorial-item-icon {
+  background: #2f6ec1;
+  color: #fff;
+}
+
+.tutorial-item-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tutorial-item-heading strong {
+  color: #17324d;
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.tutorial-item-heading small {
+  color: #6d8194;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.tutorial-chevron {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: #2f6ec1;
+  transition: transform 0.2s ease;
+}
+
+.tutorial-item[open] .tutorial-chevron { transform: rotate(180deg); }
+
+.tutorial-item-content { padding: 0 16px 16px 66px; }
+
+.tutorial-steps {
+  margin: 0;
+  padding-left: 20px;
+  color: #52677a;
+  line-height: 1.55;
+}
+
+.tutorial-steps li { margin: 0 0 7px; }
+.tutorial-steps li:last-child { margin-bottom: 0; }
+.tutorial-steps strong { color: #17324d; }
+
+body.dark-mode .tutorial-dialog { background: #1b2a3a; }
+body.dark-mode .tutorial-header {
+  border-color: #45627d;
+  background: linear-gradient(135deg, #21384d 0%, #1b2a3a 100%);
+}
+body.dark-mode .tutorial-title,
+body.dark-mode .tutorial-item-heading strong,
+body.dark-mode .tutorial-steps strong { color: #e8eef5; }
+body.dark-mode .tutorial-subtitle,
+body.dark-mode .tutorial-intro,
+body.dark-mode .tutorial-steps,
+body.dark-mode .tutorial-item-heading small { color: #cbd9e5; }
+body.dark-mode .tutorial-close { background: #2b455d; color: #e8eef5; }
+body.dark-mode .tutorial-close:hover,
+body.dark-mode .tutorial-close:focus-visible { background: #36536e; color: #fff; }
+body.dark-mode .tutorial-item { border-color: #45627d; background: #21384d; }
+body.dark-mode .tutorial-item[open] { border-color: #5993d6; }
+body.dark-mode .tutorial-item-icon { background: #2b455d; color: #8ec5ff; }
+body.dark-mode .tutorial-item[open] .tutorial-item-icon { background: #2f6ec1; color: #fff; }
+body.dark-mode .tutorial-alert {
+  border-color: #7a5d1a;
+  border-left-color: #d69e00;
+  background: #3a3016;
+  color: #f3e2a9;
+}
+
+@media (max-width: 768px) {
+  .tutorial-float {
+    right: 16px;
+    bottom: calc(136px + env(safe-area-inset-bottom));
+    width: 48px;
+    height: 48px;
+    font-size: 1.55rem;
+  }
+
+  .tutorial-float:hover,
+  .tutorial-float:focus-visible { transform: translateY(-3px) scale(1.04); }
+
+  .tutorial-modal { padding: 10px; }
+
+  .tutorial-dialog {
+    max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px);
+    border-radius: 18px;
+  }
+
+  .tutorial-header { padding: 20px 18px 16px; }
+  .tutorial-body { padding: 16px 18px 20px; }
+  .tutorial-item-content { padding: 0 14px 14px; }
+  .tutorial-summary { padding: 12px 14px; gap: 10px; }
+  .tutorial-item-icon { width: 34px; height: 34px; border-radius: 10px; }
+}
