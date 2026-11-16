@@ -151,11 +151,26 @@ router.post('/cadastro', uploadRegistrationImage, async function(req, res, next)
       return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'As senhas não coincidem.', formData: formData });
     }
     var cep = String(req.body.cep || '').replace(/\D/g, '');
-    if (!/^\d{8}$/.test(cep)) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'Informe um CEP válido com 8 números.', formData: formData });
-    var location;
-    try { location = await cepLookup(cep); }
-    catch (error) { return res.status(503).render('cadastro', { title: 'Criar conta', registerError: 'Não foi possível consultar o CEP agora. Tente novamente.', formData: formData }); }
-    if (!location) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'CEP não encontrado. Confira o número digitado.', formData: formData });
+    var city = String(req.body.city || '').trim();
+    var state = String(req.body.state || '').trim().toUpperCase();
+    formData.city = city;
+    formData.state = state;
+    var location = null;
+    if (cep) {
+      if (!/^\d{8}$/.test(cep)) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'Informe um CEP válido com 8 números ou deixe o campo em branco.', formData: formData });
+      try { location = await cepLookup(cep); }
+      catch (error) { return res.status(503).render('cadastro', { title: 'Criar conta', registerError: 'Não foi possível consultar o CEP agora. Tente novamente ou preencha cidade e UF manualmente.', formData: formData }); }
+      if (!location) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'CEP não encontrado. Confira o número digitado ou preencha cidade e UF manualmente.', formData: formData });
+      city = location.city;
+      state = location.state;
+      formData.city = city;
+      formData.state = state;
+      formData.cep = location.cep;
+    } else {
+      if (!city || !state) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'Informe a cidade e o estado, ou preencha um CEP válido.', formData: formData });
+      if (!/^[A-Z]{2}$/.test(state)) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'Selecione uma UF válida.', formData: formData });
+      formData.cep = '';
+    }
     var profileImage = '';
     if (req.file) {
       try {
@@ -172,9 +187,9 @@ router.post('/cadastro', uploadRegistrationImage, async function(req, res, next)
       password: password,
       phone: req.body.phone,
       address: req.body.address,
-      city: location.city,
-      state: location.state,
-      cep: location.cep,
+      city: city,
+      state: state,
+      cep: location ? location.cep : '',
       profileImage: profileImage,
       termsAcceptedAt: acceptedAt,
       privacyPolicyAcceptedAt: acceptedAt,

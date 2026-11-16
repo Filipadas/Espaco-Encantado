@@ -51,18 +51,18 @@ html
             .register-location-fields
               .auth-field
                 label(for='register-city') Cidade
-                input#register-city(type='text' name='city' autocomplete='address-level2' required readonly disabled value=(formData && formData.city || '') data-cep-city)
+                input#register-city(type='text' name='city' autocomplete='address-level2' required value=(formData && formData.city || '') data-cep-city)
               .auth-field
                 label(for='register-state') Estado
-                select#register-state(autocomplete='address-level1' disabled data-cep-state-select)
+                select#register-state(name='state' autocomplete='address-level1' required data-cep-state-select)
                   option(value='') UF
                   each stateCode in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']
                     option(value=stateCode selected=(formData && formData.state === stateCode))= stateCode
-                input(type='hidden' name='state' value=(formData && formData.state || '') data-cep-state-value)
+                input(type='hidden' value=(formData && formData.state || '') data-cep-state-value)
               .auth-field
-                label(for='register-cep') CEP
-                input#register-cep(type='text' name='cep' autocomplete='postal-code' inputmode='numeric' maxlength='9' pattern='[0-9]{5}-?[0-9]{3}' placeholder='00000-000' required value=(formData && formData.cep || '') data-cep-input aria-describedby='register-cep-message')
-                small#register-cep-message(role='status' data-cep-message) Digite o CEP para preencher cidade e UF.
+                label(for='register-cep') CEP (opcional)
+                input#register-cep(type='text' name='cep' autocomplete='postal-code' inputmode='numeric' maxlength='9' pattern='[0-9]{5}-?[0-9]{3}' placeholder='00000-000' value=(formData && formData.cep || '') data-cep-input aria-describedby='register-cep-message')
+                small#register-cep-message(role='status' data-cep-message) Opcional. Se informado, o CEP preenche cidade e UF automaticamente.
             .auth-field
               label(for='register-password') Senha
               input#register-password(type='password' name='password' autocomplete='new-password' required)
@@ -101,9 +101,7 @@ html
           }
           function clearLocation() {
             cityInput.value = '';
-            cityInput.disabled = true;
             stateSelect.value = '';
-            stateSelect.disabled = true;
             stateValue.value = '';
             verifiedCep = '';
           }
@@ -124,9 +122,7 @@ html
                 if (!data.ok) throw new Error(data.result.message || 'CEP não encontrado.');
                 cepInput.value = data.result.cep;
                 cityInput.value = data.result.city;
-                cityInput.disabled = false;
                 stateSelect.value = data.result.state;
-                stateSelect.disabled = true;
                 stateValue.value = data.result.state;
                 verifiedCep = cep;
                 setMessage('CEP encontrado. Cidade e UF preenchidas.', 'success');
@@ -146,21 +142,33 @@ html
             return pendingLookup;
           }
 
+          stateSelect.addEventListener('change', function() {
+            stateValue.value = stateSelect.value;
+          });
+          stateValue.value = stateSelect.value;
           cepInput.addEventListener('input', function() {
             var value = digits().slice(0, 8);
             cepInput.value = value.length > 5 ? value.slice(0, 5) + '-' + value.slice(5) : value;
             if (value !== verifiedCep) {
-              clearLocation();
               requestedCep = '';
-              setMessage(value.length === 8 ? 'Consultando CEP…' : 'Digite o CEP para preencher cidade e UF.', '');
+              if (value.length === 0) {
+                verifiedCep = '';
+                setMessage('Opcional. Se informado, o CEP preenche cidade e UF automaticamente.', '');
+              } else if (value.length === 8) {
+                setMessage('Consultando CEP…', 'loading');
+                lookupCep();
+              } else {
+                setMessage('Digite os 8 números do CEP para preencher cidade e UF automaticamente.', '');
+              }
             }
-            if (value.length === 8) lookupCep();
           });
           cepInput.addEventListener('blur', function() { if (digits().length === 8) lookupCep(); });
           form.addEventListener('submit', function(event) {
-            if (verifiedCep === digits()) return;
+            var cep = digits();
+            if (!cep.length) return;
+            if (verifiedCep === cep) return;
             event.preventDefault();
-            lookupCep().then(function(result) { if (result && verifiedCep === digits()) form.requestSubmit(); });
+            lookupCep().then(function(result) { if (result && verifiedCep === cep) form.requestSubmit(); });
           });
           if (digits().length === 8) lookupCep();
         })();

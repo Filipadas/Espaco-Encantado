@@ -481,6 +481,7 @@ function getProductData(body) {
     subcategories: subcategories,
     allowCustomText: allowCustomText,
     predefinedCustomText: predefinedCustomText,
+    isKitComponent: body.isKitComponent === 'on',
     stockTotal: body.stockTotal,
     components: isComposite ? components : []
   };

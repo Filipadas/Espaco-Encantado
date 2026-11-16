@@ -57,6 +57,11 @@ block content
         input#product-price(type='number' name='price' min='0' step='0.01' value=product.price required)
         label(for='product-stock') Estoque total
         input#product-stock(type='number' name='stockTotal' min='0' step='1' value=product.stockTotal || 0 required)
+        .admin-custom-text-option
+          label.admin-custom-text-check
+            input(type='checkbox' name='isKitComponent' checked=product.isKitComponent)
+            span Componente para kits
+            small.admin-custom-text-hint Quando selecionado, o produto serve apenas para o estoque, não aparece no catálogo e pode ser utilizado como componente de kits de montagem e festas infantis.
         label(for='product-description') Descrição
         textarea#product-description(name='description' rows='4')= product.description
         label(for='product-image') Foto principal por URL (opcional)

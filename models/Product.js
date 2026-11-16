@@ -41,6 +41,10 @@ var productSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  isKitComponent: {
+    type: Boolean,
+    default: false
+  },
   stockTotal: {
     type: Number,
     min: 0,

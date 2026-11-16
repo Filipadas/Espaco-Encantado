@@ -80,7 +80,7 @@ async function getFavoriteIds(req) {
 /* GET home page. */
 router.get('/', async function(req, res, next) {
   try {
-    var homeProducts = await Product.find().populate('components.product').sort({ createdAt: -1 }).limit(8);
+    var homeProducts = await Product.find({ isKitComponent: { $ne: true } }).populate('components.product').sort({ createdAt: -1 }).limit(8);
     var settings = await SiteSettings.findOne({ key: 'main' }) || {};
     var today = new Date();
     var todayString = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
@@ -102,7 +102,7 @@ router.get('/catalogo', async function(req, res, next) {
   var selectedState = Object.prototype.hasOwnProperty.call(catalogStates, requestedState) ? requestedState : 'brinquedos';
   try {
     var selectedCategory = catalogStates[selectedState];
-    var rawProducts = await Product.find({ category: { $in: selectedCategory.categories } }).populate('components.product').sort({ name: 1 });
+    var rawProducts = await Product.find({ category: { $in: selectedCategory.categories }, isKitComponent: { $ne: true } }).populate('components.product').sort({ name: 1 });
     var products = await inventory.getProductsAvailability(rawProducts);
     var searchQuery = String(req.query.busca || '').trim();
     var settings = await SiteSettings.findOne({ key: 'main' }).select('productSubcategories');
@@ -141,7 +141,7 @@ router.get('/pesquisa/sugestoes', async function(req, res) {
   try {
     var query = String(req.query.q || '').trim();
     if (query.length < 2) return res.json({ products: [] });
-    var products = await Product.find().select('name description imageUrl category specifications subcategories').lean();
+    var products = await Product.find({ isKitComponent: { $ne: true } }).select('name description imageUrl category specifications subcategories').lean();
     var suggestions = products.map(function(product) { return { product: product, score: searchScore(product, query) }; })
       .filter(function(item) { return item.score > 0; })
       .sort(function(a, b) { return b.score - a.score || a.product.name.localeCompare(b.product.name, 'pt-BR'); })
@@ -158,7 +158,7 @@ router.get('/pesquisa', async function(req, res, next) {
   try {
     var query = String(req.query.q || '').trim();
     if (!query) return res.redirect('/catalogo');
-    var rawProducts = await Product.find().populate('components.product');
+    var rawProducts = await Product.find({ isKitComponent: { $ne: true } }).populate('components.product');
     var matches = rawProducts.map(function(product) { return { product: product, score: searchScore(product, query) }; })
       .filter(function(item) { return item.score > 0; })
       .sort(function(a, b) { return b.score - a.score || a.product.name.localeCompare(b.product.name, 'pt-BR'); });
@@ -197,7 +197,7 @@ router.get('/catalogo/:estado/:subcategoria', async function(req, res, next) {
   var category = catalogStates[selectedState];
   if (!category) return res.status(404).render('erro', { title: 'Categoria não encontrada', message: 'Esta categoria não existe.', error: {}, status: 404 });
   try {
-    var rawProducts = await Product.find({ category: { $in: category.categories } }).populate('components.product').sort({ name: 1 });
+    var rawProducts = await Product.find({ category: { $in: category.categories }, isKitComponent: { $ne: true } }).populate('components.product').sort({ name: 1 });
     var categoryProducts = await inventory.getProductsAvailability(rawProducts);
     var requestedSubcategory = String(req.params.subcategoria || '');
     var isGeneral = requestedSubcategory === 'geral';
@@ -229,7 +229,7 @@ router.get('/favoritos', async function(req, res, next) {
   if (!req.session.user) return res.redirect('/entrar?returnTo=' + encodeURIComponent(req.originalUrl));
   try {
     var favoriteIds = await getFavoriteIds(req);
-    var products = await Product.find({ _id: { $in: favoriteIds } }).populate('components.product').sort({ name: 1 });
+    var products = await Product.find({ _id: { $in: favoriteIds }, isKitComponent: { $ne: true } }).populate('components.product').sort({ name: 1 });
     var searchQuery = String(req.query.busca || '').trim();
     if (searchQuery) products = products.filter(function(product) { return (product.name + ' ' + (product.description || '')).toLocaleLowerCase().indexOf(searchQuery.toLocaleLowerCase()) !== -1; });
     res.render('catalogo', {
@@ -272,7 +272,7 @@ router.get('/produto/:id/semelhantes', async function(req, res, next) {
     if (!product) return res.status(404).render('erro', { title: 'Produto não encontrado', message: 'Este produto não está disponível.', error: {}, status: 404 });
     var categoryKey = Object.keys(catalogStates).find(function(key) { return catalogStates[key].categories.indexOf(product.category) !== -1; }) || 'brinquedos';
     var category = catalogStates[categoryKey];
-    var similarProducts = await Product.find({ category: product.category, _id: { $ne: product._id } }).populate('components.product').sort({ name: 1 });
+    var similarProducts = await Product.find({ category: product.category, _id: { $ne: product._id }, isKitComponent: { $ne: true } }).populate('components.product').sort({ name: 1 });
     res.render('catalogo', {
       title: 'Produtos semelhantes a ' + product.name,
       selectedState: categoryKey,
@@ -293,7 +293,7 @@ router.get('/produto/:id', async function(req, res, next) {
     var product = await inventory.findProductGraph(req.params.id);
     if (!product) return res.status(404).render('erro', { title: 'Produto não encontrado', message: 'Este produto não está disponível.', error: {}, status: 404 });
     product.availableUnits = inventory.availableUnits(product);
-    var similarProducts = await Product.find({ category: product.category, _id: { $ne: product._id } }).limit(8);
+    var similarProducts = await Product.find({ category: product.category, _id: { $ne: product._id }, isKitComponent: { $ne: true } }).limit(8);
     res.render('produto', { title: product.name, product: product, similarProducts: similarProducts, favoriteIds: await getFavoriteIds(req) });
   } catch (error) { next(error); }
 });
