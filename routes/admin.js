@@ -1,7 +1,5 @@
 var express = require('express');
 var mongoose = require('mongoose');
-var multer = require('multer');
-var path = require('path');
 var bcrypt = require('bcryptjs');
 var User = require('../models/User');
 var Product = require('../models/Product');
@@ -16,31 +14,10 @@ var customerWhatsAppUtils = require('../utils/customer-whatsapp');
 var customerWhatsApp = customerWhatsAppUtils.customerWhatsAppUrl;
 var withFinalPeriod = require('../utils/product-description');
 var siteSettings = require('../utils/site-settings');
+var uploadImagem = require('../utils/uploadImagem');
 var { requireAdmin } = require('../middleware/auth');
 var router = express.Router();
-var upload = multer({
-  storage: multer.diskStorage({
-    destination: path.join(__dirname, '..', 'public', 'uploads'),
-    filename: function(req, file, callback) {
-      callback(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname).toLowerCase());
-    }
-  }),
-  limits: { files: 10, fileSize: 5 * 1024 * 1024 },
-  fileFilter: function(req, file, callback) {
-    callback(null, file.mimetype.indexOf('image/') === 0);
-  }
-});
-var carouselUpload = multer({
-  storage: multer.diskStorage({
-    destination: path.join(__dirname, '..', 'public', 'uploads'),
-    filename: function(req, file, callback) {
-      callback(null, 'home-carousel-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname).toLowerCase());
-    }
-  }),
-  limits: { files: 3, fileSize: 5 * 1024 * 1024 },
-  fileFilter: function(req, file, callback) { callback(null, file.mimetype.indexOf('image/') === 0); }
-});
-var carouselImageFields = carouselUpload.fields([{ name: 'carouselImage0', maxCount: 1 }, { name: 'carouselImage1', maxCount: 1 }, { name: 'carouselImage2', maxCount: 1 }]);
+var carouselImageFields = uploadImagem.upload.fields([{ name: 'carouselImage0', maxCount: 1 }, { name: 'carouselImage1', maxCount: 1 }, { name: 'carouselImage2', maxCount: 1 }]);
 
 router.use(requireAdmin);
 
@@ -519,12 +496,14 @@ function buildOrderedImages(body, uploadedImages, fallbackImages) {
   }).filter(Boolean);
 }
 
-router.post('/produtos', upload.array('images', 10), async function(req, res, next) {
+router.post('/produtos', uploadImagem.upload.array('images', 10), async function(req, res, next) {
   try {
     var data = getProductData(req.body);
     await saveSpecificationDefinitions(getSubmittedSpecificationDefinitions(req.body));
     await saveSubcategoryDefinitions(req.body.category, data.subcategories);
-    var uploadedImages = (req.files || []).map(function(file) { return '/uploads/' + file.filename; });
+    var uploadedImages = await Promise.all((req.files || []).map(function(file) {
+      return uploadImagem(file, 'produtos');
+    }));
     data.imageUrls = buildOrderedImages(req.body, uploadedImages, data.imageUrls);
     data.imageUrl = data.imageUrls[0] || data.imageUrl;
     await Product.create(data);
@@ -535,12 +514,14 @@ router.post('/produtos', upload.array('images', 10), async function(req, res, ne
   }
 });
 
-router.post('/produtos/:id', upload.array('images', 10), async function(req, res, next) {
+router.post('/produtos/:id', uploadImagem.upload.array('images', 10), async function(req, res, next) {
   try {
     var data = getProductData(req.body);
     await saveSpecificationDefinitions(getSubmittedSpecificationDefinitions(req.body));
     await saveSubcategoryDefinitions(req.body.category, data.subcategories);
-    var uploadedImages = (req.files || []).map(function(file) { return '/uploads/' + file.filename; });
+    var uploadedImages = await Promise.all((req.files || []).map(function(file) {
+      return uploadImagem(file, 'produtos');
+    }));
     data.imageUrls = buildOrderedImages(req.body, uploadedImages, data.imageUrls);
     data.imageUrl = data.imageUrls[0] || data.imageUrl;
     await Product.findByIdAndUpdate(req.params.id, data, { runValidators: true });
@@ -552,7 +533,7 @@ router.post('/produtos/:id', upload.array('images', 10), async function(req, res
       product: submittedProduct,
       specificationCatalog: await getSpecificationCatalog(submittedProduct),
       subcategoryCatalog: await getSubcategoryCatalog(submittedProduct),
-      formError: 'Preencha os dados do produto corretamente.',
+      formError: error.message || 'Preencha os dados do produto corretamente.',
       isEditing: true,
       availableProducts: await Product.find({ _id: { $ne: req.params.id }, $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 })
     });
@@ -1085,6 +1066,12 @@ router.get('/carrossel', async function(req, res, next) {
   } catch (error) { next(error); }
 });
 
+function isSafeImageSource(value) {
+  if (!value) return false;
+  if (/^\/(images|uploads)\/[A-Za-z0-9_./-]+$/.test(value) && value.indexOf('..') === -1) return true;
+  return /^https:\/\/[^\s]+$/i.test(value);
+}
+
 router.post('/carrossel', carouselImageFields, async function(req, res, next) {
   try {
     var settings = await SiteSettings.findOne({ key: 'main' });
@@ -1095,8 +1082,7 @@ router.post('/carrossel', carouselImageFields, async function(req, res, next) {
       if (req.body['removeCarouselImage' + index] === 'on') continue;
       var file = req.files && req.files['carouselImage' + index] && req.files['carouselImage' + index][0];
       var submitted = String(req.body['currentCarouselImage' + index] || existingImages[index] || defaultHomeCarouselImages[index] || '').trim();
-      var safePath = /^\/(images|uploads)\/[A-Za-z0-9_./-]+$/.test(submitted) && submitted.indexOf('..') === -1 ? submitted : '';
-      var image = file ? '/uploads/' + file.filename : safePath;
+      var image = file ? await uploadImagem(file, 'carrossel') : (isSafeImageSource(submitted) ? submitted : '');
       if (image) images.push(image);
     }
     if (!images.length) {

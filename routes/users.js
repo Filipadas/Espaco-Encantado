@@ -1,18 +1,19 @@
 var express = require('express');
 var bcrypt = require('bcryptjs');
-var multer = require('multer');
-var path = require('path');
 var User = require('../models/User');
+var uploadImagem = require('../utils/uploadImagem');
 var { requireLogin } = require('../middleware/auth');
 var router = express.Router();
-var upload = multer({
-  storage: multer.diskStorage({
-    destination: path.join(__dirname, '..', 'public', 'uploads'),
-    filename: function(req, file, callback) {
-      callback(null, 'avatar-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname).toLowerCase());
-    }
-  })
-});
+
+function uploadProfileImage(req, res, next) {
+  uploadImagem.upload.single('profileImage')(req, res, function(error) {
+    if (!error) return next();
+    var message = error.code === 'LIMIT_FILE_SIZE' ? 'A foto deve ter no máximo 5 MB.' : (error.message || 'Não foi possível enviar a foto.');
+    User.findById(req.session.user.id).then(function(profile) {
+      res.status(400).render('usuarios-perfil', { title: 'Editar meu perfil', profile: profile, formError: message });
+    }).catch(next);
+  });
+}
 
 /* GET users listing. */
 router.get('/', requireLogin, function(req, res) {
@@ -25,7 +26,7 @@ router.get('/perfil', requireLogin, async function(req, res, next) {
   } catch (error) { next(error); }
 });
 
-router.post('/perfil', requireLogin, upload.single('profileImage'), async function(req, res, next) {
+router.post('/perfil', requireLogin, uploadProfileImage, async function(req, res, next) {
   try {
     function values(value) { return Array.isArray(value) ? value : (value === undefined ? [] : [value]); }
     var labels = values(req.body.addressLabel);
@@ -43,7 +44,13 @@ router.post('/perfil', requireLogin, upload.single('profileImage'), async functi
       };
     }).filter(function(address) { return address.label || address.address || address.city || address.state || address.cep; });
     var data = { name: req.body.name, phone: req.body.phone, address: req.body.address, city: req.body.city, state: req.body.state, cep: req.body.cep, addresses: addresses };
-    if (req.file) data.profileImage = '/uploads/' + req.file.filename;
+    if (req.file) {
+      try {
+        data.profileImage = await uploadImagem(req.file, 'avatares');
+      } catch (uploadError) {
+        return res.status(400).render('usuarios-perfil', { title: 'Editar meu perfil', profile: await User.findById(req.session.user.id), formError: uploadError.message || 'Não foi possível enviar a foto.' });
+      }
+    }
     var user = await User.findByIdAndUpdate(req.session.user.id, data, { new: true, runValidators: true });
     req.session.user.name = user.name;
     req.session.user.profileImage = user.profileImage;

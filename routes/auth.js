@@ -1,32 +1,16 @@
 var express = require('express');
 var bcrypt = require('bcryptjs');
-var crypto = require('crypto');
-var multer = require('multer');
-var path = require('path');
 var User = require('../models/User');
 var SiteSettings = require('../models/SiteSettings');
 var database = require('../config/database');
 var business = require('../config/business');
 var cepLookup = require('../utils/cep').lookupCep;
 var legalDocuments = require('../config/legal-documents');
+var uploadImagem = require('../utils/uploadImagem');
 var router = express.Router();
-var profileImageUpload = multer({
-  storage: multer.diskStorage({
-    destination: path.join(__dirname, '..', 'public', 'uploads'),
-    filename: function(req, file, callback) {
-      var extensions = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
-      callback(null, 'avatar-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + extensions[file.mimetype]);
-    }
-  }),
-  limits: { files: 1, fileSize: 5 * 1024 * 1024 },
-  fileFilter: function(req, file, callback) {
-    var allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    callback(allowedTypes.indexOf(file.mimetype) !== -1 ? null : new Error('Envie uma imagem JPG, PNG, WebP ou GIF.'), allowedTypes.indexOf(file.mimetype) !== -1);
-  }
-});
 
 function uploadRegistrationImage(req, res, next) {
-  profileImageUpload.single('profileImage')(req, res, function(error) {
+  uploadImagem.upload.single('profileImage')(req, res, function(error) {
     if (!error) return next();
     var message = error.code === 'LIMIT_FILE_SIZE' ? 'A foto deve ter no máximo 5 MB.' : (error.message || 'Não foi possível enviar a foto.');
     res.status(400).render('cadastro', { title: 'Criar conta', registerError: message, formData: req.body || {} });
@@ -172,6 +156,14 @@ router.post('/cadastro', uploadRegistrationImage, async function(req, res, next)
     try { location = await cepLookup(cep); }
     catch (error) { return res.status(503).render('cadastro', { title: 'Criar conta', registerError: 'Não foi possível consultar o CEP agora. Tente novamente.', formData: formData }); }
     if (!location) return res.status(400).render('cadastro', { title: 'Criar conta', registerError: 'CEP não encontrado. Confira o número digitado.', formData: formData });
+    var profileImage = '';
+    if (req.file) {
+      try {
+        profileImage = await uploadImagem(req.file, 'avatares');
+      } catch (uploadError) {
+        return res.status(400).render('cadastro', { title: 'Criar conta', registerError: uploadError.message || 'Não foi possível enviar a foto.', formData: formData });
+      }
+    }
     var password = bcrypt.hashSync(String(req.body.password || ''), 10);
     var acceptedAt = new Date();
     var user = await User.create({
@@ -183,7 +175,7 @@ router.post('/cadastro', uploadRegistrationImage, async function(req, res, next)
       city: location.city,
       state: location.state,
       cep: location.cep,
-      profileImage: req.file ? '/uploads/' + req.file.filename : '',
+      profileImage: profileImage,
       termsAcceptedAt: acceptedAt,
       privacyPolicyAcceptedAt: acceptedAt,
       dataConsentAcceptedAt: acceptedAt,
