@@ -1,0 +1,159 @@
+extends layout
+
+block content
+  - var fullAddress = [user.address, user.city, user.state].filter(Boolean).join(', ')
+  - var socialLogins = [user.googleId ? 'Google' : '', user.appleId ? 'Apple' : ''].filter(Boolean)
+  main.admin-page.admin-user-detail
+    a.admin-back-link(href='/admin/usuarios')
+      i.bi.bi-arrow-left(aria-hidden='true')
+      | Gerenciamento de usuários
+    .admin-heading-row
+      .admin-user-heading
+        .admin-user-avatar
+          if user.profileImage
+            img(src=user.profileImage alt='Foto de ' + user.name)
+          else
+            i.bi.bi-person(aria-hidden='true')
+        div
+          p.admin-eyebrow CLIENTE
+          h1.admin-title= user.name
+          p.admin-subtitle Cadastro em #{user.createdAt.toLocaleDateString('pt-BR')}
+      div.admin-user-heading-actions
+        if isOwnAccount
+          span.admin-role.is-admin Sua conta
+        else
+          span.admin-role(class=user.role === 'admin' ? 'is-admin' : '')= user.role === 'admin' ? 'Administrador' : 'Cliente'
+    .admin-user-stats
+      .admin-user-stat
+        strong= summary.rentalCount
+        span Solicitações
+      .admin-user-stat
+        strong= summary.activeRentals
+        span Locações ativas
+      .admin-user-stat
+        strong= summary.pendingRentals
+        span Em análise
+      .admin-user-stat
+        strong= summary.totalSpentFormatted
+        span Total locado
+      .admin-user-stat
+        strong= summary.favoriteCount
+        span Favoritos
+      .admin-user-stat
+        strong= summary.meetingCount
+        span Reuniões
+    .admin-user-grid
+      section.admin-user-card
+        h2 Dados de contato
+        dl.admin-user-info
+          div
+            dt Nome completo
+            dd= user.name
+          div
+            dt E-mail
+            dd
+              a(href='mailto:' + user.email)= user.email
+          div
+            dt Telefone
+            dd
+              if user.phone
+                a(href='tel:' + user.phone)= user.phone
+              else
+                | Não informado
+          div
+            dt Endereço principal
+            dd= fullAddress || 'Não informado'
+          div
+            dt CEP
+            dd= user.cep || 'Não informado'
+          div
+            dt Itens na sacola
+            dd= summary.cartCount
+      section.admin-user-card
+        h2 Conta e consentimentos
+        dl.admin-user-info
+          div
+            dt Perfil
+            dd= user.role === 'admin' ? 'Administrador' : 'Cliente'
+          div
+            dt Cadastro
+            dd= user.createdAt.toLocaleString('pt-BR')
+          div
+            dt Última atualização
+            dd= user.updatedAt.toLocaleString('pt-BR')
+          div
+            dt Forma de acesso
+            dd= socialLogins.length ? socialLogins.join(' e ') : 'E-mail e senha'
+          div
+            dt Termos de uso
+            dd= user.termsAcceptedAt ? user.termsAcceptedAt.toLocaleString('pt-BR') + (user.termsVersion ? ' (versão ' + user.termsVersion + ')' : '') : 'Não registrado'
+          div
+            dt Política de privacidade
+            dd= user.privacyPolicyAcceptedAt ? user.privacyPolicyAcceptedAt.toLocaleString('pt-BR') + (user.privacyPolicyVersion ? ' (versão ' + user.privacyPolicyVersion + ')' : '') : 'Não registrado'
+          div
+            dt Consentimento LGPD
+            dd= user.dataConsentAcceptedAt ? user.dataConsentAcceptedAt.toLocaleString('pt-BR') + (user.dataConsentVersion ? ' (versão ' + user.dataConsentVersion + ')' : '') : 'Não registrado'
+      section.admin-user-card.admin-user-whatsapp
+        h2 Mensagem no WhatsApp
+        if whatsappPhone
+          p.admin-form-hint Edite a mensagem abaixo e envie diretamente para o cliente.
+          label(for='user-whatsapp-message') Mensagem
+          textarea#user-whatsapp-message(rows='4' data-whatsapp-message)= defaultWhatsappMessage
+          a.admin-primary-button.admin-whatsapp-button(href=whatsappUrl target='_blank' rel='noopener' data-whatsapp-link data-whatsapp-phone=whatsappPhone)
+            i.bi.bi-whatsapp(aria-hidden='true')
+            | Enviar mensagem no WhatsApp
+        else
+          p.admin-form-error Este cliente não possui um telefone válido cadastrado. Peça para atualizar o telefone no perfil antes de enviar mensagens.
+    section.admin-user-card.admin-user-addresses
+      h2 Endereços cadastrados
+      if user.addresses && user.addresses.length
+        .admin-user-address-list
+          each address in user.addresses
+            article.admin-user-address
+              strong= address.label || 'Endereço'
+              p= [address.address, address.city, address.state].filter(Boolean).join(', ') || 'Endereço não informado'
+              if address.cep
+                p CEP #{address.cep}
+      else
+        p.admin-user-empty Nenhum endereço adicional cadastrado.
+    section.admin-user-card.admin-user-rentals
+      h2 Histórico de solicitações
+      if rentals.length
+        .admin-table-wrap
+          table.admin-table
+            thead
+              tr
+                th Solicitação
+                th Itens
+                th Entrega
+                th Total
+                th Status
+                th Ação
+            tbody
+              each rental in rentals
+                tr
+                  td(data-label='Solicitação')= rental.createdAt.toLocaleDateString('pt-BR')
+                  td(data-label='Itens')= rental.itemCount
+                  td(data-label='Entrega')= rental.deliveryDate ? rental.deliveryDate.split('-').reverse().join('/') : 'Não informada'
+                  td(data-label='Total')= rental.totalFormatted
+                  td(data-label='Status')
+                    span.admin-role(class=rental.status === 'active' ? 'is-admin' : rental.status === 'returned' ? 'is-complete' : rental.status === 'cancelled' ? 'is-cancelled' : '')= rental.statusLabel
+                  td(data-label='Ação')
+                    a.admin-small-button(href='/admin/solicitacoes/' + rental.id)
+                      i.bi.bi-eye(aria-hidden='true')
+                      | Abrir
+      else
+        p.admin-user-empty Este cliente ainda não fez solicitações.
+  script.
+    (function() {
+      var textarea = document.querySelector('[data-whatsapp-message]');
+      var link = document.querySelector('[data-whatsapp-link]');
+      if (!textarea || !link) return;
+      var phone = link.dataset.whatsappPhone;
+      function updateLink() {
+        var text = textarea.value.trim();
+        link.href = 'https://wa.me/' + phone + (text ? '?text=' + encodeURIComponent(text) : '');
+      }
+      textarea.addEventListener('input', updateLink);
+      updateLink();
+    })();

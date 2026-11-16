@@ -12,7 +12,8 @@ var inventory = require('../services/inventory');
 var receipts = require('../services/receipts');
 var defaultHomeCarouselImages = require('../config/home-carousel-images');
 var meetingHistoryUtils = require('../utils/meeting-history');
-var customerWhatsApp = require('../utils/customer-whatsapp').customerWhatsAppUrl;
+var customerWhatsAppUtils = require('../utils/customer-whatsapp');
+var customerWhatsApp = customerWhatsAppUtils.customerWhatsAppUrl;
 var withFinalPeriod = require('../utils/product-description');
 var siteSettings = require('../utils/site-settings');
 var { requireAdmin } = require('../middleware/auth');
@@ -364,6 +365,55 @@ router.get('/usuarios', async function(req, res, next) {
   try {
     res.render('admin-usuarios', { title: 'Gerenciar usuários', users: await User.find().sort({ createdAt: -1 }), currentAdminId: req.session.user.id, userMessage: req.session.userMessage });
     delete req.session.userMessage;
+  } catch (error) { next(error); }
+});
+
+function rentalStatusLabel(status) {
+  return status === 'analysis' ? 'Em análise' : status === 'active' ? 'Ativa' : status === 'returned' ? 'Finalizada' : 'Cancelada';
+}
+
+router.get('/usuarios/:id', async function(req, res, next) {
+  try {
+    var user = await User.findById(req.params.id);
+    if (!user) return res.status(404).render('erro', { title: 'Usuário não encontrado', message: 'Esta conta não existe.', error: {}, status: 404 });
+    var data = await Promise.all([
+      Rental.find({ user: user._id }).sort({ createdAt: -1 }),
+      Meeting.countDocuments({ user: user._id, status: { $in: ['requested', 'confirmed'] } })
+    ]);
+    var rentals = data[0];
+    var validRentals = rentals.filter(function(rental) { return rental.status !== 'cancelled'; });
+    var rentalSummaries = rentals.map(function(rental) {
+      return {
+        id: String(rental._id),
+        createdAt: rental.createdAt,
+        status: rental.status,
+        statusLabel: rentalStatusLabel(rental.status),
+        deliveryDate: rental.deliveryDate,
+        itemCount: rentalDashboardItemCount(rental),
+        totalFormatted: formatCurrency(rentalDashboardRevenue(rental))
+      };
+    });
+    var firstName = String(user.name || '').trim().split(/\s+/)[0] || 'cliente';
+    var defaultWhatsappMessage = 'Olá, ' + firstName + '! Aqui é da equipe Espaço Encantado.';
+    var whatsappPhone = customerWhatsAppUtils.normalizePhone(user.phone);
+    res.render('admin-usuario-detalhe', {
+      title: 'Detalhes de ' + user.name,
+      user: user,
+      isOwnAccount: String(user._id) === String(req.session.user.id),
+      summary: {
+        rentalCount: rentals.length,
+        activeRentals: rentals.filter(function(rental) { return rental.status === 'active'; }).length,
+        pendingRentals: rentals.filter(function(rental) { return rental.status === 'analysis'; }).length,
+        totalSpentFormatted: formatCurrency(validRentals.reduce(function(total, rental) { return total + rentalDashboardRevenue(rental); }, 0)),
+        favoriteCount: (user.favorites || []).length,
+        cartCount: (user.cart || []).reduce(function(total, item) { return total + (Number(item.quantity) || 0); }, 0),
+        meetingCount: data[1]
+      },
+      rentals: rentalSummaries,
+      whatsappPhone: whatsappPhone,
+      defaultWhatsappMessage: defaultWhatsappMessage,
+      whatsappUrl: whatsappPhone ? 'https://wa.me/' + whatsappPhone + '?text=' + encodeURIComponent(defaultWhatsappMessage) : ''
+    });
   } catch (error) { next(error); }
 });
 

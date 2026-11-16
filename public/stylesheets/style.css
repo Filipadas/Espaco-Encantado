@@ -5063,3 +5063,56 @@ body.dark-mode .tutorial-alert {
   .tutorial-summary { padding: 12px 14px; gap: 10px; }
   .tutorial-item-icon { width: 34px; height: 34px; border-radius: 10px; }
 }
+
+/* Detalhes do usuário (admin) */
+.admin-user-heading { display: flex; align-items: center; gap: 16px; }
+.admin-user-heading-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.admin-user-avatar { display: grid; place-items: center; flex: 0 0 76px; width: 76px; height: 76px; overflow: hidden; border: 1px solid #cfe0ee; border-radius: 50%; background: #eef5fb; color: #6d91b3; font-size: 2rem; }
+.admin-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.admin-user-heading .admin-title { margin-bottom: 2px; }
+.admin-user-heading .admin-subtitle { margin-bottom: 0; }
+.admin-user-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.admin-user-stat { padding: 14px 16px; border: 1px solid #dbe7f0; border-radius: 12px; background: #f8fbfd; color: #203a55; }
+.admin-user-stat strong { display: block; font-size: 1.35rem; line-height: 1.2; }
+.admin-user-stat span { color: #60758a; font-size: 0.8rem; font-weight: 600; }
+.admin-user-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-bottom: 18px; }
+.admin-user-card { padding: 20px; border: 1px solid #dbe7f0; border-radius: 12px; background: #f8fbfd; color: #203a55; }
+.admin-user-card h2 { margin: 0 0 14px; font-size: 1.1rem; }
+.admin-user-info { display: grid; gap: 12px; margin: 0; }
+.admin-user-info div { display: grid; gap: 2px; }
+.admin-user-info dt { color: #60758a; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.admin-user-info dd { margin: 0; overflow-wrap: anywhere; }
+.admin-user-info a { color: #245899; font-weight: 600; }
+.admin-user-whatsapp { display: flex; flex-direction: column; }
+.admin-user-whatsapp label { margin-bottom: 6px; color: #203a55; font-weight: 700; }
+.admin-user-whatsapp textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccdce8; border-radius: 8px; font: inherit; resize: vertical; }
+.admin-whatsapp-button { margin-top: 12px; align-self: flex-start; background: #1f8f4e; color: #fff; text-decoration: none; }
+.admin-whatsapp-button:hover { background: #187a41; color: #fff; }
+.admin-user-addresses, .admin-user-rentals { margin-top: 18px; }
+.admin-user-address-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.admin-user-address { padding: 12px 14px; border: 1px solid #dbe7f0; border-radius: 10px; background: #fff; }
+.admin-user-address strong { display: block; margin-bottom: 4px; }
+.admin-user-address p { margin: 0; color: #60758a; font-size: 0.9rem; }
+.admin-user-empty { margin: 0; color: #60758a; }
+.admin-user-link { color: #245899; font-weight: 700; }
+.admin-user-link:hover { color: #173f70; }
+.request-customer-link { margin: 0 0 10px; text-decoration: none; }
+
+body.dark-mode .admin-user-stat,
+body.dark-mode .admin-user-card { border-color: #45627d; background: #21384d; color: #e8eef5; }
+body.dark-mode .admin-user-stat span,
+body.dark-mode .admin-user-info dt,
+body.dark-mode .admin-user-address p,
+body.dark-mode .admin-user-empty { color: #cbd9e5; }
+body.dark-mode .admin-user-avatar { border-color: #45627d; background: #2b455d; color: #8ec5ff; }
+body.dark-mode .admin-user-address { border-color: #45627d; background: #1b2a3a; }
+body.dark-mode .admin-user-info a,
+body.dark-mode .admin-user-link { color: #8ec5ff; }
+body.dark-mode .admin-user-whatsapp label { color: #e8eef5; }
+body.dark-mode .admin-user-whatsapp textarea { border-color: #45627d; background: #1b2a3a; color: #e8eef5; }
+
+@media (max-width: 760px) {
+  .admin-user-heading { align-items: flex-start; }
+  .admin-user-avatar { flex-basis: 60px; width: 60px; height: 60px; font-size: 1.6rem; }
+  .admin-user-heading-actions { width: 100%; }
+}

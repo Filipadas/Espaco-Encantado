@@ -12,4 +12,4 @@ function customerWhatsAppUrl(customer, messageLines) {
   return 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
 }
 
-module.exports = { customerWhatsAppUrl: customerWhatsAppUrl };
+module.exports = { customerWhatsAppUrl: customerWhatsAppUrl, normalizePhone: normalizePhone };
