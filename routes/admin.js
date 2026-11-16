@@ -394,7 +394,9 @@ router.get('/produtos', async function(req, res, next) {
     var products = await Product.find().populate('components.product').sort({ createdAt: -1 });
     products = await inventory.getProductsAvailability(products);
     var categories = Array.from(new Set(products.map(function(product) { return product.category; }).filter(Boolean))).sort(function(a, b) { return a.localeCompare(b, 'pt-BR'); });
-    res.render('admin-produtos', { title: 'Gerenciar produtos', products: products, categories: categories });
+    var productError = req.session.productError || null;
+    delete req.session.productError;
+    res.render('admin-produtos', { title: 'Gerenciar produtos', products: products, categories: categories, productError: productError });
   } catch (error) { next(error); }
 });
 
@@ -406,7 +408,7 @@ router.get('/produtos/novo', async function(req, res, next) {
 
 router.get('/produtos/:id/editar', async function(req, res, next) {
   try {
-    var product = await Product.findById(req.params.id);
+    var product = await Product.findById(req.params.id).populate('components.product');
     if (!product) return res.status(404).render('erro', { title: 'Produto não encontrado', message: 'O produto solicitado não existe.', error: {}, status: 404 });
     res.render('admin-produtos-form', { title: 'Editar produto', product: product, specificationCatalog: await getSpecificationCatalog(product), subcategoryCatalog: await getSubcategoryCatalog(product), formError: null, isEditing: true, availableProducts: await Product.find({ _id: { $ne: product._id }, $or: [{ components: { $exists: false } }, { components: { $size: 0 } }] }).sort({ name: 1 }) });
   } catch (error) { next(error); }
@@ -1057,7 +1059,16 @@ router.post('/carrossel', carouselImageFields, async function(req, res, next) {
 
 router.post('/produtos/:id/excluir', async function(req, res, next) {
   try {
-    await Product.findByIdAndDelete(req.params.id);
+    var product = await Product.findById(req.params.id);
+    if (!product) return res.redirect('/admin/produtos');
+    // Excluir um produto usado como componente deixaria kits com referências
+    // órfãs (componente nulo), o que quebrava a listagem de produtos.
+    var kits = await Product.find({ 'components.product': product._id }).select('name').sort({ name: 1 });
+    if (kits.length) {
+      req.session.productError = 'Não é possível excluir "' + product.name + '" porque ele faz parte de: ' + kits.map(function(kit) { return kit.name; }).join(', ') + '. Remova o produto desses kits antes de excluí-lo.';
+      return res.redirect('/admin/produtos');
+    }
+    await Product.findByIdAndDelete(product._id);
     res.redirect('/admin/produtos');
   } catch (error) { next(error); }
 });

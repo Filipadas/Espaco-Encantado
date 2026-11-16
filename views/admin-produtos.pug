@@ -12,6 +12,8 @@ block content
       a.admin-primary-button(href='/admin/produtos/novo')
         i.bi.bi-plus-lg
         | Novo produto
+    if productError
+      p.admin-form-error= productError
     section.admin-product-filters(data-admin-product-filters)
       label.admin-product-search
         span Pesquisar produtos

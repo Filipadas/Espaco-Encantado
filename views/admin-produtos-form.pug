@@ -105,20 +105,24 @@ block content
           fieldset.admin-components(data-components-section)
             legend Componentes do kit ou festa
             p.admin-form-hint Selecione produtos já cadastrados. Você pode adicionar quantos componentes forem necessários.
+            - var missingComponents = (product.components || []).filter(function(component) { return !component.product; }).length
+            if missingComponents
+              p.admin-form-error Este kit possui #{missingComponents} componente(s) que foram excluídos. Selecione os produtos substitutos ou salve o kit para remover as referências inválidas.
             .admin-component-list(data-component-list)
               if product.components && product.components.length
                 each component in product.components
-                  .admin-component-row
-                    select.admin-component-category(name='componentCategory' data-component-category)
-                      option(value='brinquedos' selected=component.product.category === 'brinquedos') Brinquedos
-                      option(value='decoracoes' selected=component.product.category === 'decoracoes') Decorações
-                    select.admin-component-select(name='componentProduct')
-                      option(value='') Selecione um produto
-                      each availableProduct in availableProducts
-                        option(value=availableProduct._id data-category=availableProduct.category selected=String(availableProduct._id) === String(component.product._id || component.product))= availableProduct.name
-                    input(type='number' name='componentQuantity' min='1' step='1' value=component.quantity required)
-                    button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-component aria-label='Remover componente' title='Remover componente')
-                      i.bi.bi-trash3-fill(aria-hidden='true')
+                  if component.product
+                    .admin-component-row
+                      select.admin-component-category(name='componentCategory' data-component-category)
+                        option(value='brinquedos' selected=component.product.category === 'brinquedos') Brinquedos
+                        option(value='decoracoes' selected=component.product.category === 'decoracoes') Decorações
+                      select.admin-component-select(name='componentProduct')
+                        option(value='') Selecione um produto
+                        each availableProduct in availableProducts
+                          option(value=availableProduct._id data-category=availableProduct.category selected=String(availableProduct._id) === String(component.product._id || component.product))= availableProduct.name
+                      input(type='number' name='componentQuantity' min='1' step='1' value=component.quantity required)
+                      button.admin-icon-button.admin-icon-button-danger(type='button' data-remove-component aria-label='Remover componente' title='Remover componente')
+                        i.bi.bi-trash3-fill(aria-hidden='true')
               .admin-component-row(data-component-template)
                 select.admin-component-category(name='componentCategory' data-component-category)
                   option(value='brinquedos') Brinquedos

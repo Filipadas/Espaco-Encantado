@@ -5,7 +5,7 @@ function productId(product) {
 }
 
 function isComposite(product) {
-  return Array.isArray(product.components) && product.components.length > 0;
+  return Boolean(product) && Array.isArray(product.components) && product.components.length > 0;
 }
 
 function expandProduct(product, quantity, expanded, stack) {
@@ -30,11 +30,17 @@ async function findProductGraph(id) {
 }
 
 function availableUnits(product) {
+  // Um produto que não existe mais (ou um componente removido de um kit)
+  // não tem unidades disponíveis. Evita o erro "Cannot read properties of
+  // null (reading 'components')" quando o banco tem referências órfãs.
+  if (!product) return 0;
+
   if (!isComposite(product)) {
     return Math.max(0, (Number(product.stockTotal) || 0) - (Number(product.rentedQuantity) || 0));
   }
 
   return product.components.reduce(function(available, component) {
+    if (!component || !component.product) return 0;
     var componentAvailable = availableUnits(component.product);
     return Math.min(available, Math.floor(componentAvailable / Number(component.quantity || 1)));
   }, Infinity);
