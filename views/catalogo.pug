@@ -70,9 +70,10 @@ block content
           h1#catalog-products-title.catalog-products-title= categoryTitle
         form.catalog-search.catalog-page-search(role='search' data-catalog-search-form)
           input.form-control(type='search' placeholder='Pesquisar produtos' aria-label='Pesquisar produtos' data-catalog-search)
-          label.admin-product-search.catalog-sort-control
-            span Ordenar por:
-            select(data-catalog-sort)
+          label.admin-product-search.catalog-sort-control(title='Ordenar por')
+            i.bi.bi-sort-down(aria-hidden='true')
+            span.visually-hidden Ordenar por
+            select(data-catalog-sort aria-label='Ordenar produtos')
               option(value='name-asc') Nome (A–Z)
               option(value='name-desc') Nome (Z–A)
               option(value='price-asc') Preço (menor primeiro)

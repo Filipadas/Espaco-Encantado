@@ -102,19 +102,20 @@ router.get('/', requireLogin, async function(req, res, next) {
       item.unavailableDates = Array.from(new Set(unavailable)).sort();
       if (!isDateAvailable(item.requestDate, item.unavailableDates)) item.requestDate = firstAvailableDate(item.unavailableDates);
     });
-  res.render('sacola', {
-    title: 'Minha sacola',
-    cart: cart,
-    minimumDate: todayDateKey(),
-    deliveryProfile: deliveryProfile || {},
-    whatsappNumber: req.app.locals.whatsappNumber || res.locals.whatsappNumber,
-    cartError: req.session.cartError,
-    rentalSuccess: req.query.sucesso === '1',
-    pendingRequest: !!(req.session.pendingRental && Array.isArray(req.session.pendingRental.items) && req.session.pendingRental.items.length),
-    pendingWhatsappUrl: req.session.pendingRental ? req.session.pendingRental.whatsappUrl : ''
-  });
+    var cartError = req.session.cartError;
+    delete req.session.cartError;
+    res.render('sacola', {
+      title: 'Minha sacola',
+      cart: cart,
+      minimumDate: todayDateKey(),
+      deliveryProfile: deliveryProfile || {},
+      whatsappNumber: req.app.locals.whatsappNumber || res.locals.whatsappNumber,
+      cartError: cartError,
+      rentalSuccess: req.query.sucesso === '1',
+      pendingRequest: !!(req.session.pendingRental && Array.isArray(req.session.pendingRental.items) && req.session.pendingRental.items.length),
+      pendingWhatsappUrl: req.session.pendingRental ? req.session.pendingRental.whatsappUrl : ''
+    });
   } catch (error) { next(error); }
-  delete req.session.cartError;
 });
 
 async function addToCart(req, res, next, fromProductPage) {

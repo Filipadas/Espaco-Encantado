@@ -4,7 +4,6 @@ block content
   main.admin-page.cart-page
     a.admin-small-button.profile-back-link(href='javascript:history.back()' aria-label='Voltar' title='Voltar')
       i.bi.bi-arrow-left(aria-hidden='true')
-    p.admin-eyebrow MINHA CONTA
     h1.admin-title Minha sacola
     .cart-confirm-overlay(data-cart-confirm-overlay hidden=!pendingRequest)
       .confirmation-card
@@ -23,7 +22,7 @@ block content
     if rentalSuccess
       p.admin-success Solicitação registrada e enviada para análise. Você pode acompanhar o andamento no histórico.
     if cartError
-      p.admin-form-error= cartError
+      p.admin-form-error(data-cart-error role='alert' class=(cartError === 'Não há estoque disponível para adicionar outra unidade.' ? 'is-temporary' : ''))= cartError
     if cart && cart.length
       .cart-list
         each item, cartIndex in cart
@@ -134,6 +133,13 @@ block content
         a.admin-primary-button(href='/catalogo') Explorar catálogo
   script.
     (function() {
+      var cartError = document.querySelector('[data-cart-error].is-temporary');
+      if (cartError) {
+        window.setTimeout(function() {
+          cartError.classList.add('is-hiding');
+          window.setTimeout(function() { cartError.remove(); }, 320);
+        }, 5000);
+      }
     var savedAddress = document.querySelector('#saved-delivery-address');
     if (savedAddress) savedAddress.addEventListener('change', function() {
       if (!savedAddress.value) {
