@@ -58,17 +58,17 @@ block content
           button.admin-primary-button(type='submit') Salvar alterações
         if rental.status === 'analysis'
           h2 Aprovação
-          p.admin-subtitle Ao aprovar, a solicitação muda para ativa e fica disponível para a checklist de entrega.
-          form(method='post' action='/admin/solicitacoes/' + rental._id + '/confirmar' target=rental.user && rental.user.phone ? '_blank' : undefined)
+          p.admin-subtitle Ao confirmar, envie a mensagem ao cliente e confirme o envio na próxima tela para ativar a solicitação e liberar a checklist de entrega.
+          form(method='post' action='/admin/solicitacoes/' + rental._id + '/confirmar')
             button.admin-primary-button(type='submit') Confirmar solicitação e ativar
       else if rental.status === 'active' && !rental.returnChecked
         if rental.deliveryChecked
           h2 Checklist de devolução
-          p.admin-subtitle Marque todos os produtos devolvidos para concluir a checklist. O estoque será atualizado ao confirmar.
+          p.admin-subtitle Marque todos os produtos devolvidos. Depois, confirme o envio da mensagem na próxima tela para finalizar a solicitação. O estoque será atualizado ao confirmar.
         else
           h2 Checklist de entrega
-          p.admin-subtitle Marque todos os produtos entregues para liberar a checklist de devolução. O estoque será atualizado ao confirmar.
-        form(method='post' action='/admin/solicitacoes/' + rental._id + '/conferencia' target=rental.user && rental.user.phone ? '_blank' : undefined data-request-checklist-form data-checklist-label=rental.deliveryChecked ? 'devolução' : 'entrega')
+          p.admin-subtitle Marque todos os produtos entregues. Depois, confirme o envio da mensagem na próxima tela para liberar a checklist de devolução. O estoque será atualizado ao confirmar.
+        form(method='post' action='/admin/solicitacoes/' + rental._id + '/conferencia' data-request-checklist-form data-checklist-label=rental.deliveryChecked ? 'devolução' : 'entrega')
           each item in rental.items
             label.request-check
               if rental.deliveryChecked

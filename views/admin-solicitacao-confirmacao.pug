@@ -1,0 +1,32 @@
+extends layout
+
+block content
+  - var isDelivery = confirmationType === 'delivery'
+  - var isReturn = confirmationType === 'return'
+  main.admin-page.request-detail-page
+    a.admin-back-link(href='/admin/solicitacoes/' + rental._id)
+      i.bi.bi-arrow-left
+      | Voltar para a solicitação
+    .confirmation-card
+      img.auth-logo(src='/images/logo_ee.png' alt='Espaço Encantado')
+      p.admin-eyebrow CONFIRMAÇÃO
+      h1.admin-title= isDelivery ? 'Você enviou a mensagem de entrega?' : isReturn ? 'Você enviou a mensagem de devolução?' : 'Você enviou a mensagem para o cliente?'
+      if isDelivery
+        p.admin-subtitle Confirme a entrega para #{rental.user ? rental.user.name : 'o cliente'} para liberar a checklist de devolução.
+      else if isReturn
+        p.admin-subtitle Confirme a devolução para #{rental.user ? rental.user.name : 'o cliente'} para finalizar a solicitação e enviá-la ao histórico.
+      else
+        p.admin-subtitle Confirme a locação de #{rental.user ? rental.user.name : 'o cliente'} somente depois de enviar a mensagem de confirmação da solicitação.
+      if whatsappUrl
+        a.admin-primary-button.confirmation-whatsapp(href=whatsappUrl target='_blank' rel='noopener')
+          i.bi.bi-whatsapp(aria-hidden='true')
+          | Abrir WhatsApp para enviar
+      else
+        p.admin-form-error Este cliente não possui um telefone válido cadastrado. Não foi possível gerar a mensagem no WhatsApp.
+      if formError
+        p.admin-form-error= formError
+      .profile-actions.confirmation-actions
+        form(method='post' action='/admin/solicitacoes/' + rental._id + '/confirmar-mensagem/nao')
+          button.admin-small-button.confirm-cancel-button(type='submit') Não, ainda não
+        form(method='post' action='/admin/solicitacoes/' + rental._id + '/confirmar-mensagem/sim')
+          button.admin-primary-button(type='submit') Sim, já enviei

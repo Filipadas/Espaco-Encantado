@@ -494,16 +494,18 @@ body:has(.catalog-page) main.container {
 
 .catalog-product-photo {
   display: grid;
+  flex: 0 0 auto;
   place-items: center;
   aspect-ratio: 1;
   margin-bottom: 8px;
+  overflow: hidden;
   border: 1px dashed #8eb7df;
   border-radius: 6px;
   background: #f1f6fc;
   color: #6d91b3;
 }
 
-.catalog-product-photo img { width: 100%; height: 100%; object-fit: cover; }
+.catalog-product-photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 
 .catalog-card-toggle {
   position: absolute;
@@ -681,6 +683,8 @@ body:has(.catalog-page) main.container {
 .confirmation-page { display: grid; min-height: calc(100vh - 120px); place-items: center; padding: 32px 16px; background: linear-gradient(135deg, #c62828, #b71c1c 45%, #2f6ec1); }
 .confirmation-card { width: min(480px, 100%); padding: 32px; border-radius: 16px; background: #fff; text-align: center; box-shadow: 0 18px 45px rgba(0,0,0,0.24); }
 .confirmation-card .auth-logo { margin: 0 auto 18px; }
+.confirmation-whatsapp { margin-bottom: 16px; }
+.confirmation-actions { flex-wrap: wrap; justify-content: center; }
 
 /* ===== Seção Azul (Actions) ===== */
 .navbar-actions-section {
@@ -4041,13 +4045,14 @@ body.dark-mode .admin-category-button.is-active, body.dark-mode .admin-subcatego
 .request-detail-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .product-detail-page { width: min(1100px, calc(100% - 32px)); margin: 0 auto 80px; }
 .product-detail-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr); gap: 34px; padding: 28px 0; }
-.product-detail-visual { position: relative; min-height: 360px; }
-.product-detail-balloons { position: fixed; top: 0; right: -20px; z-index: 0; width: min(760px, 58vw); max-height: 640px; object-fit: contain; pointer-events: none; }
-.product-detail-carousel { position: relative; z-index: 1; display: grid; min-height: 360px; place-items: center; overflow: hidden; border: 1px dashed #8eb7df; border-radius: 12px; background: #f1f6fc; color: #6d91b3; }
-.product-detail-carousel img { display: none; width: 100%; height: 100%; object-fit: cover; }
+.product-detail-visual { position: relative; }
+/* Balões no canto superior direito da página, rolando junto com o documento (não fixos). */
+.product-detail-balloons { position: absolute; top: 0; right: -20px; z-index: 0; width: min(760px, 58vw); max-height: 640px; object-fit: contain; pointer-events: none; }
+.product-detail-carousel { position: relative; z-index: 1; display: grid; width: 100%; aspect-ratio: 4 / 3; place-items: center; overflow: hidden; border: 1px dashed #8eb7df; border-radius: 12px; background: #f1f6fc; color: #6d91b3; }
+.product-detail-carousel img { position: absolute; inset: 0; display: none; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .product-detail-carousel img.is-active { display: block; }
-.product-detail-photo { display: grid; min-height: 360px; place-items: center; overflow: hidden; border: 1px dashed #8eb7df; border-radius: 12px; background: #f1f6fc; color: #6d91b3; }
-.product-detail-photo img { width: 100%; height: 100%; object-fit: cover; }
+.product-detail-photo { position: relative; display: grid; width: 100%; aspect-ratio: 4 / 3; place-items: center; overflow: hidden; border: 1px dashed #8eb7df; border-radius: 12px; background: #f1f6fc; color: #6d91b3; }
+.product-detail-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .product-detail-content { align-self: center; }
 .product-detail-price { color: #2f6ec1; font-size: 1.5rem; font-weight: 800; }
 .product-detail-description { color: #60758a; line-height: 1.6; }
@@ -4059,8 +4064,8 @@ body.dark-mode .admin-category-button.is-active, body.dark-mode .admin-subcatego
 .similar-products h2 { color: #203a55; font-size: 1.4rem; }
 .similar-products-track { display: flex; gap: 14px; overflow-x: auto; padding: 8px 2px 18px; }
 .similar-product-card { display: flex; flex: 0 0 210px; min-height: 210px; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid #2f6ec1; border-radius: 8px; color: #17324d; background: #fff; box-shadow: 0 6px 16px rgba(23, 50, 77, 0.14); }
-.similar-product-photo { display: grid; height: 130px; place-items: center; overflow: hidden; border-radius: 7px; background: #f1f6fc; color: #6d91b3; }
-.similar-product-photo img { width: 100%; height: 100%; object-fit: cover; }
+.similar-product-photo { position: relative; display: grid; aspect-ratio: 4 / 3; place-items: center; overflow: hidden; border-radius: 7px; background: #f1f6fc; color: #6d91b3; }
+.similar-product-photo img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .similar-product-card strong, .similar-product-card > span { text-align: center; }
 .admin-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
 .admin-title-row .admin-title { margin-bottom: 0; }
@@ -4146,6 +4151,10 @@ body.admin-panel-page:has(.admin-agenda-page) main.container { display: none; }
 .request-page .request-detail-card .admin-title,
 .request-page .request-detail-card .admin-subtitle,
 .request-page .request-detail-card h2 { color: #203a55; }
+.request-page .confirmation-card { color: #203a55; }
+.request-page .confirmation-card .admin-eyebrow { color: #c62828; }
+.request-page .confirmation-card .admin-title,
+.request-page .confirmation-card .admin-subtitle { color: #203a55; }
 .admin-empty { padding: 40px; text-align: center; color: #60758a; }
 .admin-empty i { display: block; margin-bottom: 12px; color: #2f6ec1; font-size: 3rem; }
 
@@ -4174,9 +4183,7 @@ body.dark-mode .admin-components, body.dark-mode .admin-component-row input, bod
   .admin-component-row { grid-template-columns: 1fr 90px 36px; }
   .product-detail-card { grid-template-columns: 1fr; padding: 18px; }
   .product-detail-visual { order: -1; }
-  .product-detail-visual, .product-detail-carousel { min-height: 240px; }
-  /* Balões só no topo da página, colados no canto superior direito do body (não seguem a rolagem). */
-  .product-detail-balloons { position: absolute; top: 0; right: 0; width: min(620px, 150vw); max-width: none; max-height: none; }
+  .product-detail-balloons { top: 0; right: -12px; width: min(620px, 150vw); max-width: none; max-height: none; }
   .cart-item { align-items: flex-start; flex-wrap: wrap; }
   .cart-item-info { min-width: calc(100% - 84px); }
   .cart-quantity-actions { margin-left: auto; }

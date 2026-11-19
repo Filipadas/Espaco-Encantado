@@ -798,6 +798,39 @@ router.post('/solicitacoes/:id/editar', async function(req, res, next) {
   }
 });
 
+async function validateRentalForActivation(rental) {
+  var componentIds = (rental.reservedComponents || []).map(function(component) { return String(component.product); });
+  var components = await Product.find({ _id: { $in: componentIds } });
+  if (components.length !== componentIds.length) throw new Error('Um componente desta solicitação não foi encontrado.');
+  for (var index = 0; index < components.length; index += 1) {
+    var component = components[index];
+    var requested = rental.reservedComponents.find(function(entry) { return String(entry.product) === String(component._id); });
+    if ((Number(component.stockTotal) || 0) - (Number(component.rentedQuantity) || 0) < requested.quantity) throw new Error('Não há estoque suficiente de ' + component.name + ' para aprovar esta solicitação.');
+  }
+  if (await hasActiveScheduleConflict(rental, rental._id)) throw new Error('Os itens, as datas ou o horário do salão conflitam com outro aluguel ativo.');
+}
+
+function approvalMessageFor(rental) {
+  return [
+    'Sua solicitação de locação foi aprovada e está ativa.',
+    'Entrega prevista: ' + rental.deliveryDate.split('-').reverse().join('/') + ' às ' + rental.deliveryTime,
+    'Endereço: ' + rental.deliveryAddress + ', ' + rental.deliveryCity + '/' + rental.deliveryState,
+    'Itens: ' + rental.items.map(function(item) { return item.quantity + 'x ' + item.name; }).join(', ')
+  ];
+}
+
+function checkedNamesFor(rental, checkedIds) {
+  return rental.items.filter(function(item) { return checkedIds.map(String).indexOf(String(item.product)) !== -1; }).map(function(item) { return item.name; });
+}
+
+function checklistMessageFor(rental, isReturnChecklist, checkedNames) {
+  var checkedLabel = isReturnChecklist ? 'Itens conferidos' : 'Itens entregues';
+  var summary = checkedLabel + ': ' + (checkedNames.length ? checkedNames.join(', ') : 'nenhum') + ' (' + checkedNames.length + ' de ' + rental.items.length + ').';
+  return isReturnChecklist
+    ? ['A loja atualizou a conferência de devolução da sua locação.', summary, 'A devolução foi concluída.']
+    : ['A loja atualizou a conferência de entrega da sua locação.', summary, 'A entrega foi concluída.'];
+}
+
 router.post('/solicitacoes/:id/confirmar', async function(req, res, next) {
   try {
     var rental = await Rental.findOne({ _id: req.params.id, status: 'analysis' }).populate('user');
@@ -805,29 +838,128 @@ router.post('/solicitacoes/:id/confirmar', async function(req, res, next) {
       req.session.rentalFormError = 'Esta solicitação não está mais aguardando aprovação.';
       return res.redirect('/admin/solicitacoes/' + req.params.id);
     }
-    var componentIds = (rental.reservedComponents || []).map(function(component) { return String(component.product); });
-    var components = await Product.find({ _id: { $in: componentIds } });
-    if (components.length !== componentIds.length) throw new Error('Um componente desta solicitação não foi encontrado.');
-    for (var index = 0; index < components.length; index += 1) {
-      var component = components[index];
-      var requested = rental.reservedComponents.find(function(entry) { return String(entry.product) === String(component._id); });
-      if ((Number(component.stockTotal) || 0) - (Number(component.rentedQuantity) || 0) < requested.quantity) throw new Error('Não há estoque suficiente de ' + component.name + ' para aprovar esta solicitação.');
-    }
-    if (await hasActiveScheduleConflict(rental, rental._id)) throw new Error('Os itens, as datas ou o horário do salão conflitam com outro aluguel ativo.');
-    rental.status = 'active';
-    await rental.save();
-    var approvalMessage = [
-      'Sua solicitação de locação foi aprovada e está ativa.',
-      'Entrega prevista: ' + rental.deliveryDate.split('-').reverse().join('/') + ' às ' + rental.deliveryTime,
-      'Endereço: ' + rental.deliveryAddress + ', ' + rental.deliveryCity + '/' + rental.deliveryState,
-      'Itens: ' + rental.items.map(function(item) { return item.quantity + 'x ' + item.name; }).join(', ')
-    ];
-    var approvalWhatsAppUrl = customerWhatsApp(rental.user, approvalMessage);
-    if (approvalWhatsAppUrl) return res.redirect(approvalWhatsAppUrl);
-    req.session.rentalFormSuccess = 'Solicitação aprovada e marcada como ativa. O cliente não tem um telefone válido cadastrado.';
-    res.redirect('/admin/solicitacoes/' + rental._id);
+    await validateRentalForActivation(rental);
+    // A solicitação só é ativada depois que o admin confirmar o envio da mensagem.
+    req.session.pendingConfirmation = {
+      rentalId: String(rental._id),
+      type: 'approval',
+      whatsappUrl: customerWhatsApp(rental.user, approvalMessageFor(rental))
+    };
+    res.redirect('/admin/solicitacoes/' + rental._id + '/confirmar-mensagem');
   } catch (error) {
-    req.session.rentalFormError = error.message || 'Não foi possível aprovar a solicitação.';
+    req.session.rentalFormError = error.message || 'Não foi possível preparar a aprovação da solicitação.';
+    res.redirect('/admin/solicitacoes/' + req.params.id);
+  }
+});
+
+router.get('/solicitacoes/:id/confirmar-mensagem', async function(req, res, next) {
+  try {
+    var pending = req.session.pendingConfirmation;
+    var rental = await Rental.findById(req.params.id).populate('user');
+    if (!pending || pending.rentalId !== String(req.params.id) || !rental) {
+      req.session.rentalFormError = 'Inicie a confirmação novamente.';
+      return res.redirect('/admin/solicitacoes/' + req.params.id);
+    }
+    res.render('admin-solicitacao-confirmacao', {
+      title: 'Confirmar envio da mensagem',
+      rental: rental,
+      confirmationType: pending.type,
+      whatsappUrl: pending.whatsappUrl,
+      formError: req.session.rentalFormError
+    });
+    delete req.session.rentalFormError;
+  } catch (error) { next(error); }
+});
+
+router.post('/solicitacoes/:id/confirmar-mensagem/nao', function(req, res) {
+  // Mantém a pendência e permanece na mesma tela: nada é confirmado.
+  res.redirect('/admin/solicitacoes/' + req.params.id + '/confirmar-mensagem');
+});
+
+router.post('/solicitacoes/:id/confirmar-mensagem/sim', async function(req, res, next) {
+  try {
+    var pending = req.session.pendingConfirmation;
+    if (!pending || pending.rentalId !== String(req.params.id)) {
+      req.session.rentalFormError = 'Confirme o envio da mensagem a partir da tela de confirmação.';
+      return res.redirect('/admin/solicitacoes/' + req.params.id);
+    }
+
+    if (pending.type === 'approval') {
+      var rentalToActivate = await Rental.findOne({ _id: req.params.id, status: 'analysis' }).populate('user');
+      if (!rentalToActivate) {
+        delete req.session.pendingConfirmation;
+        req.session.rentalFormError = 'Esta solicitação não está mais aguardando aprovação.';
+        return res.redirect('/admin/solicitacoes/' + req.params.id);
+      }
+      await validateRentalForActivation(rentalToActivate);
+      rentalToActivate.status = 'active';
+      await rentalToActivate.save();
+      delete req.session.pendingConfirmation;
+      req.session.rentalFormSuccess = 'Solicitação aprovada e marcada como ativa. A checklist de entrega está disponível.';
+      return res.redirect('/admin/solicitacoes/' + rentalToActivate._id);
+    }
+
+    if (pending.type === 'delivery' || pending.type === 'return') {
+      var isReturnChecklist = pending.type === 'return';
+      var checklistSession = await mongoose.startSession();
+      try {
+        checklistSession.startTransaction();
+        var rental = await Rental.findOne({ _id: req.params.id, status: 'active' }).populate('user').session(checklistSession);
+        if (!rental || rental.deliveryChecked !== isReturnChecklist || rental.returnChecked) {
+          await checklistSession.abortTransaction();
+          delete req.session.pendingConfirmation;
+          req.session.rentalFormError = 'A conferência desta solicitação não está mais disponível.';
+          return res.redirect('/admin/solicitacoes/' + req.params.id);
+        }
+
+        var checkedIds = Array.isArray(pending.checkedIds) ? pending.checkedIds : [];
+        var rentalItemIds = Array.from(new Set(rental.items.map(function(item) { return String(item.product); })));
+        var allItemsChecked = rentalItemIds.length > 0 && rentalItemIds.every(function(id) { return checkedIds.map(String).indexOf(id) !== -1; });
+        if (!allItemsChecked) {
+          await checklistSession.abortTransaction();
+          delete req.session.pendingConfirmation;
+          req.session.rentalFormError = 'A conferência foi alterada. Marque novamente todos os produtos.';
+          return res.redirect('/admin/solicitacoes/' + req.params.id);
+        }
+
+        if (!isReturnChecklist) {
+          rental.deliveredItems = rentalItemIds;
+          rental.returnedItems = [];
+          rental.returnChecked = false;
+          for (var deliveryIndex = 0; deliveryIndex < rental.reservedComponents.length; deliveryIndex += 1) {
+            var deliveredComponent = rental.reservedComponents[deliveryIndex];
+            await Product.updateOne({ _id: deliveredComponent.product }, { $inc: { rentedQuantity: deliveredComponent.quantity } }).session(checklistSession);
+          }
+          rental.deliveryChecked = true;
+        } else {
+          rental.returnedItems = rentalItemIds;
+          for (var returnIndex = 0; returnIndex < rental.reservedComponents.length; returnIndex += 1) {
+            var returnedComponent = rental.reservedComponents[returnIndex];
+            await Product.updateOne({ _id: returnedComponent.product }, { $inc: { rentedQuantity: -returnedComponent.quantity } }).session(checklistSession);
+          }
+          rental.returnChecked = true;
+          rental.status = 'returned';
+        }
+
+        await rental.save({ session: checklistSession });
+        await checklistSession.commitTransaction();
+        delete req.session.pendingConfirmation;
+        if (isReturnChecklist) return res.redirect('/admin/solicitacoes#historico-solicitacoes');
+        req.session.rentalFormSuccess = 'Entrega confirmada. A checklist de devolução está disponível.';
+        return res.redirect('/admin/solicitacoes/' + rental._id);
+      } catch (error) {
+        if (checklistSession.inTransaction()) await checklistSession.abortTransaction();
+        throw error;
+      } finally {
+        await checklistSession.endSession();
+      }
+    }
+
+    delete req.session.pendingConfirmation;
+    req.session.rentalFormError = 'Confirmação inválida. Tente novamente.';
+    res.redirect('/admin/solicitacoes/' + req.params.id);
+  } catch (error) {
+    req.session.rentalFormError = error.message || 'Não foi possível confirmar a solicitação.';
     res.redirect('/admin/solicitacoes/' + req.params.id);
   }
 });
@@ -852,14 +984,9 @@ async function closeRental(req, res, next, status) {
 }
 
 router.post('/solicitacoes/:id/conferencia', async function(req, res, next) {
-  var session = await mongoose.startSession();
   try {
-    session.startTransaction();
-    var rental = await Rental.findOne({ _id: req.params.id, status: 'active' }).populate('user').session(session);
-    if (!rental) {
-      await session.abortTransaction();
-      return res.redirect('/admin/solicitacoes');
-    }
+    var rental = await Rental.findOne({ _id: req.params.id, status: 'active' }).populate('user');
+    if (!rental) return res.redirect('/admin/solicitacoes');
 
     var isReturnChecklist = rental.deliveryChecked;
     var submittedItems = isReturnChecklist ? req.body.returnedItem : req.body.deliveredItem;
@@ -868,47 +995,23 @@ router.post('/solicitacoes/:id/conferencia', async function(req, res, next) {
     var allItemsChecked = rentalItemIds.length > 0 && rentalItemIds.every(function(id) { return checkedIds.has(id); });
 
     if (!allItemsChecked) {
-      await session.abortTransaction();
       req.session.rentalFormError = isReturnChecklist
         ? 'Assinale todos os produtos antes de confirmar a devolução.'
         : 'Assinale todos os produtos antes de confirmar a entrega.';
       return res.redirect('/admin/solicitacoes/' + rental._id);
     }
 
-    if (!rental.deliveryChecked) {
-      rental.deliveredItems = rentalItemIds;
-      rental.returnedItems = [];
-      rental.returnChecked = false;
-      for (var deliveryIndex = 0; deliveryIndex < rental.reservedComponents.length; deliveryIndex += 1) {
-        var deliveredComponent = rental.reservedComponents[deliveryIndex];
-        await Product.updateOne({ _id: deliveredComponent.product }, { $inc: { rentedQuantity: deliveredComponent.quantity } }).session(session);
-      }
-      rental.deliveryChecked = true;
-    } else {
-      rental.returnedItems = rentalItemIds;
-      for (var returnIndex = 0; returnIndex < rental.reservedComponents.length; returnIndex += 1) {
-        var returnedComponent = rental.reservedComponents[returnIndex];
-        await Product.updateOne({ _id: returnedComponent.product }, { $inc: { rentedQuantity: -returnedComponent.quantity } }).session(session);
-      }
-      rental.returnChecked = true;
-      rental.status = 'returned';
-    }
-
-    await rental.save({ session: session });
-    await session.commitTransaction();
-    var checkedItems = isReturnChecklist ? rental.returnedItems : rental.deliveredItems;
-    var checkedNames = rental.items.filter(function(item) { return checkedItems.map(String).indexOf(String(item.product)) !== -1; }).map(function(item) { return item.name; });
-    var checklistMessage = isReturnChecklist
-      ? ['A loja atualizou a conferência de devolução da sua locação.', 'Itens conferidos: ' + (checkedNames.length ? checkedNames.join(', ') : 'nenhum') + ' (' + checkedNames.length + ' de ' + rental.items.length + ').', rental.returnChecked ? 'A devolução foi concluída.' : 'A conferência será concluída quando todos os itens forem recebidos.']
-      : ['A loja atualizou a conferência de entrega da sua locação.', 'Itens entregues: ' + (checkedNames.length ? checkedNames.join(', ') : 'nenhum') + ' (' + checkedNames.length + ' de ' + rental.items.length + ').', rental.deliveryChecked ? 'A entrega foi concluída.' : 'A conferência será concluída quando todos os itens forem entregues.'];
-    var checklistWhatsAppUrl = customerWhatsApp(rental.user, checklistMessage);
-    if (checklistWhatsAppUrl) return res.redirect(checklistWhatsAppUrl);
-    res.redirect('/admin/solicitacoes/' + rental._id);
+    // A conferência só é gravada depois que o admin confirmar o envio da mensagem.
+    req.session.pendingConfirmation = {
+      rentalId: String(rental._id),
+      type: isReturnChecklist ? 'return' : 'delivery',
+      checkedIds: rentalItemIds,
+      whatsappUrl: customerWhatsApp(rental.user, checklistMessageFor(rental, isReturnChecklist, checkedNamesFor(rental, rentalItemIds)))
+    };
+    res.redirect('/admin/solicitacoes/' + rental._id + '/confirmar-mensagem');
   } catch (error) {
-    if (session.inTransaction()) await session.abortTransaction();
-    next(error);
-  } finally {
-    await session.endSession();
+    req.session.rentalFormError = error.message || 'Não foi possível preparar a conferência.';
+    res.redirect('/admin/solicitacoes/' + req.params.id);
   }
 });
 
